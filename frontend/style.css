@@ -2,20 +2,48 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap');
 
-html, body {
-    overflow-x: hidden !important;
-    max-width: 100vw !important;
-    width: 100% !important;
+html {
+    scroll-behavior: smooth;
+}
+
+body {
     margin: 0;
     padding: 0;
+    width: 100%;
+    min-height: 100vh;
     box-sizing: border-box;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background-color: #f8fafc;
     color: #1e293b;
 }
 
+/* Đóng băng thanh điều khiển và bộ lọc dính đỉnh khi cuộn (Sticky Freeze) */
+#sticky-control-panel {
+    position: -webkit-sticky !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 40 !important;
+    background-color: rgba(248, 250, 252, 0.96) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    transition: box-shadow 0.2s ease, padding 0.2s ease;
+}
+
+/* Khi đang cuộn trang, thêm bóng đổ và đường viền tinh tế cho thanh đóng băng */
+#sticky-control-panel.is-scrolled {
+    box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.04) !important;
+}
+
 *, *::before, *::after {
     box-sizing: border-box;
+}
+
+img, svg, video, canvas, audio, iframe, embed, object {
+    max-width: 100%;
+}
+
+header, main, footer, section {
+    max-width: 100%;
 }
 
 .overflow-x-auto {

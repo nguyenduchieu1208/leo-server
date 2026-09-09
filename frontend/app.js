@@ -1298,16 +1298,33 @@ function setupEventListeners() {
         });
     }
 
-    // Nút Cuộn Lên Đầu Trang Nhanh (Back to Top)
+    // Quản lý hiệu ứng Đóng Băng Dính Đỉnh (Sticky Freeze) & Nút Lên Đầu Trang khi cuộn
+    const stickyPanel = document.getElementById('sticky-control-panel');
     const btnTop = document.getElementById('btn-back-to-top');
-    if (btnTop) {
-        window.addEventListener('scroll', () => {
-            if (window.scrollY > 300) {
-                btnTop.classList.remove('translate-y-20', 'opacity-0');
+
+    window.addEventListener('scroll', () => {
+        const scrollY = window.scrollY || window.pageYOffset || 0;
+        
+        // Thêm bóng đổ tinh tế khi bảng lọc được đóng băng dính đỉnh
+        if (stickyPanel) {
+            if (scrollY > 10) {
+                stickyPanel.classList.add('is-scrolled');
             } else {
-                btnTop.classList.add('translate-y-20', 'opacity-0');
+                stickyPanel.classList.remove('is-scrolled');
             }
-        });
+        }
+
+        // Hiện nút cuộn lên đầu trang khi cuộn quá 250px
+        if (btnTop) {
+            if (scrollY > 250) {
+                btnTop.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+            } else {
+                btnTop.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+            }
+        }
+    }, { passive: true });
+
+    if (btnTop) {
         btnTop.addEventListener('click', () => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
         });
