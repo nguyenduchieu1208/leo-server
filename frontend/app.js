@@ -26,12 +26,72 @@ let state = {
     searchQuery: '',
     isAdmin: false,
     expandedAssemblies: new Set(),
+    filterCollapsed: false,
     // Performance pagination
     visibleCount: 35,
     filteredAssemblies: [],
     activeTab: 'tree',
     scrollObserver: null
 };
+
+// Cập nhật các nhãn trên thanh bộ lọc thu gọn
+function updateCompactFilterBadges() {
+    const pLabel = document.getElementById('compact-project-label');
+    const sLabel = document.getElementById('compact-sheet-label');
+    const dLabel = document.getElementById('compact-date-label');
+    const cSearch = document.getElementById('compact-input-search');
+    const mainSearch = document.getElementById('input-search');
+    
+    if (pLabel) {
+        pLabel.textContent = state.currentProject || 'Dự án';
+    }
+    if (sLabel) {
+        sLabel.textContent = state.selectedSheet === 'all' ? 'Tất cả sheet' : state.selectedSheet;
+    }
+    if (dLabel) {
+        dLabel.textContent = state.selectedDate === 'all' ? 'Tất cả ngày' : `📅 Ngày ${formatDateDisplay(state.selectedDate)}`;
+    }
+    if (cSearch && mainSearch && cSearch.value !== mainSearch.value) {
+        cSearch.value = mainSearch.value;
+    }
+}
+
+// Chuyển đổi trạng thái Thu gọn / Mở rộng của Bảng lọc
+function toggleFilterCollapse(forceState = null) {
+    const isCollapsed = forceState !== null ? forceState : !state.filterCollapsed;
+    state.filterCollapsed = isCollapsed;
+    localStorage.setItem('amecc_filter_collapsed', isCollapsed ? 'true' : 'false');
+    
+    const fullContent = document.getElementById('filter-full-content');
+    const compactContent = document.getElementById('filter-compact-content');
+    const textToggle = document.getElementById('text-toggle-filter');
+    const iconToggle = document.getElementById('icon-toggle-filter');
+    const modeTag = document.getElementById('filter-panel-mode-tag');
+
+    if (isCollapsed) {
+        if (fullContent) fullContent.classList.add('hidden');
+        if (compactContent) compactContent.classList.remove('hidden');
+        if (textToggle) textToggle.textContent = 'Mở Rộng Bảng Lọc';
+        if (iconToggle) {
+            iconToggle.setAttribute('data-lucide', 'chevrons-down');
+        }
+        if (modeTag) {
+            modeTag.textContent = '• Đang thu gọn để xem danh sách cấu kiện rộng rãi hơn';
+        }
+    } else {
+        if (fullContent) fullContent.classList.remove('hidden');
+        if (compactContent) compactContent.classList.add('hidden');
+        if (textToggle) textToggle.textContent = 'Thu Gọn Bảng Lọc';
+        if (iconToggle) {
+            iconToggle.setAttribute('data-lucide', 'chevrons-up');
+        }
+        if (modeTag) {
+            modeTag.textContent = '• Bấm thu gọn để tối ưu diện tích xem cấu kiện';
+        }
+    }
+    if (window.lucide) lucide.createIcons();
+    updateCompactFilterBadges();
+}
 
 // Hàm chuyển đổi định dạng hiển thị sang Ngày/Tháng/Năm (DD/MM/YYYY)
 function formatDateDisplay(dStr) {
@@ -82,14 +142,34 @@ async function loadServerInfo() {
             ipText.dataset.url = info.lan_url;
         }
 
-        const tunnelText = document.getElementById('tunnel-url-text');
-        if (tunnelText) {
-            if (info.public_url) {
-                tunnelText.textContent = info.public_url;
-                tunnelText.dataset.url = info.public_url;
-                tunnelText.className = "text-indigo-700 font-mono font-bold select-all";
+        const lanBox = document.getElementById('lan-box');
+        if (lanBox) {
+            if (state.isAdmin) {
+                lanBox.classList.remove('hidden');
+                lanBox.classList.add('flex');
             } else {
-                tunnelText.textContent = "Đang khởi tạo...";
+                lanBox.classList.add('hidden');
+                lanBox.classList.remove('flex');
+            }
+        }
+
+        const tunnelBox = document.getElementById('tunnel-box');
+        const tunnelText = document.getElementById('tunnel-url-text');
+        if (tunnelBox) {
+            if (state.isAdmin) {
+                tunnelBox.classList.remove('hidden');
+                tunnelBox.classList.add('flex');
+                if (tunnelText) {
+                    if (info.public_url) {
+                        tunnelText.textContent = info.public_url;
+                        tunnelText.dataset.url = info.public_url;
+                    } else {
+                        tunnelText.textContent = "Đang kết nối...";
+                    }
+                }
+            } else {
+                tunnelBox.classList.add('hidden');
+                tunnelBox.classList.remove('flex');
             }
         }
 
@@ -169,6 +249,7 @@ async function loadProjectData(filePath, forceReload = false) {
         if (!res.ok) throw new Error(await res.text());
         
         state.projectData = await res.json();
+        state.currentProject = (filePath.split('/').pop() || '').split('\\').pop().replace('PL.xlsx', '').replace('.xlsx', '');
         state.expandedAssemblies.clear();
         state.selectedDate = 'all';
         state.selectedSheet = 'all';
@@ -177,6 +258,7 @@ async function loadProjectData(filePath, forceReload = false) {
         renderSheetSelector();
         renderDatePills();
         updateKPIs();
+        updateCompactFilterBadges();
         applyFiltersAndRender(true);
         
         // Cập nhật số lượng cảnh báo Shape trên Badge
@@ -242,26 +324,18 @@ function selectDeliveryDate(dStr) {
     state.selectedDate = dStr;
     const select = document.getElementById('select-date');
     const label = document.getElementById('current-date-label');
-    const nativeInput = document.getElementById('input-date-native');
     const modal = document.getElementById('modal-calendar-picker');
 
     if (select) select.value = dStr;
     if (label) {
         label.textContent = dStr !== 'all' ? formatDateDisplay(dStr) : 'Tất cả ngày';
     }
-    if (nativeInput) {
-        if (dStr !== 'all' && dStr.includes('/')) {
-            const [d, m, y] = dStr.split('/');
-            nativeInput.value = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
-        } else {
-            nativeInput.value = '';
-        }
-    }
     if (modal) {
         modal.classList.add('hidden');
         modal.classList.remove('flex');
     }
 
+    updateCompactFilterBadges();
     applyFiltersAndRender(true);
     if (state.activeTab === 'timeline') renderDailyTimeline();
 }
@@ -412,7 +486,6 @@ function renderCalendarGrid() {
 function renderDateSelector() {
     const select = document.getElementById('select-date');
     const label = document.getElementById('current-date-label');
-    const nativeInput = document.getElementById('input-date-native');
     const btnOpenCalendar = document.getElementById('btn-open-calendar');
     const btnAll = document.getElementById('btn-date-all');
 
@@ -449,17 +522,6 @@ function renderDateSelector() {
         btnOpenCalendar.onclick = openCalendarModal;
     }
 
-    if (nativeInput) {
-        nativeInput.onchange = (e) => {
-            if (e.target.value) {
-                const [y, m, d] = e.target.value.split('-');
-                const dStr = `${parseInt(d, 10).toString().padStart(2, '0')}/${parseInt(m, 10).toString().padStart(2, '0')}/${y}`;
-                selectDeliveryDate(dStr);
-            } else {
-                selectDeliveryDate('all');
-            }
-        };
-    }
 
     // Gắn sự kiện điều hướng tháng trong modal
     const btnPrev = document.getElementById('btn-cal-prev-month');
@@ -976,6 +1038,7 @@ function setupEventListeners() {
                     ? 'Tất cả các sheet' 
                     : `Hạng mục: ${state.selectedSheet}`;
             }
+            updateCompactFilterBadges();
             applyFiltersAndRender(true);
         });
     }
@@ -989,17 +1052,54 @@ function setupEventListeners() {
         });
     }
 
-    // Tìm kiếm với Debounce 250ms
+    // Nút Thu Gọn / Mở Rộng Bảng Lọc
+    const btnToggleFilter = document.getElementById('btn-toggle-filter');
+    const btnExpandFilter = document.getElementById('btn-expand-filter');
+    const btnCompactCal = document.getElementById('btn-compact-calendar');
+
+    if (btnToggleFilter) {
+        btnToggleFilter.addEventListener('click', () => toggleFilterCollapse());
+    }
+    if (btnExpandFilter) {
+        btnExpandFilter.addEventListener('click', () => toggleFilterCollapse(false));
+    }
+    if (btnCompactCal) {
+        btnCompactCal.addEventListener('click', () => openCalendarModal());
+    }
+
+    // Tìm kiếm với Debounce 250ms (Đồng bộ 2 chiều giữa thanh Đầy đủ và thanh Thu gọn)
     let searchTimeout = null;
     const inputSearch = document.getElementById('input-search');
+    const compactSearch = document.getElementById('compact-input-search');
+
     if (inputSearch) {
         inputSearch.addEventListener('input', (e) => {
             clearTimeout(searchTimeout);
+            const val = e.target.value;
+            if (compactSearch && compactSearch.value !== val) compactSearch.value = val;
             searchTimeout = setTimeout(() => {
-                state.searchQuery = e.target.value.trim();
+                state.searchQuery = val.trim();
                 applyFiltersAndRender(true);
             }, 250);
         });
+    }
+
+    if (compactSearch) {
+        let compactTimeout = null;
+        compactSearch.addEventListener('input', (e) => {
+            clearTimeout(compactTimeout);
+            const val = e.target.value;
+            if (inputSearch && inputSearch.value !== val) inputSearch.value = val;
+            compactTimeout = setTimeout(() => {
+                state.searchQuery = val.trim();
+                applyFiltersAndRender(true);
+            }, 250);
+        });
+    }
+
+    // Đọc trạng thái thu gọn trước đó nếu người dùng đã lưu
+    if (localStorage.getItem('amecc_filter_collapsed') === 'true') {
+        toggleFilterCollapse(true);
     }
 
     // Nút Tải lên file Excel mới (Dành cho cả Cloud & Local)
