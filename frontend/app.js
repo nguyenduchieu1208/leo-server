@@ -241,7 +241,7 @@ function renderDatePills() {
     const sortedDates = [...rawDates].sort((a, b) => parseDateSortKey(a) - parseDateSortKey(b));
     
     container.innerHTML = `
-        <button data-date="all" class="date-pill active px-3 py-1 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition cursor-pointer">
+        <button data-date="all" class="date-pill active px-3 py-1 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition cursor-pointer shrink-0">
             Tất cả ngày
         </button>
     `;
@@ -249,7 +249,7 @@ function renderDatePills() {
     sortedDates.forEach(d => {
         const btn = document.createElement('button');
         btn.dataset.date = d;
-        btn.className = "date-pill px-3 py-1 rounded-lg text-xs font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300 transition font-mono cursor-pointer";
+        btn.className = "date-pill px-3 py-1 rounded-lg text-xs font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300 transition font-mono cursor-pointer shrink-0";
         btn.textContent = formatDateDisplay(d);
         container.appendChild(btn);
     });
@@ -806,13 +806,17 @@ function setupEventListeners() {
         });
     }
 
-    // Xuất file Excel
+    // Xuất file Excel & CSV
     function handleExport(mode) {
         const curFile = document.getElementById('select-project').value;
         if (!curFile) {
-            alert("Vui lòng chọn một file dự án trước khi xuất Excel!");
+            alert("Vui lòng chọn một file dự án trước khi xuất file!");
             return;
         }
+
+        const formatSelect = document.getElementById('select-export-format');
+        const format = formatSelect ? formatSelect.value : 'xlsx';
+        const formatLabel = format === 'csv' ? 'CSV' : 'Excel';
 
         const btn = mode === 'missing' 
             ? document.getElementById('btn-export-missing') 
@@ -821,7 +825,7 @@ function setupEventListeners() {
         const originalHtml = btn ? btn.innerHTML : '';
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin inline mr-1"></i> Đang tạo file Excel...`;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin inline mr-1"></i> Đang tạo file ${formatLabel}...`;
             lucide.createIcons();
         }
 
@@ -829,7 +833,8 @@ function setupEventListeners() {
             ? `&target_sheet=${encodeURIComponent(state.selectedSheet)}` 
             : '';
 
-        const exportUrl = `/api/export-excel?file_path=${encodeURIComponent(curFile)}&mode=${mode}${targetSheetParam}`;
+        const endpoint = format === 'csv' ? '/api/export-csv' : '/api/export-excel';
+        const exportUrl = `${endpoint}?file_path=${encodeURIComponent(curFile)}&mode=${mode}${targetSheetParam}&format=${format}`;
         window.location.href = exportUrl;
 
         setTimeout(() => {
@@ -930,6 +935,21 @@ function setupEventListeners() {
             state.expandedAssemblies.clear();
             document.querySelectorAll('.assy-details').forEach(d => d.classList.add('hidden'));
             document.querySelectorAll('.chevron-icon').forEach(icon => icon.innerHTML = SVG_ICONS.chevronRight);
+        });
+    }
+
+    // Nút Cuộn Lên Đầu Trang Nhanh (Back to Top)
+    const btnTop = document.getElementById('btn-back-to-top');
+    if (btnTop) {
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 300) {
+                btnTop.classList.remove('translate-y-20', 'opacity-0');
+            } else {
+                btnTop.classList.add('translate-y-20', 'opacity-0');
+            }
+        });
+        btnTop.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
     }
 }

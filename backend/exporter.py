@@ -1,12 +1,14 @@
 """
-Module xuất file Excel chuyên nghiệp:
+Module xuất file Excel và CSV chuyên nghiệp:
 1. Chế độ "full" (Full Tier): Xuất toàn bộ cây phân cấp Cấu kiện (AS Symbol 'X') & 100% BTP con.
 2. Chế độ "missing" (Chỉ chi tiết còn thiếu): Chỉ gom các BTP có con_thieu > 0.
-- Chia theo từng hạng mục tên sheet (như T5P1, T5P2, U6T1P1, M4120...).
-- Hỗ trợ xuất theo 1 hạng mục được chọn hoặc toàn bộ dự án.
+- Tự động tạo hàng Tiêu Đề chuẩn ở dòng 1 và bật sẵn Bộ Lọc (AutoFilter) để người dùng lọc dữ liệu ngay khi mở file.
+- Cột Ktra nối được tích hợp vào phần Ghi Chú.
+- Hỗ trợ xuất định dạng Excel (.xlsx) đa sheet và CSV (.csv) chuẩn tiếng Việt UTF-8 BOM.
 """
 
 import io
+import csv
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
@@ -17,19 +19,29 @@ def clean_sheet_title(title: str) -> str:
     t = str(title).replace(":", "_").replace("/", "_").replace("\\", "_").replace("?", "").replace("*", "").replace("[", "").replace("]", "")
     return t[:31]
 
-def export_project_excel(
-    project_data: Dict[str, Any], 
-    mode: str = "missing", 
-    target_sheet: Optional[str] = None
-) -> io.BytesIO:
-    """
-    Xuất file Excel theo chuẩn nghiệp vụ chế tạo kết cấu thép:
-    - mode: 'full' (Xuất đầy đủ mọi cấu kiện & chi tiết) hoặc 'missing' (Chỉ xuất chi tiết thiếu)
-    - target_sheet: Tên sheet cụ thể (vd: 'T5P1', 'A290T5P1') hoặc None/'all' để xuất tất cả
-    """
-    wb = openpyxl.Workbook()
-    wb.remove(wb.active)
+# Định nghĩa các cột chuẩn cho cả Excel và CSV
+EXPORT_HEADERS = [
+    ("STT", 6, "center"),
+    ("Hạng Mục (Sheet)", 16, "left"),
+    ("Cấu Kiện (Assembly)", 22, "left"),
+    ("Bản Vẽ (Drawing)", 22, "left"),
+    ("Tình Trạng Cấu Kiện", 18, "center"),
+    ("Mã BTP (Part No)", 18, "left"),
+    ("Mã Cắt (Cutting Mark)", 24, "left"),
+    ("Chủng Loại", 14, "center"),
+    ("Quy Cách (Size)", 20, "left"),
+    ("Chiều Dài (mm)", 14, "right"),
+    ("Vật Liệu", 14, "center"),
+    ("SL Thiết Kế", 13, "right"),
+    ("Đã Nhận", 12, "right"),
+    ("Còn Thiếu", 14, "right"),
+    ("Kế Hoạch Cắt (CP No)", 22, "left"),
+    ("Tình Trạng BTP", 25, "left"),
+    ("Ghi Chú (Ktra Nối)", 35, "left"),
+]
 
+def _collect_export_data(project_data: Dict[str, Any], mode: str, target_sheet: Optional[str]):
+    """Gom và lọc dữ liệu cần xuất theo mode và sheet"""
     assemblies = project_data.get("assemblies", [])
     sheets_grouped: Dict[str, List[Dict[str, Any]]] = {}
 
@@ -57,6 +69,25 @@ def export_project_excel(
                 "parts": parts_to_include
             })
 
+    return sheets_grouped
+
+def export_project_excel(
+    project_data: Dict[str, Any], 
+    mode: str = "missing", 
+    target_sheet: Optional[str] = None
+) -> io.BytesIO:
+    """
+    Xuất file Excel chuyên nghiệp:
+    - Tiêu đề cột đặt chuẩn ở Dòng 1.
+    - Bật sẵn AutoFilter (bộ lọc) và Freeze Panes ở Dòng 1 để người dùng lọc dữ liệu ngay lập tức.
+    - Không merge cell giữa các dòng dữ liệu để chức năng lọc / sắp xếp hoạt động chuẩn 100%.
+    - Cột Ktra nối được đưa vào phần Ghi Chú.
+    """
+    wb = openpyxl.Workbook()
+    wb.remove(wb.active)
+
+    sheets_grouped = _collect_export_data(project_data, mode, target_sheet)
+
     if not sheets_grouped:
         ws = wb.create_sheet(title="ThongBao")
         msg = f"Hạng mục {target_sheet} không có chi tiết nào còn thiếu!" if mode == "missing" else "Không có dữ liệu phù hợp."
@@ -68,10 +99,7 @@ def export_project_excel(
         return output
 
     font_header = Font(name="Times New Roman", size=11, bold=True, color="FFFFFF")
-    fill_header = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid") # Xanh AMECC
-    
-    font_assy_title = Font(name="Times New Roman", size=11, bold=True, color="0F172A")
-    fill_assy_title = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+    fill_header = PatternFill(start_color="1E3A8A", end_color="1E3A8A", fill_type="solid") # Xanh Navy AMECC
     
     font_data = Font(name="Times New Roman", size=10)
     font_missing = Font(name="Times New Roman", size=10, bold=True, color="DC2626")
@@ -90,51 +118,29 @@ def export_project_excel(
         bottom=Side(style='thin', color='CBD5E1')
     )
 
-    align_center = Alignment(horizontal="center", vertical="center", wrap_text=True)
-    align_left = Alignment(horizontal="left", vertical="center")
-    align_right = Alignment(horizontal="right", vertical="center")
-
-    headers = [
-        ("STT", 6, align_center),
-        ("Cấu Kiện (Assembly)", 20, align_left),
-        ("Bản Vẽ (Drawing)", 22, align_left),
-        ("Mã BTP (Part No)", 18, align_left),
-        ("Mã Cắt (Cutting Mark)", 24, align_left),
-        ("Chủng Loại", 14, align_center),
-        ("Quy Cách (Size)", 20, align_left),
-        ("Dài (mm)", 12, align_right),
-        ("Vật Liệu", 12, align_center),
-        ("SL Thiết Kế", 13, align_right),
-        ("Đã Nhận", 12, align_right),
-        ("Còn Thiếu", 14, align_right),
-        ("Kế Hoạch Cắt (CP No)", 20, align_left),
-        ("Tình Trạng / Cảnh Báo Shape", 35, align_left),
-    ]
+    alignments = {
+        "center": Alignment(horizontal="center", vertical="center", wrap_text=True),
+        "left": Alignment(horizontal="left", vertical="center"),
+        "right": Alignment(horizontal="right", vertical="center")
+    }
 
     for sheet_name, assy_list in sorted(sheets_grouped.items()):
         ws_title = clean_sheet_title(sheet_name)
         ws = wb.create_sheet(title=ws_title)
         ws.views.sheetView[0].showGridLines = True
 
-        proj_name = project_data.get("project_id", "")
-        mode_label = "TOÀN BỘ TẦNG BẬC (FULL TIER)" if mode == "full" else "DANH SÁCH CHI TIẾT CÒN THIẾU"
-        
-        ws.merge_cells("A1:N1")
-        title_cell = ws.cell(1, 1, f"{mode_label} - HẠNG MỤC: {sheet_name.upper()} (DỰ ÁN: {proj_name})")
-        title_cell.font = Font(name="Times New Roman", size=13, bold=True, color="1E3A8A")
-        title_cell.alignment = align_left
-        ws.row_dimensions[1].height = 25
-
-        ws.row_dimensions[2].height = 28
-        for col_idx, (h_name, width, align) in enumerate(headers, 1):
-            cell = ws.cell(2, col_idx, h_name)
+        # 1. Dòng 1: Tiêu đề cột chuẩn (Header)
+        ws.row_dimensions[1].height = 28
+        for col_idx, (h_name, width, align_type) in enumerate(EXPORT_HEADERS, 1):
+            cell = ws.cell(1, col_idx, h_name)
             cell.font = font_header
             cell.fill = fill_header
-            cell.alignment = align_center
+            cell.alignment = alignments["center"]
             cell.border = border_thin
             ws.column_dimensions[get_column_letter(col_idx)].width = width
 
-        cur_row = 3
+        # 2. Các dòng dữ liệu (bắt đầu từ Dòng 2)
+        cur_row = 2
         stt_counter = 1
         total_tqty_sheet = 0
         total_danhan_sheet = 0
@@ -145,17 +151,7 @@ def export_project_excel(
             p_list = assy_group["parts"]
             assy_no = assy.get("assembly_no", "")
             dwg = assy.get("dwg", "")
-            assy_status = "ĐỦ 100%" if assy.get("status") == "completed" else f"HOÀN THÀNH {assy.get('completion_rate', 0)}%"
-
-            ws.merge_cells(start_row=cur_row, start_column=1, end_row=cur_row, end_column=14)
-            assy_header_cell = ws.cell(cur_row, 1, f"▶ CẤU KIỆN: {assy_no} | BẢN VẼ: {dwg} | {assy_status} ({len(p_list)} BTP)")
-            assy_header_cell.font = font_assy_title
-            assy_header_cell.fill = fill_assy_title
-            assy_header_cell.alignment = align_left
-            for c in range(1, 15):
-                ws.cell(cur_row, c).border = border_thin
-            ws.row_dimensions[cur_row].height = 22
-            cur_row += 1
+            assy_status = "ĐỦ 100%" if assy.get("status") == "completed" else f"THIẾU ({assy.get('completion_rate', 0)}%)"
 
             for p in p_list:
                 ws.row_dimensions[cur_row].height = 20
@@ -178,21 +174,34 @@ def export_project_excel(
                     fill_thieu = fill_completed
                     status_text = "✓ Đã nhận đủ"
 
+                # Ghi chú tổng hợp: bao gồm Ktra nối và Remark bản vẽ
+                ghi_chu_val = p.get("ghi_chu") or ""
+                if not ghi_chu_val:
+                    notes = []
+                    if p.get("ktra_noi"):
+                        notes.append(f"Ktra nối: {p['ktra_noi']}")
+                    if p.get("remark"):
+                        notes.append(p["remark"])
+                    ghi_chu_val = " | ".join(notes)
+
                 row_vals = [
-                    (stt_counter, align_center, font_data, None),
-                    (assy_no, align_left, font_data, None),
-                    (dwg, align_left, font_data, None),
-                    (p.get("part_no", ""), align_left, font_data, None),
-                    (p.get("part_cut", ""), align_left, font_data, None),
-                    (p.get("chung_loai", ""), align_center, font_data, None),
-                    (p.get("size", ""), align_left, font_data, None),
-                    (p.get("length", ""), align_right, font_data, None),
-                    (p.get("material", ""), align_center, font_data, None),
-                    (tqty_val, align_right, font_data, None),
-                    (da_nhan_val, align_right, font_data, None),
-                    (con_thieu_val, align_right, font_thieu, fill_thieu),
-                    (sa.get("cutting_no", "") or "", align_left, font_data, None),
-                    (status_text, align_left, font_data, None),
+                    (stt_counter, alignments["center"], font_data, None),
+                    (sheet_name, alignments["left"], font_data, None),
+                    (assy_no, alignments["left"], font_data, None),
+                    (dwg, alignments["left"], font_data, None),
+                    (assy_status, alignments["center"], font_data, None),
+                    (p.get("part_no", ""), alignments["left"], font_data, None),
+                    (p.get("part_cut", ""), alignments["left"], font_data, None),
+                    (p.get("chung_loai", ""), alignments["center"], font_data, None),
+                    (p.get("size", ""), alignments["left"], font_data, None),
+                    (p.get("length", ""), alignments["right"], font_data, None),
+                    (p.get("material", ""), alignments["center"], font_data, None),
+                    (tqty_val, alignments["right"], font_data, None),
+                    (da_nhan_val, alignments["right"], font_data, None),
+                    (con_thieu_val, alignments["right"], font_thieu, fill_thieu),
+                    (sa.get("cutting_no", "") or p.get("cutting_no", "") or "", alignments["left"], font_data, None),
+                    (status_text, alignments["left"], font_data, None),
+                    (ghi_chu_val, alignments["left"], font_data, None),
                 ]
 
                 for c_idx, (val, alignment, font, fill) in enumerate(row_vals, 1):
@@ -206,39 +215,45 @@ def export_project_excel(
                 cur_row += 1
                 stt_counter += 1
 
-        # Dòng tổng kết ở cuối sheet
-        ws.merge_cells(start_row=cur_row, start_column=1, end_row=cur_row, end_column=9)
+        # 3. Kích hoạt AutoFilter và Cố định dòng tiêu đề (Freeze Panes)
+        last_col = get_column_letter(len(EXPORT_HEADERS))
+        last_data_row = max(1, cur_row - 1)
+        ws.auto_filter.ref = f"A1:{last_col}{last_data_row}"
+        ws.freeze_panes = "A2"
+
+        # 4. Dòng tổng kết ở cuối sheet
+        ws.merge_cells(start_row=cur_row, start_column=1, end_row=cur_row, end_column=11)
         tot_label_cell = ws.cell(cur_row, 1, "TỔNG CỘNG HẠNG MỤC:")
         tot_label_cell.font = font_total
         tot_label_cell.alignment = Alignment(horizontal="right", vertical="center")
         tot_label_cell.fill = fill_total
 
-        for c in range(1, 10):
+        for c in range(1, 12):
             ws.cell(cur_row, c).border = border_thin
             ws.cell(cur_row, c).fill = fill_total
 
         # Tổng SL Thiết kế
-        c_tqty = ws.cell(cur_row, 10, total_tqty_sheet)
+        c_tqty = ws.cell(cur_row, 12, total_tqty_sheet)
         c_tqty.font = font_total
-        c_tqty.alignment = align_right
+        c_tqty.alignment = alignments["right"]
         c_tqty.fill = fill_total
         c_tqty.border = border_thin
 
         # Tổng Đã nhận
-        c_dn = ws.cell(cur_row, 11, total_danhan_sheet)
+        c_dn = ws.cell(cur_row, 13, total_danhan_sheet)
         c_dn.font = Font(name="Times New Roman", size=11, bold=True, color="166534")
-        c_dn.alignment = align_right
+        c_dn.alignment = alignments["right"]
         c_dn.fill = fill_total
         c_dn.border = border_thin
 
         # Tổng Còn thiếu
-        tot_val_cell = ws.cell(cur_row, 12, total_missing_sheet)
+        tot_val_cell = ws.cell(cur_row, 14, total_missing_sheet)
         tot_val_cell.font = Font(name="Times New Roman", size=11, bold=True, color="DC2626")
-        tot_val_cell.alignment = align_right
+        tot_val_cell.alignment = alignments["right"]
         tot_val_cell.fill = fill_total
         tot_val_cell.border = border_thin
 
-        for c in [13, 14]:
+        for c in range(15, len(EXPORT_HEADERS) + 1):
             ws.cell(cur_row, c).border = border_thin
             ws.cell(cur_row, c).fill = fill_total
 
@@ -248,6 +263,82 @@ def export_project_excel(
     wb.save(output)
     output.seek(0)
     return output
+
+def export_project_csv(
+    project_data: Dict[str, Any], 
+    mode: str = "missing", 
+    target_sheet: Optional[str] = None
+) -> io.BytesIO:
+    """
+    Xuất file CSV chuẩn UTF-8 BOM:
+    - Mở trực tiếp bằng Microsoft Excel không bị lỗi font tiếng Việt.
+    - Dòng 1 là tiêu đề cột để người dùng bật Filter (Ctrl+Shift+L) lọc cực dễ.
+    - Cột Ktra nối được đưa vào phần Ghi Chú.
+    """
+    sheets_grouped = _collect_export_data(project_data, mode, target_sheet)
+
+    # Sử dụng StringIO trước để ghi CSV
+    string_output = io.StringIO()
+    writer = csv.writer(string_output, quoting=csv.QUOTE_MINIMAL)
+
+    # 1. Ghi dòng tiêu đề
+    headers = [h[0] for h in EXPORT_HEADERS]
+    writer.writerow(headers)
+
+    stt_counter = 1
+    for sheet_name, assy_list in sorted(sheets_grouped.items()):
+        for assy_group in assy_list:
+            assy = assy_group["assembly"]
+            p_list = assy_group["parts"]
+            assy_no = assy.get("assembly_no", "")
+            dwg = assy.get("dwg", "")
+            assy_status = "ĐỦ 100%" if assy.get("status") == "completed" else f"THIẾU ({assy.get('completion_rate', 0)}%)"
+
+            for p in p_list:
+                sa = p.get("shape_analysis", {})
+                tqty_val = p.get("tqty", 0)
+                da_nhan_val = p.get("da_nhan", 0)
+                con_thieu_val = p.get("con_thieu", 0)
+
+                if con_thieu_val > 0:
+                    status_text = sa.get("message") or f"Còn thiếu {con_thieu_val}"
+                else:
+                    status_text = "Đã nhận đủ"
+
+                ghi_chu_val = p.get("ghi_chu") or ""
+                if not ghi_chu_val:
+                    notes = []
+                    if p.get("ktra_noi"):
+                        notes.append(f"Ktra nối: {p['ktra_noi']}")
+                    if p.get("remark"):
+                        notes.append(p["remark"])
+                    ghi_chu_val = " | ".join(notes)
+
+                row = [
+                    stt_counter,
+                    sheet_name,
+                    assy_no,
+                    dwg,
+                    assy_status,
+                    p.get("part_no", ""),
+                    p.get("part_cut", ""),
+                    p.get("chung_loai", ""),
+                    p.get("size", ""),
+                    p.get("length", ""),
+                    p.get("material", ""),
+                    tqty_val,
+                    da_nhan_val,
+                    con_thieu_val,
+                    sa.get("cutting_no", "") or p.get("cutting_no", "") or "",
+                    status_text,
+                    ghi_chu_val
+                ]
+                writer.writerow(row)
+                stt_counter += 1
+
+    # Chuyển đổi sang bytes với mã hóa UTF-8-SIG (Excel mở chuẩn dấu tiếng Việt)
+    csv_bytes = string_output.getvalue().encode('utf-8-sig')
+    return io.BytesIO(csv_bytes)
 
 # Tương thích ngược
 export_missing_parts_excel = export_project_excel

@@ -138,6 +138,8 @@ def detect_bom_columns(ws, max_scan_rows: int = 15) -> Tuple[int, Dict[str, int]
                 temp_map["uweight"] = c
             elif "t.weight" in cell_val:
                 temp_map["tweight"] = c
+            elif "remark" in cell_val or "ghi chú" in cell_val or "ghi chu" in cell_val or "note" in cell_val:
+                temp_map["remark"] = c
             elif "as symbol" in cell_val or "as symble" in cell_val or "as_symbol" in cell_val:
                 temp_map["as_symbol"] = c
 
@@ -159,6 +161,7 @@ def detect_bom_columns(ws, max_scan_rows: int = 15) -> Tuple[int, Dict[str, int]
         "tqty": 12,
         "uweight": 13,
         "tweight": 14,
+        "remark": 30,
         "as_symbol": 31
     }
     for k, v in defaults.items():
@@ -202,6 +205,8 @@ def detect_btp_sheet_data(ws) -> Dict[str, Any]:
                     col_map["cutting_no"] = c_idx
                 elif "qty cutting" in t:
                     col_map["qty_cutting"] = c_idx
+                elif "ktra nối" in t or "ktra noi" in t or "kiểm tra nối" in t or "nối" in t:
+                    col_map["ktra_noi"] = c_idx
             break
 
     col_defaults = {
@@ -216,6 +221,7 @@ def detect_btp_sheet_data(ws) -> Dict[str, Any]:
         "tweight": 11,
         "da_nhan": 12,
         "con_thieu": 13,
+        "ktra_noi": 27,
         "cutting_no": 33,
         "qty_cutting": 34
     }
@@ -261,6 +267,8 @@ def detect_btp_sheet_data(ws) -> Dict[str, Any]:
         cutting_val = ws.cell(r, col_map.get("cutting_no", 33)).value
         cutting_str = clean_str(cutting_val) if cutting_val not in ["-", "0", None] else ""
         qty_cutting = parse_number(ws.cell(r, col_map.get("qty_cutting", 34)).value, is_int=True)
+        ktra_noi_val = ws.cell(r, col_map["ktra_noi"]).value if "ktra_noi" in col_map else None
+        ktra_noi_str = clean_str(ktra_noi_val) if ktra_noi_val not in ["-", "0", None] else ""
         
         item_obj = {
             "row": r,
@@ -276,6 +284,7 @@ def detect_btp_sheet_data(ws) -> Dict[str, Any]:
             "da_nhan": da_nhan_num,
             "con_thieu": con_thieu_num,
             "dates_received": dates_received,
+            "ktra_noi": ktra_noi_str,
             "cutting_no": cutting_str,
             "qty_cutting": qty_cutting
         }
@@ -428,6 +437,16 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
                 con_thieu = btp_info.get("con_thieu", tqty_val) if btp_info else tqty_val
                 chung_loai = btp_info.get("chung_loai", "") if btp_info else ""
                 dates_received = btp_info.get("dates_received", {}) if btp_info else {}
+                ktra_noi = btp_info.get("ktra_noi", "") if btp_info else ""
+                bom_remark = clean_str(ws_bom.cell(r, col_map.get("remark", 30)).value)
+
+                # Cột ktra nối đưa vào phần ghi chú
+                note_items = []
+                if ktra_noi:
+                    note_items.append(f"Ktra nối: {ktra_noi}")
+                if bom_remark:
+                    note_items.append(bom_remark)
+                ghi_chu = " | ".join(note_items)
                 
                 part_entry = {
                     "row_index": r,
@@ -446,6 +465,9 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
                     "da_nhan": da_nhan,
                     "con_thieu": con_thieu,
                     "dates_received": dates_received,
+                    "ktra_noi": ktra_noi,
+                    "remark": bom_remark,
+                    "ghi_chu": ghi_chu,
                     "shape_analysis": shape_analysis,
                     "is_fully_received": da_nhan >= tqty_val and tqty_val > 0
                 }

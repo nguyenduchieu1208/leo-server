@@ -36,7 +36,7 @@ if BASE_DIR not in sys.path:
 
 from backend.parser import list_available_projects
 from backend.cache import get_cached_project, get_cached_project_json, warm_up_cache, clear_all_cache
-from backend.exporter import export_project_excel, export_missing_parts_excel
+from backend.exporter import export_project_excel, export_project_csv, export_missing_parts_excel
 
 app = FastAPI(title="Server Tra Cứu Vật Tư & BTP Theo Ngày - AMECC", version="2.5.0")
 
@@ -173,18 +173,24 @@ async def get_project_data(
 
 @app.get("/api/export-excel")
 @app.get("/api/export-missing")
-async def export_excel_data(
+@app.get("/api/export-csv")
+async def export_data_endpoint(
+    request: Request,
     file_path: Optional[str] = Query(None),
     project_id: Optional[str] = Query(None),
     mode: str = Query("missing"), # 'missing' hoặc 'full'
-    sheet_name: Optional[str] = Query(None) # Tên sheet cụ thể (vd: T5P1) hoặc None (tất cả)
+    sheet_name: Optional[str] = Query(None), # Tên sheet cụ thể (vd: T5P1) hoặc None (tất cả)
+    format: str = Query("xlsx") # 'xlsx' hoặc 'csv'
 ):
     """
-    Xuất file Excel theo chuẩn:
-    - mode='full': Xuất toàn bộ tầng bậc cấu kiện (Full Tier)
-    - mode='missing': Chỉ xuất các chi tiết còn thiếu
-    - sheet_name: Lọc riêng theo hạng mục (vd: T5P1) hoặc xuất toàn bộ các sheet
+    Xuất file Excel (.xlsx) hoặc CSV (.csv):
+    - format: 'xlsx' hoặc 'csv' (nếu gọi /api/export-csv thì tự động là csv)
+    - mode: 'full' (Toàn bộ tầng bậc) hoặc 'missing' (Chỉ chi tiết còn thiếu)
+    - sheet_name: Lọc riêng theo hạng mục hoặc xuất toàn bộ
     """
+    if request.url.path.endswith("export-csv"):
+        format = "csv"
+
     target_path = None
     if file_path and os.path.exists(file_path):
         target_path = file_path
@@ -204,25 +210,36 @@ async def export_excel_data(
 
     try:
         data = get_cached_project(target_path)
-        excel_stream = export_project_excel(data, mode=mode, target_sheet=sheet_name)
-        
         proj_code = data.get("project_id", "DuAn")
         sheet_suffix = f"_{sheet_name}" if sheet_name and sheet_name.lower() != "all" else "_TatCaHangMuc"
         mode_prefix = "BTP_FullTier" if mode == "full" else "BTP_ConThieu"
-        filename = f"{mode_prefix}_{proj_code}{sheet_suffix}.xlsx"
-        
-        encoded_filename = urllib.parse.quote(filename)
-        headers = {
-            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
-        }
-        
-        return StreamingResponse(
-            excel_stream,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers=headers
-        )
+
+        if format.lower() == "csv":
+            csv_stream = export_project_csv(data, mode=mode, target_sheet=sheet_name)
+            filename = f"{mode_prefix}_{proj_code}{sheet_suffix}.csv"
+            encoded_filename = urllib.parse.quote(filename)
+            headers = {
+                "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
+            }
+            return StreamingResponse(
+                csv_stream,
+                media_type="text/csv; charset=utf-8",
+                headers=headers
+            )
+        else:
+            excel_stream = export_project_excel(data, mode=mode, target_sheet=sheet_name)
+            filename = f"{mode_prefix}_{proj_code}{sheet_suffix}.xlsx"
+            encoded_filename = urllib.parse.quote(filename)
+            headers = {
+                "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
+            }
+            return StreamingResponse(
+                excel_stream,
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers=headers
+            )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Lỗi xuất Excel: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Lỗi xuất file: {str(e)}")
 
 @app.post("/api/clear-cache")
 async def api_clear_cache(request: Request):
