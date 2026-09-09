@@ -21,6 +21,8 @@ def start_ngrok(port: int = 8000) -> bool:
     try:
         from pyngrok import ngrok, conf
         try:
+            subprocess.run("taskkill /F /IM ngrok.exe", shell=True, capture_output=True)
+            time.sleep(0.5)
             ngrok.kill()
         except Exception:
             pass

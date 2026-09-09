@@ -91,20 +91,7 @@ def main():
     print(f"📌 Địa chỉ mạng nội bộ (LAN):  http://{lan_ip}:{port}")
     print("=" * 72)
 
-    # 1. Khởi chạy FastAPI Server trên luồng riêng
-    server_thread = threading.Thread(target=start_fastapi_server, args=(port,), daemon=True)
-    server_thread.start()
-
-    # Đợi 1.5 giây cho server sẵn sàng
-    time.sleep(1.5)
-
-    # 2. Mở trình duyệt trên máy tính hiện tại
-    try:
-        webbrowser.open(f"http://localhost:{port}")
-    except Exception:
-        pass
-
-    # 3. Khởi chạy Cloudflare Tunnel cho mạng ngoài (4G, Internet)
+    # 1. Khởi chạy Tunnel mạng ngoài (4G, Internet) trên luồng nền
     try:
         from server.tunnel import start_tunnel
         tunnel_thread = threading.Thread(target=start_tunnel, args=(port,), daemon=True)
@@ -112,18 +99,23 @@ def main():
     except Exception as e:
         print(f"Lưu ý kết nối mạng ngoài: {e}")
 
+    # 2. Tự động mở trình duyệt sau 1.5s
+    def open_browser():
+        time.sleep(1.5)
+        try:
+            webbrowser.open(f"http://localhost:{port}")
+        except Exception:
+            pass
+    threading.Thread(target=open_browser, daemon=True).start()
+
     print("\n💡 HƯỚNG DẪN TRUY CẬP:")
     print(" 1. Người dùng trong cùng mạng Wi-Fi/LAN: Gửi link mạng nội bộ ở trên.")
     print(" 2. Người dùng mạng ngoài (4G, ở nhà, chi nhánh): Dùng link CỐ ĐỊNH VĨNH VIỄN.")
     print("    (Chỉ cần bấm nút 'Visit Site' lần đầu tiên, link không bao giờ bị đổi).")
     print(" 3. Nhấn Ctrl + C để dừng máy chủ bất kỳ lúc nào.\n")
 
-    try:
-        while True:
-            time.sleep(1)
-    except KeyboardInterrupt:
-        print("\n🛑 Đang dừng máy chủ...")
-        sys.exit(0)
+    # 3. Khởi chạy FastAPI Server trực tiếp trên Main Thread
+    start_fastapi_server(port)
 
 if __name__ == "__main__":
     main()
