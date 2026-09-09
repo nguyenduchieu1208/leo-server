@@ -62,32 +62,20 @@ function toggleFilterCollapse(forceState = null) {
     state.filterCollapsed = isCollapsed;
     localStorage.setItem('amecc_filter_collapsed', isCollapsed ? 'true' : 'false');
     
+    const topBar = document.getElementById('filter-top-bar');
     const fullContent = document.getElementById('filter-full-content');
     const compactContent = document.getElementById('filter-compact-content');
-    const textToggle = document.getElementById('text-toggle-filter');
-    const iconToggle = document.getElementById('icon-toggle-filter');
-    const modeTag = document.getElementById('filter-panel-mode-tag');
 
     if (isCollapsed) {
+        // Thu gọn: ẩn thanh tiêu đề trên và 3 dòng đầy đủ, chỉ hiện thanh thu gọn với DUY NHẤT 1 nút Mở Rộng
+        if (topBar) topBar.classList.add('hidden');
         if (fullContent) fullContent.classList.add('hidden');
         if (compactContent) compactContent.classList.remove('hidden');
-        if (textToggle) textToggle.textContent = 'Mở Rộng Bảng Lọc';
-        if (iconToggle) {
-            iconToggle.setAttribute('data-lucide', 'chevrons-down');
-        }
-        if (modeTag) {
-            modeTag.textContent = '• Đang thu gọn để xem danh sách cấu kiện rộng rãi hơn';
-        }
     } else {
+        // Mở rộng: hiện thanh tiêu đề trên với DUY NHẤT 1 nút Thu Gọn và 3 dòng đầy đủ
+        if (topBar) topBar.classList.remove('hidden');
         if (fullContent) fullContent.classList.remove('hidden');
         if (compactContent) compactContent.classList.add('hidden');
-        if (textToggle) textToggle.textContent = 'Thu Gọn Bảng Lọc';
-        if (iconToggle) {
-            iconToggle.setAttribute('data-lucide', 'chevrons-up');
-        }
-        if (modeTag) {
-            modeTag.textContent = '• Bấm thu gọn để tối ưu diện tích xem cấu kiện';
-        }
     }
     if (window.lucide) lucide.createIcons();
     updateCompactFilterBadges();

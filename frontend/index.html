@@ -88,7 +88,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2">
             <section id="filter-panel-card" class="bg-white border border-slate-200 rounded-2xl shadow-sm transition-all overflow-hidden">
                 <!-- Thanh Tiêu Đề Bảng Lọc: Chứa Nút Thu Gọn / Mở Rộng -->
-                <div class="px-3 sm:px-4 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 select-none">
+                <div id="filter-top-bar" class="px-3 sm:px-4 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 select-none">
                     <div class="flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-blue-600"></span>
                         <span class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
@@ -254,12 +254,12 @@
                         </div>
                     </div>
 
-                    <!-- Nút Mở Rộng lại đầy đủ -->
+                    <!-- Nút Mở Rộng duy nhất khi thu gọn -->
                     <button id="btn-expand-filter" type="button" 
                         class="flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
                         title="Mở lại đầy đủ 3 dòng tùy chọn lọc và xuất file">
                         <i data-lucide="chevrons-down" class="w-3.5 h-3.5"></i>
-                        <span>Mở Rộng Đầy Đủ</span>
+                        <span>Mở Rộng Bảng Lọc</span>
                     </button>
                 </div>
             </section>
@@ -477,6 +477,6 @@
         </div>
     </div>
 
-    <script src="/frontend/app.js?v=2.7.0"></script>
+    <script src="/frontend/app.js?v=2.7.1"></script>
 </body>
 </html>
