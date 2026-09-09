@@ -232,43 +232,50 @@ function renderSheetSelector() {
     });
 }
 
-// 5. Hiển thị các nút chọn Ngày nhận (Sắp xếp theo Ngày/Tháng/Năm DD/MM/YYYY)
-function renderDatePills() {
-    const container = document.getElementById('date-pills-container');
-    if (!container || !state.projectData) return;
+// 5. Hiển thị chỗ chọn Ngày nhận (Dropdown danh sách ngày DD/MM/YYYY rõ ràng, dễ nhìn)
+function renderDateSelector() {
+    const select = document.getElementById('select-date');
+    const label = document.getElementById('current-date-label');
+    if (!select || !state.projectData) return;
     
     const rawDates = state.projectData.all_delivery_dates || [];
     const sortedDates = [...rawDates].sort((a, b) => parseDateSortKey(a) - parseDateSortKey(b));
     
-    container.innerHTML = `
-        <button data-date="all" class="date-pill active px-3 py-1 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition cursor-pointer shrink-0">
-            Tất cả ngày
-        </button>
-    `;
+    select.innerHTML = `<option value="all">📅 Tất cả ngày nhận (Toàn bộ ${sortedDates.length} ngày)</option>`;
 
     sortedDates.forEach(d => {
-        const btn = document.createElement('button');
-        btn.dataset.date = d;
-        btn.className = "date-pill px-3 py-1 rounded-lg text-xs font-semibold bg-slate-200 text-slate-700 hover:bg-slate-300 transition font-mono cursor-pointer shrink-0";
-        btn.textContent = formatDateDisplay(d);
-        container.appendChild(btn);
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = `📅 Ngày ${formatDateDisplay(d)}`;
+        select.appendChild(opt);
     });
 
-    container.querySelectorAll('.date-pill').forEach(btn => {
-        btn.addEventListener('click', () => {
-            container.querySelectorAll('.date-pill').forEach(b => {
-                b.classList.remove('active', 'bg-blue-600', 'text-white');
-                b.classList.add('bg-slate-200', 'text-slate-700');
-            });
-            btn.classList.add('active', 'bg-blue-600', 'text-white');
-            btn.classList.remove('bg-slate-200', 'text-slate-700');
-            
-            state.selectedDate = btn.dataset.date;
+    select.value = state.selectedDate || 'all';
+    if (label) {
+        label.textContent = state.selectedDate && state.selectedDate !== 'all' ? formatDateDisplay(state.selectedDate) : 'Tất cả ngày';
+    }
+
+    select.onchange = (e) => {
+        state.selectedDate = e.target.value;
+        if (label) {
+            label.textContent = state.selectedDate !== 'all' ? formatDateDisplay(state.selectedDate) : 'Tất cả ngày';
+        }
+        applyFiltersAndRender(true);
+        if (state.activeTab === 'timeline') renderDailyTimeline();
+    };
+
+    const btnAll = document.getElementById('btn-date-all');
+    if (btnAll) {
+        btnAll.onclick = () => {
+            select.value = 'all';
+            state.selectedDate = 'all';
+            if (label) label.textContent = 'Tất cả ngày';
             applyFiltersAndRender(true);
             if (state.activeTab === 'timeline') renderDailyTimeline();
-        });
-    });
+        };
+    }
 }
+const renderDatePills = renderDateSelector;
 
 // 6. Áp dụng bộ lọc và kích hoạt vẽ danh sách
 function applyFiltersAndRender(resetPagination = true) {

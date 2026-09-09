@@ -26,33 +26,56 @@ def normalize_key(text: str) -> str:
         return ""
     return re.sub(r'[\s\-_#]+', '', str(text)).upper()
 
-def format_date_val(val: Any) -> Optional[str]:
-    """Chuyển đổi giá trị ngày trong Excel thành định dạng chuỗi Ngày/Tháng/Năm (DD/MM/YYYY) chuẩn"""
+def format_date_val(val: Any, default_year: Optional[int] = None) -> Optional[str]:
+    """Chuyển đổi giá trị ngày trong Excel thành định dạng chuỗi Ngày/Tháng/Năm (DD/MM/YYYY) chuẩn.
+    Hỗ trợ kế thừa năm từ các cột liền trước nếu dữ liệu cũ chỉ ghi Ngày/Tháng (DD/MM).
+    """
     if val is None:
         return None
     if isinstance(val, (datetime.datetime, datetime.date)):
-        if val.year < 2020 or val.year > 2035:
-            return None
-        return val.strftime("%d/%m/%Y")
+        y = val.year
+        if y < 2020 or y > 2035:
+            # Excel cũ hoặc chỉ nhập ngày/tháng nên tự gán năm 1900
+            if default_year and 2020 <= default_year <= 2035:
+                y = default_year
+            else:
+                return None
+        return f"{val.day:02d}/{val.month:02d}/{y:04d}"
     
     val_str = str(val).strip()
+    
+    # Dạng YYYY-MM-DD hoặc YYYY/MM/DD
     m = re.search(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})', val_str)
     if m:
         y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
         if 2020 <= y <= 2035 and 1 <= mo <= 12 and 1 <= d <= 31:
             return f"{d:02d}/{mo:02d}/{y:04d}"
     
+    # Dạng DD-MM-YYYY hoặc MM-DD-YYYY
     m2 = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{4})', val_str)
     if m2:
         d_or_m1, d_or_m2, y = int(m2.group(1)), int(m2.group(2)), int(m2.group(3))
         if 2020 <= y <= 2035:
-            # Xác định đâu là tháng, đâu là ngày
-            if d_or_m1 > 12 >= d_or_m2: # Ngày / Tháng / Năm
+            if d_or_m1 > 12 >= d_or_m2:
                 return f"{d_or_m1:02d}/{d_or_m2:02d}/{y:04d}"
-            elif d_or_m2 > 12 >= d_or_m1: # Tháng / Ngày / Năm
+            elif d_or_m2 > 12 >= d_or_m1:
                 return f"{d_or_m2:02d}/{d_or_m1:02d}/{y:04d}"
-            else: # Mặc định ngày trước tháng sau: DD/MM/YYYY
+            else:
                 return f"{d_or_m1:02d}/{d_or_m2:02d}/{y:04d}"
+
+    # Dạng chỉ có Ngày/Tháng (DD/MM hoặc DD-MM), ví dụ: 20/08, 21-8, 15/9
+    m3 = re.search(r'^(\d{1,2})[-/.](\d{1,2})$', val_str)
+    if m3:
+        p1, p2 = int(m3.group(1)), int(m3.group(2))
+        y = default_year or 2026
+        if p1 > 12 >= p2: # Ngày / Tháng
+            d, mo = p1, p2
+        elif p2 > 12 >= p1: # Tháng / Ngày
+            d, mo = p2, p1
+        else: # Mặc định DD/MM
+            d, mo = p1, p2
+        if 1 <= d <= 31 and 1 <= mo <= 12:
+            return f"{d:02d}/{mo:02d}/{y:04d}"
         
     return None
 
@@ -232,16 +255,41 @@ def detect_btp_sheet_data(ws) -> Dict[str, Any]:
     date_cols: List[Tuple[int, str]] = []
     da_nhan_c = col_map.get("da_nhan", 12)
     start_date_c = da_nhan_c + 2
-    
+
+    # 1. Dò tìm năm chủ đạo trong dòng ngày (nếu có cột có năm)
+    found_year = 2026
+    for c in range(start_date_c, min(ws.max_column + 1, start_date_c + 40)):
+        cell_val = ws.cell(header_row, c).value
+        if cell_val is None:
+            continue
+        if isinstance(cell_val, (datetime.datetime, datetime.date)):
+            if 2020 <= cell_val.year <= 2035:
+                found_year = cell_val.year
+                break
+        else:
+            ym = re.search(r'\b(202[0-9]|203[0-5])\b', str(cell_val))
+            if ym:
+                found_year = int(ym.group(1))
+                break
+
+    last_known_year = found_year
+
+    # 2. Đọc các cột ngày, tự động kế thừa năm từ cột phía trước nếu thiếu
     for c in range(start_date_c, ws.max_column + 1):
         cell_val = ws.cell(header_row, c).value
         if cell_val is None:
             continue
-        d_str = format_date_val(cell_val)
-        if d_str:
-            date_cols.append((c, d_str))
-        elif any(stop_word in str(cell_val).upper() for stop_word in ["KO BB", "LẤY DATA", "KTRA", "TÔN", "DVG", "MPR"]):
+            
+        if any(stop_word in str(cell_val).upper() for stop_word in ["KO BB", "LẤY DATA", "KTRA", "TÔN", "DVG", "MPR"]):
             break
+
+        d_str = format_date_val(cell_val, default_year=last_known_year)
+        if d_str:
+            # Cập nhật lại năm từ ngày vừa nhận
+            m_year = re.search(r'(\d{4})$', d_str)
+            if m_year:
+                last_known_year = int(m_year.group(1))
+            date_cols.append((c, d_str))
 
     btp_items: Dict[str, Dict[str, Any]] = {}
     normalized_btp: Dict[str, str] = {}

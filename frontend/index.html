@@ -168,15 +168,25 @@
                     </div>
                 </div>
 
-                <!-- Date Selector Pills (Sắp xếp theo Ngày/Tháng/Năm) -->
-                <div class="pt-2 border-t border-slate-200 flex items-center gap-2">
-                    <span class="text-xs font-bold text-slate-600 flex items-center gap-1 shrink-0">
-                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-blue-600"></i> Ngày nhận:
-                    </span>
-                    <div id="date-pills-container" class="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
-                        <button data-date="all" class="date-pill active px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition shrink-0 cursor-pointer">
-                            Tất cả ngày
+                <!-- Chỗ Chọn Ngày Nhận Rõ Ràng & Không Toét Mắt -->
+                <div class="pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2.5">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <label for="select-date" class="text-xs font-bold text-slate-700 flex items-center gap-1.5 shrink-0">
+                            <i data-lucide="calendar" class="w-4 h-4 text-blue-600"></i> Lọc Theo Ngày Nhận BTP:
+                        </label>
+                        <select id="select-date" class="bg-blue-50/80 border border-blue-300 text-blue-950 font-bold text-xs sm:text-sm rounded-xl px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white shadow-2xs transition cursor-pointer min-w-[260px]">
+                            <option value="all">📅 Tất cả ngày nhận (Toàn bộ tiến độ)</option>
+                        </select>
+                        <button id="btn-date-all" class="px-2.5 py-1.5 text-xs font-bold bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 rounded-xl transition cursor-pointer flex items-center gap-1" title="Xem toàn bộ tiến độ không lọc theo ngày">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                            <span>Xem Tất Cả Ngày</span>
                         </button>
+                    </div>
+
+                    <!-- Trạng thái ngày đang chọn -->
+                    <div class="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+                        <span>Đang xem tiến độ:</span>
+                        <span id="current-date-label" class="font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-lg font-mono">Tất cả ngày</span>
                     </div>
                 </div>
             </section>
