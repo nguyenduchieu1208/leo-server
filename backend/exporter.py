@@ -37,7 +37,7 @@ EXPORT_HEADERS = [
     ("Còn Thiếu", 14, "right"),
     ("Kế Hoạch Cắt (CP No)", 22, "left"),
     ("Tình Trạng BTP", 25, "left"),
-    ("Ghi Chú (Ktra Nối)", 35, "left"),
+    ("Ghi Chú (Ktra Nối / Vướng Thép Hình)", 40, "left"),
 ]
 
 def _collect_export_data(project_data: Dict[str, Any], mode: str, target_sheet: Optional[str]):
@@ -174,12 +174,16 @@ def export_project_excel(
                     fill_thieu = fill_completed
                     status_text = "✓ Đã nhận đủ"
 
-                # Ghi chú tổng hợp: bao gồm Ktra nối và Remark bản vẽ
+                # Ghi chú tổng hợp: bao gồm Ktra nối, vướng thép hình và Remark bản vẽ
                 ghi_chu_val = p.get("ghi_chu") or ""
                 if not ghi_chu_val:
                     notes = []
                     if p.get("ktra_noi"):
                         notes.append(f"Ktra nối: {p['ktra_noi']}")
+                    if sa.get("has_length_issue") and sa.get("message"):
+                        notes.append(f"Vướng thép hình: {sa['message']}")
+                    elif sa.get("is_shape") and p.get("con_thieu", 0) > 0 and sa.get("message"):
+                        notes.append(f"Thép hình: {sa['message']}")
                     if p.get("remark"):
                         notes.append(p["remark"])
                     ghi_chu_val = " | ".join(notes)
@@ -310,6 +314,10 @@ def export_project_csv(
                     notes = []
                     if p.get("ktra_noi"):
                         notes.append(f"Ktra nối: {p['ktra_noi']}")
+                    if sa.get("has_length_issue") and sa.get("message"):
+                        notes.append(f"Vướng thép hình: {sa['message']}")
+                    elif sa.get("is_shape") and p.get("con_thieu", 0) > 0 and sa.get("message"):
+                        notes.append(f"Thép hình: {sa['message']}")
                     if p.get("remark"):
                         notes.append(p["remark"])
                     ghi_chu_val = " | ".join(notes)

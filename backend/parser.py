@@ -27,56 +27,79 @@ def normalize_key(text: str) -> str:
     return re.sub(r'[\s\-_#]+', '', str(text)).upper()
 
 def format_date_val(val: Any, default_year: Optional[int] = None) -> Optional[str]:
-    """Chuyển đổi giá trị ngày trong Excel thành định dạng chuỗi Ngày/Tháng/Năm (DD/MM/YYYY) chuẩn.
-    Hỗ trợ kế thừa năm từ các cột liền trước nếu dữ liệu cũ chỉ ghi Ngày/Tháng (DD/MM).
+    """Chuyển đổi giá trị ngày trong Excel thành định dạng chuẩn DD/MM/YYYY.
+    Xử lý:
+    - datetime.datetime / datetime.date
+    - Serial number Excel (ví dụ 45500, 46100)
+    - YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY
+    - 2 chữ số năm: DD/MM/YY, DD-MM-YY (ví dụ 20/08/26 -> 20/08/2026)
+    - Chỉ có Ngày/Tháng: DD/MM, DD-MM, DD.MM (ví dụ 20/07, 21-8)
+    - Chuỗi có chữ phụ: Ngày 20/07, 15/8 (đợt 1)
     """
     if val is None:
         return None
+        
+    y_default = default_year or 2026
+    
+    # 1. datetime / date object
     if isinstance(val, (datetime.datetime, datetime.date)):
         y = val.year
         if y < 2020 or y > 2035:
-            # Excel cũ hoặc chỉ nhập ngày/tháng nên tự gán năm 1900
-            if default_year and 2020 <= default_year <= 2035:
-                y = default_year
-            else:
-                return None
+            y = y_default
         return f"{val.day:02d}/{val.month:02d}/{y:04d}"
-    
+        
+    # 2. Số Serial Date trong Excel
+    if isinstance(val, (int, float)) and 42000 <= val <= 55000:
+        try:
+            from openpyxl.utils.datetime import from_excel
+            dt = from_excel(val)
+            y = dt.year if 2020 <= dt.year <= 2035 else y_default
+            return f"{dt.day:02d}/{dt.month:02d}/{y:04d}"
+        except Exception:
+            pass
+
     val_str = str(val).strip()
-    
-    # Dạng YYYY-MM-DD hoặc YYYY/MM/DD
+    if not val_str:
+        return None
+
+    # 3. Dạng YYYY-MM-DD hoặc YYYY/MM/DD
     m = re.search(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})', val_str)
     if m:
         y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
         if 2020 <= y <= 2035 and 1 <= mo <= 12 and 1 <= d <= 31:
             return f"{d:02d}/{mo:02d}/{y:04d}"
-    
-    # Dạng DD-MM-YYYY hoặc MM-DD-YYYY
-    m2 = re.search(r'(\d{1,2})[-/](\d{1,2})[-/](\d{4})', val_str)
-    if m2:
-        d_or_m1, d_or_m2, y = int(m2.group(1)), int(m2.group(2)), int(m2.group(3))
-        if 2020 <= y <= 2035:
-            if d_or_m1 > 12 >= d_or_m2:
-                return f"{d_or_m1:02d}/{d_or_m2:02d}/{y:04d}"
-            elif d_or_m2 > 12 >= d_or_m1:
-                return f"{d_or_m2:02d}/{d_or_m1:02d}/{y:04d}"
-            else:
-                return f"{d_or_m1:02d}/{d_or_m2:02d}/{y:04d}"
 
-    # Dạng chỉ có Ngày/Tháng (DD/MM hoặc DD-MM), ví dụ: 20/08, 21-8, 15/9
-    m3 = re.search(r'^(\d{1,2})[-/.](\d{1,2})$', val_str)
+    # 4. Dạng DD-MM-YYYY hoặc DD/MM/YYYY
+    m2 = re.search(r'(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})', val_str)
+    if m2:
+        p1, p2, y = int(m2.group(1)), int(m2.group(2)), int(m2.group(3))
+        if 2020 <= y <= 2035:
+            d, mo = (p1, p2) if (p1 > 12 or p2 <= 12) else (p1, p2)
+            if 1 <= d <= 31 and 1 <= mo <= 12:
+                return f"{d:02d}/{mo:02d}/{y:04d}"
+
+    # 5. Dạng DD-MM-YY (2 chữ số năm, ví dụ 20/08/26 hoặc 15-7-25)
+    m2y = re.search(r'(\d{1,2})[-/.](\d{1,2})[-/.](\d{2})\b', val_str)
+    if m2y:
+        p1, p2, yy = int(m2y.group(1)), int(m2y.group(2)), int(m2y.group(3))
+        y = 2000 + yy
+        if 2020 <= y <= 2035 and 1 <= p1 <= 31 and 1 <= p2 <= 12:
+            return f"{p1:02d}/{p2:02d}/{y:04d}"
+
+    # 6. Dạng chỉ Ngày/Tháng (DD/MM, DD-MM, DD.MM hoặc có chữ đính kèm như "Ngày 20/7")
+    m3 = re.search(r'(?:^|[^\d])(\d{1,2})[-/.](\d{1,2})(?:[^\d]|$)', val_str)
     if m3:
         p1, p2 = int(m3.group(1)), int(m3.group(2))
-        y = default_year or 2026
-        if p1 > 12 >= p2: # Ngày / Tháng
+        y = y_default
+        if p1 > 12 >= p2:
             d, mo = p1, p2
-        elif p2 > 12 >= p1: # Tháng / Ngày
+        elif p2 > 12 >= p1:
             d, mo = p2, p1
-        else: # Mặc định DD/MM
+        else:
             d, mo = p1, p2
         if 1 <= d <= 31 and 1 <= mo <= 12:
             return f"{d:02d}/{mo:02d}/{y:04d}"
-        
+
     return None
 
 def parse_number(val: Any, is_int: bool = False) -> Optional[float]:
@@ -256,40 +279,160 @@ def detect_btp_sheet_data(ws) -> Dict[str, Any]:
     da_nhan_c = col_map.get("da_nhan", 12)
     start_date_c = da_nhan_c + 2
 
-    # 1. Dò tìm năm chủ đạo trong dòng ngày (nếu có cột có năm)
-    found_year = 2026
-    for c in range(start_date_c, min(ws.max_column + 1, start_date_c + 40)):
-        cell_val = ws.cell(header_row, c).value
-        if cell_val is None:
-            continue
-        if isinstance(cell_val, (datetime.datetime, datetime.date)):
-            if 2020 <= cell_val.year <= 2035:
-                found_year = cell_val.year
-                break
-        else:
-            ym = re.search(r'\b(202[0-9]|203[0-5])\b', str(cell_val))
-            if ym:
-                found_year = int(ym.group(1))
-                break
-
-    last_known_year = found_year
-
-    # 2. Đọc các cột ngày, tự động kế thừa năm từ cột phía trước nếu thiếu
-    for c in range(start_date_c, ws.max_column + 1):
-        cell_val = ws.cell(header_row, c).value
-        if cell_val is None:
-            continue
-            
-        if any(stop_word in str(cell_val).upper() for stop_word in ["KO BB", "LẤY DATA", "KTRA", "TÔN", "DVG", "MPR"]):
+    # 1. Tìm năm gốc của sheet / file (quét các dòng tiêu đề nếu có cột hoặc dòng có năm)
+    sheet_base_year = 2026
+    for r_check in [header_row, header_row - 1, header_row + 1]:
+        if 1 <= r_check <= ws.max_row:
+            for c in range(start_date_c, min(ws.max_column + 1, start_date_c + 70)):
+                cv = ws.cell(r_check, c).value
+                if isinstance(cv, (datetime.datetime, datetime.date)) and 2020 <= cv.year <= 2035:
+                    sheet_base_year = cv.year
+                    break
+                elif cv:
+                    ym = re.search(r'\b(202[0-9]|203[0-5])\b', str(cv))
+                    if ym:
+                        sheet_base_year = int(ym.group(1))
+                        break
+        if sheet_base_year != 2026:
             break
 
-        d_str = format_date_val(cell_val, default_year=last_known_year)
-        if d_str:
-            # Cập nhật lại năm từ ngày vừa nhận
-            m_year = re.search(r'(\d{4})$', d_str)
-            if m_year:
-                last_known_year = int(m_year.group(1))
-            date_cols.append((c, d_str))
+    # 2. Thu thập ứng viên cột ngày và phân tích ngày/tháng/năm
+    col_raw_data = []
+    consec_empty = 0
+    
+    for c in range(start_date_c, ws.max_column + 1):
+        cell_val = ws.cell(header_row, c).value
+        if cell_val is None and header_row > 1:
+            cell_val = ws.cell(header_row - 1, c).value
+            
+        if cell_val is None:
+            consec_empty += 1
+            if consec_empty > 6:
+                break
+            continue
+            
+        consec_empty = 0
+        v_str = str(cell_val).strip().upper()
+        
+        # Kiểm tra nếu là cột tổng kết / thông tin (KO BB, LẤY DATA, DVG, MPR NO, CUTTING NO)
+        # Chỉ dừng khi các cột tiếp theo thực sự không còn ngày nào
+        is_summary_header = any(v_str == sw or v_str.startswith(sw) for sw in [
+            "KO BB", "LẤY DATA", "DVG", "CUTTING NO", "MPR NO", "QTY MPR"
+        ])
+        if is_summary_header:
+            has_future_date = False
+            for next_c in range(c + 1, min(ws.max_column + 1, c + 6)):
+                next_val = ws.cell(header_row, next_c).value
+                if isinstance(next_val, (datetime.datetime, datetime.date)):
+                    has_future_date = True
+                    break
+                elif next_val and any(sep in str(next_val) for sep in ["/", "-"]) and any(ch.isdigit() for ch in str(next_val)):
+                    has_future_date = True
+                    break
+            if not has_future_date:
+                break
+            else:
+                continue
+
+        d_explicit = None
+        d_day = None
+        d_month = None
+        
+        if isinstance(cell_val, (datetime.datetime, datetime.date)):
+            d_day = cell_val.day
+            d_month = cell_val.month
+            if 2020 <= cell_val.year <= 2035:
+                d_explicit = cell_val.year
+        elif isinstance(cell_val, (int, float)) and 42000 <= cell_val <= 55000:
+            try:
+                from openpyxl.utils.datetime import from_excel
+                dt = from_excel(cell_val)
+                d_day = dt.day
+                d_month = dt.month
+                if 2020 <= dt.year <= 2035:
+                    d_explicit = dt.year
+            except Exception:
+                pass
+        else:
+            val_clean = str(cell_val).strip()
+            # YYYY-MM-DD
+            m_ymd = re.search(r'(\d{4})[-/](\d{1,2})[-/](\d{1,2})', val_clean)
+            if m_ymd:
+                y, mo, d = int(m_ymd.group(1)), int(m_ymd.group(2)), int(m_ymd.group(3))
+                if 2020 <= y <= 2035 and 1 <= mo <= 12 and 1 <= d <= 31:
+                    d_day, d_month, d_explicit = d, mo, y
+            else:
+                # DD/MM/YYYY
+                m_dmy = re.search(r'(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})', val_clean)
+                if m_dmy:
+                    p1, p2, y = int(m_dmy.group(1)), int(m_dmy.group(2)), int(m_dmy.group(3))
+                    if 2020 <= y <= 2035:
+                        d, mo = (p1, p2) if (p1 > 12 or p2 <= 12) else (p1, p2)
+                        if 1 <= d <= 31 and 1 <= mo <= 12:
+                            d_day, d_month, d_explicit = d, mo, y
+                else:
+                    # DD/MM/YY (2 chữ số năm)
+                    m_dmy2 = re.search(r'(\d{1,2})[-/.](\d{1,2})[-/.](\d{2})\b', val_clean)
+                    if m_dmy2:
+                        p1, p2, yy = int(m_dmy2.group(1)), int(m_dmy2.group(2)), int(m_dmy2.group(3))
+                        y = 2000 + yy
+                        if 2020 <= y <= 2035 and 1 <= p1 <= 31 and 1 <= p2 <= 12:
+                            d_day, d_month, d_explicit = p1, p2, y
+                    else:
+                        # DD/MM hoặc DD-MM hoặc DD.MM
+                        m_dm = re.search(r'(?:^|[^\d])(\d{1,2})[-/.](\d{1,2})(?:[^\d]|$)', val_clean)
+                        if m_dm:
+                            p1, p2 = int(m_dm.group(1)), int(m_dm.group(2))
+                            if 1 <= p1 <= 31 and 1 <= p2 <= 12:
+                                d_day, d_month = p1, p2
+                            elif 1 <= p2 <= 31 and 1 <= p1 <= 12:
+                                d_day, d_month = p2, p1
+
+        if d_day and d_month:
+            col_raw_data.append({
+                "col": c,
+                "day": d_day,
+                "month": d_month,
+                "year": d_explicit,
+                "raw": cell_val
+            })
+
+    # 3. Kế thừa năm 2 chiều (Trước -> Sau và Sau -> Trước) + xử lý chuyển năm (Tháng 12 -> Tháng 1)
+    # Bước A: Tìm năm khởi điểm từ các cột có năm rõ ràng
+    first_known_year = sheet_base_year
+    for item in col_raw_data:
+        if item["year"]:
+            first_known_year = item["year"]
+            break
+
+    # Bước B: Quét xuôi (Từ trái sang phải): nếu thiếu năm, lấy năm của cột trước
+    running_year = first_known_year
+    prev_month = None
+    for item in col_raw_data:
+        if item["year"] is not None:
+            running_year = item["year"]
+        else:
+            if prev_month is not None and prev_month == 12 and item["month"] == 1:
+                running_year += 1
+            item["year"] = running_year
+        prev_month = item["month"]
+
+    # Bước C: Quét ngược (Từ phải sang trái): nếu các cột đầu tiên chưa có năm rõ ràng
+    back_year = running_year
+    next_month = None
+    for item in reversed(col_raw_data):
+        if item["year"] is not None:
+            back_year = item["year"]
+        else:
+            if next_month is not None and next_month == 1 and item["month"] == 12:
+                back_year -= 1
+            item["year"] = back_year
+        next_month = item["month"]
+
+    # 4. Gán danh sách cột ngày chuẩn hoá
+    for item in col_raw_data:
+        final_d_str = f"{item['day']:02d}/{item['month']:02d}/{item['year']:04d}"
+        date_cols.append((item["col"], final_d_str))
 
     btp_items: Dict[str, Dict[str, Any]] = {}
     normalized_btp: Dict[str, str] = {}
@@ -488,10 +631,14 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
                 ktra_noi = btp_info.get("ktra_noi", "") if btp_info else ""
                 bom_remark = clean_str(ws_bom.cell(r, col_map.get("remark", 30)).value)
 
-                # Cột ktra nối đưa vào phần ghi chú
+                # Cột ktra nối, vướng mắc thép hình và ghi chú BOM đưa vào phần ghi chú
                 note_items = []
                 if ktra_noi:
                     note_items.append(f"Ktra nối: {ktra_noi}")
+                if shape_analysis.get("has_length_issue") and shape_analysis.get("message"):
+                    note_items.append(f"Vướng thép hình: {shape_analysis['message']}")
+                elif shape_analysis.get("is_shape") and shape_analysis.get("con_thieu", 0) > 0 and shape_analysis.get("message"):
+                    note_items.append(f"Thép hình: {shape_analysis['message']}")
                 if bom_remark:
                     note_items.append(bom_remark)
                 ghi_chu = " | ".join(note_items)

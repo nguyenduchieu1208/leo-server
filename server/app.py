@@ -50,9 +50,15 @@ app.add_middleware(
 )
 
 @app.middleware("http")
-async def add_ngrok_header(request: Request, call_next):
+async def add_custom_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["ngrok-skip-browser-warning"] = "true"
+    # Ngăn trình duyệt cache file giao diện khi đang phát triển / cập nhật
+    path = request.url.path.lower()
+    if path.endswith((".js", ".css", ".html")) or path in ["/", "/index.html"]:
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
     return response
 
 DATA_FOLDER = os.path.join(BASE_DIR, "Data")

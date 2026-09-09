@@ -232,10 +232,190 @@ function renderSheetSelector() {
     });
 }
 
-// 5. Hiển thị chỗ chọn Ngày nhận (Dropdown danh sách ngày DD/MM/YYYY rõ ràng, dễ nhìn)
+// 5. Quản lý Lịch chọn ngày trực quan & Dropdown chọn ngày
+let calendarState = {
+    currentYear: 2026,
+    currentMonth: 8 // 1-indexed (1..12)
+};
+
+function selectDeliveryDate(dStr) {
+    state.selectedDate = dStr;
+    const select = document.getElementById('select-date');
+    const label = document.getElementById('current-date-label');
+    const nativeInput = document.getElementById('input-date-native');
+    const modal = document.getElementById('modal-calendar-picker');
+
+    if (select) select.value = dStr;
+    if (label) {
+        label.textContent = dStr !== 'all' ? formatDateDisplay(dStr) : 'Tất cả ngày';
+    }
+    if (nativeInput) {
+        if (dStr !== 'all' && dStr.includes('/')) {
+            const [d, m, y] = dStr.split('/');
+            nativeInput.value = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        } else {
+            nativeInput.value = '';
+        }
+    }
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    applyFiltersAndRender(true);
+    if (state.activeTab === 'timeline') renderDailyTimeline();
+}
+
+function openCalendarModal() {
+    const modal = document.getElementById('modal-calendar-picker');
+    if (!modal || !state.projectData) return;
+
+    const rawDates = state.projectData.all_delivery_dates || [];
+    
+    // Nếu có ngày đang chọn, mở đúng tháng/năm của ngày đó
+    if (state.selectedDate && state.selectedDate !== 'all' && state.selectedDate.includes('/')) {
+        const parts = state.selectedDate.split('/');
+        calendarState.currentMonth = parseInt(parts[1], 10);
+        calendarState.currentYear = parseInt(parts[2], 10);
+    } else if (rawDates.length > 0) {
+        // Lấy ngày giao gần nhất trong danh sách
+        const lastDate = rawDates[rawDates.length - 1];
+        if (lastDate.includes('/')) {
+            const parts = lastDate.split('/');
+            calendarState.currentMonth = parseInt(parts[1], 10);
+            calendarState.currentYear = parseInt(parts[2], 10);
+        }
+    }
+
+    populateQuickMonthSelect();
+    renderCalendarGrid();
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    if (window.lucide) lucide.createIcons();
+}
+
+function populateQuickMonthSelect() {
+    const selectQuick = document.getElementById('select-cal-quick-month');
+    if (!selectQuick || !state.projectData) return;
+
+    const rawDates = state.projectData.all_delivery_dates || [];
+    const monthMap = {};
+
+    rawDates.forEach(d => {
+        if (d.includes('/')) {
+            const [dayStr, moStr, yrStr] = d.split('/');
+            const key = `${yrStr}-${moStr.padStart(2, '0')}`;
+            if (!monthMap[key]) {
+                monthMap[key] = { year: parseInt(yrStr, 10), month: parseInt(moStr, 10), count: 0 };
+            }
+            monthMap[key].count++;
+        }
+    });
+
+    selectQuick.innerHTML = '<option value="">Chọn tháng có hàng...</option>';
+    Object.keys(monthMap).sort().forEach(k => {
+        const item = monthMap[k];
+        const opt = document.createElement('option');
+        opt.value = `${item.year}-${item.month}`;
+        opt.textContent = `Tháng ${item.month.toString().padStart(2, '0')}/${item.year} (${item.count} ngày có hàng)`;
+        selectQuick.appendChild(opt);
+    });
+
+    selectQuick.onchange = (e) => {
+        if (e.target.value) {
+            const [y, m] = e.target.value.split('-');
+            calendarState.currentYear = parseInt(y, 10);
+            calendarState.currentMonth = parseInt(m, 10);
+            renderCalendarGrid();
+        }
+    };
+}
+
+function renderCalendarGrid() {
+    const grid = document.getElementById('cal-days-grid');
+    const labelMonthYear = document.getElementById('cal-month-year-label');
+    if (!grid || !state.projectData) return;
+
+    const year = calendarState.currentYear;
+    const month = calendarState.currentMonth;
+
+    if (labelMonthYear) {
+        labelMonthYear.textContent = `Tháng ${month.toString().padStart(2, '0')} / ${year}`;
+    }
+
+    const deliveryMap = {};
+    const rawDates = state.projectData.all_delivery_dates || [];
+    const dailyData = state.projectData.daily_delivery || {};
+
+    rawDates.forEach(d => {
+        if (d.includes('/')) {
+            const [dayStr, moStr, yrStr] = d.split('/');
+            if (parseInt(yrStr, 10) === year && parseInt(moStr, 10) === month) {
+                const dayNum = parseInt(dayStr, 10);
+                const info = dailyData[d] || {};
+                deliveryMap[dayNum] = {
+                    dateStr: d,
+                    itemsCount: info.total_items_count || 0,
+                    qty: info.total_qty || 0,
+                    assembliesCount: (info.assemblies_affected || []).length
+                };
+            }
+        }
+    });
+
+    const firstDayDate = new Date(year, month - 1, 1);
+    let startDayOfWeek = (firstDayDate.getDay() + 6) % 7;
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    let gridHtml = '';
+
+    for (let i = 0; i < startDayOfWeek; i++) {
+        gridHtml += `<div class="p-2 sm:p-2.5 rounded-xl bg-slate-50/50 border border-transparent"></div>`;
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const hasDelivery = deliveryMap[day] !== undefined;
+        const dInfo = deliveryMap[day];
+        const isSelected = dInfo && state.selectedDate === dInfo.dateStr;
+
+        if (hasDelivery) {
+            const tooltip = `Ngày ${dInfo.dateStr}: ${dInfo.assembliesCount} cấu kiện, ${dInfo.itemsCount} BTP`;
+            const activeRing = isSelected ? 'ring-3 ring-amber-400 ring-offset-2' : '';
+            gridHtml += `
+                <button type="button" class="cal-day-btn relative flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold transition shadow-xs cursor-pointer ${activeRing}" 
+                    data-date="${dInfo.dateStr}" title="${tooltip}">
+                    <span class="text-xs sm:text-sm font-extrabold leading-tight">${day}</span>
+                    <span class="text-[9px] block text-blue-100 font-mono tracking-tight whitespace-nowrap mt-0.5">📦 ${dInfo.assembliesCount} CK</span>
+                </button>
+            `;
+        } else {
+            gridHtml += `
+                <div class="flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl bg-slate-100/50 border border-slate-200/60 text-slate-400 select-none">
+                    <span class="text-xs sm:text-sm font-medium leading-tight">${day}</span>
+                    <span class="text-[9px] block text-slate-300 mt-0.5">-</span>
+                </div>
+            `;
+        }
+    }
+
+    grid.innerHTML = gridHtml;
+
+    grid.querySelectorAll('.cal-day-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const d = this.dataset.date;
+            if (d) selectDeliveryDate(d);
+        });
+    });
+}
+
 function renderDateSelector() {
     const select = document.getElementById('select-date');
     const label = document.getElementById('current-date-label');
+    const nativeInput = document.getElementById('input-date-native');
+    const btnOpenCalendar = document.getElementById('btn-open-calendar');
+    const btnAll = document.getElementById('btn-date-all');
+
     if (!select || !state.projectData) return;
     
     const rawDates = state.projectData.all_delivery_dates || [];
@@ -256,22 +436,76 @@ function renderDateSelector() {
     }
 
     select.onchange = (e) => {
-        state.selectedDate = e.target.value;
-        if (label) {
-            label.textContent = state.selectedDate !== 'all' ? formatDateDisplay(state.selectedDate) : 'Tất cả ngày';
-        }
-        applyFiltersAndRender(true);
-        if (state.activeTab === 'timeline') renderDailyTimeline();
+        selectDeliveryDate(e.target.value);
     };
 
-    const btnAll = document.getElementById('btn-date-all');
     if (btnAll) {
         btnAll.onclick = () => {
-            select.value = 'all';
-            state.selectedDate = 'all';
-            if (label) label.textContent = 'Tất cả ngày';
-            applyFiltersAndRender(true);
-            if (state.activeTab === 'timeline') renderDailyTimeline();
+            selectDeliveryDate('all');
+        };
+    }
+
+    if (btnOpenCalendar) {
+        btnOpenCalendar.onclick = openCalendarModal;
+    }
+
+    if (nativeInput) {
+        nativeInput.onchange = (e) => {
+            if (e.target.value) {
+                const [y, m, d] = e.target.value.split('-');
+                const dStr = `${parseInt(d, 10).toString().padStart(2, '0')}/${parseInt(m, 10).toString().padStart(2, '0')}/${y}`;
+                selectDeliveryDate(dStr);
+            } else {
+                selectDeliveryDate('all');
+            }
+        };
+    }
+
+    // Gắn sự kiện điều hướng tháng trong modal
+    const btnPrev = document.getElementById('btn-cal-prev-month');
+    const btnNext = document.getElementById('btn-cal-next-month');
+    const btnClose = document.getElementById('btn-close-calendar');
+    const btnCloseBottom = document.getElementById('btn-cal-close-bottom');
+    const btnViewAll = document.getElementById('btn-cal-view-all');
+    const modal = document.getElementById('modal-calendar-picker');
+
+    if (btnPrev) {
+        btnPrev.onclick = () => {
+            calendarState.currentMonth--;
+            if (calendarState.currentMonth < 1) {
+                calendarState.currentMonth = 12;
+                calendarState.currentYear--;
+            }
+            renderCalendarGrid();
+        };
+    }
+
+    if (btnNext) {
+        btnNext.onclick = () => {
+            calendarState.currentMonth++;
+            if (calendarState.currentMonth > 12) {
+                calendarState.currentMonth = 1;
+                calendarState.currentYear++;
+            }
+            renderCalendarGrid();
+        };
+    }
+
+    const closeModal = () => {
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    };
+
+    if (btnClose) btnClose.onclick = closeModal;
+    if (btnCloseBottom) btnCloseBottom.onclick = closeModal;
+    if (btnViewAll) {
+        btnViewAll.onclick = () => selectDeliveryDate('all');
+    }
+    if (modal) {
+        modal.onclick = (e) => {
+            if (e.target === modal) closeModal();
         };
     }
 }
@@ -342,7 +576,8 @@ function buildPartsTableHtml(assy) {
                         <th class="py-2 px-3 text-right">Đã Nhận</th>
                         <th class="py-2 px-3 text-right">Còn Thiếu</th>
                         <th class="py-2 px-3">Tiến Độ Theo Ngày</th>
-                        <th class="py-2 px-3">Trạng Thái / Shape</th>
+                        <th class="py-2 px-3">Trạng Thái</th>
+                        <th class="py-2 px-3">Ghi Chú (Ktra Nối / Vướng Thép Hình)</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200">
@@ -377,6 +612,16 @@ function buildPartsTableHtml(assy) {
                             `;
                         }
 
+                        const ghiChu = p.ghi_chu || '';
+                        let ghiChuHtml = '';
+                        if (ghiChu) {
+                            ghiChuHtml = `<span class="text-xs text-slate-700 font-medium">${ghiChu}</span>`;
+                        } else if (p.ktra_noi) {
+                            ghiChuHtml = `<span class="text-xs text-slate-700 font-medium">Ktra nối: ${p.ktra_noi}</span>`;
+                        } else {
+                            ghiChuHtml = '<span class="text-slate-300">-</span>';
+                        }
+
                         const isDone = p.is_fully_received;
                         return `
                             <tr class="hover:bg-slate-50/80 transition ${isDone ? 'bg-emerald-50/40' : ''}">
@@ -397,6 +642,9 @@ function buildPartsTableHtml(assy) {
                                           )
                                     }
                                     ${shapeNotice}
+                                </td>
+                                <td class="py-2 px-3">
+                                    ${ghiChuHtml}
                                 </td>
                             </tr>
                         `;
@@ -453,10 +701,6 @@ function renderAssemblies() {
             statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300 flex items-center gap-1">${SVG_ICONS.x} Chưa có BTP</span>`;
         }
 
-        let shapeWarningBadge = '';
-        if (assy.has_shape_issue) {
-            shapeWarningBadge = `<span class="px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-800 border border-orange-300 flex items-center gap-1" title="Vướng mắc phôi cắt thép hình Shape">${SVG_ICONS.alertTriangle} Vướng Thép Hình (${assy.shape_issues_count})</span>`;
-        }
 
         const chevron = isExpanded ? SVG_ICONS.chevronDown : SVG_ICONS.chevronRight;
         const detailsContent = isExpanded ? buildPartsTableHtml(assy) : '';
@@ -481,7 +725,6 @@ function renderAssemblies() {
 
                     <div class="flex items-center flex-wrap gap-3">
                         ${dayNote}
-                        ${shapeWarningBadge}
                         ${statusBadge}
 
                         <div class="w-28 sm:w-36 flex flex-col items-end gap-1">
