@@ -24,7 +24,7 @@
             }
         }
     </script>
-    <link rel="stylesheet" href="/frontend/style.css?v=2.7.0">
+    <link rel="stylesheet" href="/frontend/style.css?v=2.8.0">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
@@ -74,10 +74,10 @@
                     <span>Tải Lên Excel</span>
                 </button>
 
-                <!-- Nút Làm mới chỉ hiển thị cho Chủ máy (Admin) -->
-                <button id="btn-reload-data" class="hidden items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-lg transition shadow-xs cursor-pointer" title="Chỉ chủ máy mới có quyền làm mới dữ liệu">
+                <!-- Nút Làm mới máy chủ chỉ hiển thị cho Chủ máy (Admin) -->
+                <button id="btn-reload-data" class="hidden items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-lg transition shadow-xs cursor-pointer" title="Quét lại tất cả các file PL trong thư mục Data và nạp lại vào RAM">
                     <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
-                    <span>Làm mới (Chủ máy)</span>
+                    <span>Làm mới máy chủ</span>
                 </button>
             </div>
         </div>
@@ -110,7 +110,7 @@
 
                 <!-- 1. KHỐI ĐẦY ĐỦ (FULL FILTER ROWS) -->
                 <div id="filter-full-content" class="p-3 sm:p-3.5 space-y-2.5 transition-all">
-                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 items-center">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 items-center">
                         <!-- Chọn file dự án -->
                         <div>
                             <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 truncate">
@@ -204,7 +204,7 @@
                             </button>
 
                             <!-- Dropdown Chọn Nhanh Ngày Nhận -->
-                            <select id="select-date" class="bg-blue-50/80 border border-blue-300 text-blue-950 font-bold text-xs sm:text-sm rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white shadow-2xs transition cursor-pointer min-w-[220px]">
+                            <select id="select-date" class="w-full sm:w-auto min-w-0 sm:min-w-[220px] bg-blue-50/80 border border-blue-300 text-blue-950 font-bold text-xs sm:text-sm rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white shadow-2xs transition cursor-pointer">
                                 <option value="all">📅 Tất cả ngày nhận (Toàn bộ tiến độ)</option>
                             </select>
 
@@ -270,7 +270,7 @@
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-5">
 
         <!-- KPI Summary Cards Sáng Đẹp -->
-        <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div class="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-xs">
                 <div class="space-y-0.5">
                     <p class="text-xs font-bold text-slate-500 uppercase">Tổng Cấu Kiện (AS Symbol "X")</p>
@@ -317,7 +317,7 @@
         </section>
 
         <!-- Navigation Tabs -->
-        <div class="flex items-center border-b border-slate-200 space-x-2">
+        <div class="flex items-center border-b border-slate-200 space-x-2 overflow-x-auto no-scrollbar max-w-full pb-0.5">
             <button class="nav-tab active px-4 py-2.5 font-bold text-sm text-blue-600 border-b-2 border-blue-600 flex items-center gap-2" data-tab="tree">
                 <i data-lucide="git-merge" class="w-4 h-4"></i>
                 Cây Cấu Kiện & Chi Tiết BTP
@@ -477,6 +477,6 @@
         </div>
     </div>
 
-    <script src="/frontend/app.js?v=2.7.1"></script>
+    <script src="/frontend/app.js?v=2.8.0"></script>
 </body>
 </html>

@@ -257,8 +257,14 @@ async def api_clear_cache(request: Request):
         )
         
     clear_all_cache()
+    projects = list_available_projects(DATA_FOLDER)
     threading.Thread(target=warm_up_cache, args=(DATA_FOLDER,), daemon=True).start()
-    return {"status": "success", "message": "Đang làm mới và nạp lại toàn bộ dữ liệu vào RAM..."}
+    return {
+        "status": "success",
+        "count": len(projects),
+        "message": f"Đã quét và nạp lại toàn bộ {len(projects)} file PL trong thư mục Data vào RAM thành công!",
+        "projects": [p["file_name"] for p in projects]
+    }
 
 @app.post("/api/upload-excel")
 async def upload_excel(request: Request, file: UploadFile = File(...)):

@@ -188,7 +188,7 @@ async function loadServerInfo() {
 }
 
 // 2. Tải danh sách file dự án
-async function loadProjectsList() {
+async function loadProjectsList(preferredFilePath = null) {
     const select = document.getElementById('select-project');
     try {
         const res = await fetch('/api/projects');
@@ -197,23 +197,31 @@ async function loadProjectsList() {
         
         select.innerHTML = '';
         if (state.projects.length === 0) {
-            select.innerHTML = '<option value="">Không tìm thấy file Excel nào trong thư mục Data</option>';
+            select.innerHTML = '<option value="">Không tìm thấy file PL nào trong thư mục Data</option>';
             return;
         }
+
+        let targetFile = preferredFilePath;
+        let found = false;
 
         state.projects.forEach((p) => {
             const opt = document.createElement('option');
             opt.value = p.file_path;
             opt.textContent = `${p.display_name || p.project_id} (${(p.size_bytes / 1024 / 1024).toFixed(1)} MB)`;
+            if (targetFile && p.file_path === targetFile) found = true;
             select.appendChild(opt);
         });
 
-        if (state.projects.length > 0) {
-            select.value = state.projects[0].file_path;
-            await loadProjectData(state.projects[0].file_path);
+        if (!found && state.projects.length > 0) {
+            targetFile = state.projects[0].file_path;
+        }
+
+        if (targetFile) {
+            select.value = targetFile;
+            await loadProjectData(targetFile, true);
         }
     } catch (e) {
-        select.innerHTML = '<option value="">Lỗi nạp danh sách file</option>';
+        select.innerHTML = '<option value="">Lỗi nạp danh sách file PL</option>';
         console.error(e);
     }
 }
@@ -756,28 +764,30 @@ function renderAssemblies() {
         const detailsContent = isExpanded ? buildPartsTableHtml(assy) : '';
 
         return `
-            <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:border-slate-300 transition" id="card-${assy.id}">
+            <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:border-slate-300 transition w-full max-w-full" id="card-${assy.id}">
                 <!-- Assembly Header Row -->
-                <div class="p-4 flex flex-wrap items-center justify-between gap-4 cursor-pointer select-none assy-header bg-white hover:bg-slate-50/80 transition" data-id="${assy.id}">
-                    <div class="flex items-center space-x-3">
-                        <button class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition chevron-btn pointer-events-none">
+                <div class="p-3 sm:p-4 flex flex-wrap items-center justify-between gap-3 cursor-pointer select-none assy-header bg-white hover:bg-slate-50/80 transition w-full max-w-full" data-id="${assy.id}">
+                    <div class="flex items-center space-x-2 sm:space-x-3 min-w-0 max-w-full">
+                        <button class="w-7 h-7 shrink-0 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-700 transition chevron-btn pointer-events-none">
                             <span class="chevron-icon">${chevron}</span>
                         </button>
-                        <div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-base font-extrabold text-slate-900 tracking-wide">${assy.assembly_no}</span>
-                                <span class="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono font-bold">${assy.dwg}</span>
-                                <span class="text-xs text-slate-500 font-mono">${assy.size}</span>
+                        <div class="min-w-0 max-w-full">
+                            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                <span class="text-sm sm:text-base font-extrabold text-slate-900 tracking-wide break-words">${assy.assembly_no}</span>
+                                <span class="text-[11px] sm:text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono font-bold break-all">${assy.dwg}</span>
+                                <span class="text-[11px] sm:text-xs text-slate-500 font-mono break-all">${assy.size}</span>
                             </div>
-                            <p class="text-xs text-slate-500 mt-0.5 font-medium">Sheet: <span class="text-blue-700 font-mono font-semibold">${assy.sheet}</span> • Gồm <strong class="text-slate-900">${assy.total_parts_count}</strong> BTP con</p>
+                            <p class="text-xs text-slate-500 mt-0.5 font-medium truncate">Sheet: <span class="text-blue-700 font-mono font-semibold">${assy.sheet}</span> • Gồm <strong class="text-slate-900">${assy.total_parts_count}</strong> BTP con</p>
                         </div>
                     </div>
 
-                    <div class="flex items-center flex-wrap gap-3">
-                        ${dayNote}
-                        ${statusBadge}
+                    <div class="flex items-center flex-wrap gap-2 sm:gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            ${dayNote}
+                            ${statusBadge}
+                        </div>
 
-                        <div class="w-28 sm:w-36 flex flex-col items-end gap-1">
+                        <div class="w-28 sm:w-36 flex flex-col items-end gap-1 shrink-0">
                             <div class="flex justify-between w-full text-[11px] font-bold">
                                 <span class="text-slate-500">${displayReceivedParts}/${assy.total_parts_count} BTP</span>
                                 <span class="${displayRate === 100 ? 'text-emerald-600' : 'text-blue-600'}">${displayRate}%</span>
@@ -790,7 +800,7 @@ function renderAssemblies() {
                 </div>
 
                 <!-- Child BTP Table (Lazy-rendered) -->
-                <div class="assy-details border-t border-slate-200 bg-slate-50/50 p-4 ${isExpanded ? '' : 'hidden'}" id="details-${assy.id}" ${isExpanded ? 'data-rendered="true"' : ''}>
+                <div class="assy-details border-t border-slate-200 bg-slate-50/50 p-2 sm:p-4 max-w-full overflow-hidden ${isExpanded ? '' : 'hidden'}" id="details-${assy.id}" ${isExpanded ? 'data-rendered="true"' : ''}>
                     ${detailsContent}
                 </div>
             </div>
@@ -1127,19 +1137,31 @@ function setupEventListeners() {
         });
     }
 
-    // Nút Làm mới (Chủ máy)
+    // Nút Làm mới máy chủ (Chủ máy)
     const btnReload = document.getElementById('btn-reload-data');
     if (btnReload) {
         btnReload.addEventListener('click', async () => {
-            const curFile = document.getElementById('select-project').value;
-            if (curFile) {
-                try {
-                    await fetch('/api/clear-cache', { method: 'POST' });
-                    await loadProjectData(curFile, true);
-                    alert("Đã làm mới và nạp lại toàn bộ dữ liệu dự án từ ổ cứng vào RAM thành công!");
-                } catch (err) {
-                    alert("Lỗi khi làm mới: " + err.message);
-                }
+            const originalHtml = btnReload.innerHTML;
+            btnReload.disabled = true;
+            btnReload.innerHTML = `<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin inline mr-1"></i><span>Đang nạp tất cả file PL...</span>`;
+            if (window.lucide) lucide.createIcons();
+
+            try {
+                const curFile = document.getElementById('select-project') ? document.getElementById('select-project').value : null;
+                const res = await fetch('/api/clear-cache', { method: 'POST' });
+                const resData = await res.json();
+                
+                // Quét và nạp lại toàn bộ tất cả file PL trong thư mục Data
+                await loadProjectsList(curFile);
+                
+                const count = resData.count || state.projects.length;
+                alert(`Đã làm mới máy chủ thành công!\nĐã quét và nạp toàn bộ ${count} file PL trong thư mục Data vào RAM.`);
+            } catch (err) {
+                alert("Lỗi khi làm mới máy chủ: " + err.message);
+            } finally {
+                btnReload.disabled = false;
+                btnReload.innerHTML = originalHtml;
+                if (window.lucide) lucide.createIcons();
             }
         });
     }

@@ -124,14 +124,15 @@ def list_available_projects(data_folder: str) -> List[Dict[str, Any]]:
     # Quét đệ quy (os.walk) hỗ trợ cả các thư mục con bên trong thư mục Dữ liệu mẫu
     for root, dirs, files in os.walk(data_folder):
         for fname in sorted(files):
-            if fname.endswith(".xlsx") and not fname.startswith("~$"):
+            if fname.lower().endswith((".xlsx", ".xlsm")) and not fname.startswith("~$"):
                 fpath = os.path.join(root, fname)
                 try:
                     rel_dir = os.path.relpath(root, data_folder)
                     subfolder_label = "" if rel_dir == "." else f"[{rel_dir}] "
                     
                     # Xác định mã dự án
-                    clean_name = fname.replace("PL.xlsx", "").replace(".xlsx", "").strip()
+                    clean_name = re.sub(r'[_ -]*pl\.(xlsx|xlsm)$', '', fname, flags=re.IGNORECASE)
+                    clean_name = re.sub(r'\.(xlsx|xlsm)$', '', clean_name, flags=re.IGNORECASE).strip()
                     display_code = f"{subfolder_label}{clean_name}"
                     
                     projects.append({
