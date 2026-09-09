@@ -76,10 +76,10 @@ def get_lan_ip() -> str:
 def is_host_admin(request: Request) -> bool:
     """
     Kiểm tra bảo mật: Chỉ duy nhất người ngồi trực tiếp tại máy chủ (localhost)
-    mới có quyền làm mới dữ liệu. Tất cả người dùng từ LAN hoặc Cloudflare Tunnel đều bị từ chối.
+    mới có quyền làm mới và tải lên dữ liệu. Tất cả người dùng từ LAN hoặc Tunnel đều bị từ chối.
     """
-    # Nếu có header của Cloudflare Tunnel thì đây là người dùng từ mạng ngoài
-    if request.headers.get("cf-connecting-ip") or request.headers.get("cf-ray"):
+    # Nếu có header từ Cloudflare hoặc Ngrok Tunnel
+    if request.headers.get("cf-connecting-ip") or request.headers.get("cf-ray") or request.headers.get("ngrok-trace-id"):
         return False
     # Nếu có header X-Forwarded-For từ proxy ngoài
     if request.headers.get("x-forwarded-for"):
@@ -238,8 +238,14 @@ async def api_clear_cache(request: Request):
     return {"status": "success", "message": "Đang làm mới và nạp lại toàn bộ dữ liệu vào RAM..."}
 
 @app.post("/api/upload-excel")
-async def upload_excel(file: UploadFile = File(...)):
-    """Tải lên file Excel dự án mới trực tiếp từ trình duyệt (tiện lợi khi chạy trên Render/Cloud)"""
+async def upload_excel(request: Request, file: UploadFile = File(...)):
+    """Bảo mật: Chỉ duy nhất chủ máy (localhost) mới được phép tải lên file Excel"""
+    if not is_host_admin(request):
+        raise HTTPException(
+            status_code=403, 
+            detail="Bạn không có quyền! Chỉ chủ máy mới được phép tải lên file Excel."
+        )
+
     if not file.filename or not file.filename.endswith((".xlsx", ".xlsm")):
         raise HTTPException(status_code=400, detail="Chỉ chấp nhận file Excel đuôi .xlsx hoặc .xlsm")
     

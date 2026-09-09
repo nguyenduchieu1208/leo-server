@@ -103,6 +103,17 @@ async function loadServerInfo() {
                 btnReload.classList.remove('flex');
             }
         }
+
+        const btnUpload = document.getElementById('btn-upload-excel');
+        if (btnUpload) {
+            if (state.isAdmin) {
+                btnUpload.classList.remove('hidden');
+                btnUpload.classList.add('flex');
+            } else {
+                btnUpload.classList.add('hidden');
+                btnUpload.classList.remove('flex');
+            }
+        }
     } catch (e) {
         console.error("Lỗi lấy thông tin server:", e);
     }
