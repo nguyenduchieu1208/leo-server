@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.tunnel_url
+cache.db
+*.msi
+.vscode/
+.idea/

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Tra Cứu Vật Tư & BTP Theo Ngày - AMECC</title>
+    <!-- Tailwind CSS qua CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#16a34a',
+                            600: '#15803d',
+                            700: '#166534'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="/frontend/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans antialiased">
+    <!-- Header Giao Diện Sáng -->
+    <header class="bg-white/95 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-600/20 text-white">
+                    <i data-lucide="layers" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2">
+                        Tra Cứu Vật Tư & BTP Theo Ngày
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 font-semibold">AMECC Intranet</span>
+                    </h1>
+                    <p class="text-xs text-slate-500">Bóc tách cấu kiện AS Symbol "X" • Gán tiến độ ngày nhận • Cảnh báo Thép hình (Shape)</p>
+                </div>
+            </div>
+
+            <!-- Server Network Access Links -->
+            <div class="flex items-center flex-wrap gap-2.5">
+                <!-- LAN Link -->
+                <div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-700 shadow-2xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span class="text-slate-500">Wi-Fi/LAN:</span>
+                    <code id="lan-ip-text" class="text-blue-600 font-mono font-bold select-all">Đang tải...</code>
+                    <button id="btn-copy-ip" title="Sao chép link Wi-Fi" class="hover:text-slate-900 p-1 rounded transition text-slate-400 hover:bg-slate-200">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+
+                <!-- Internet / 4G Link -->
+                <div id="tunnel-box" class="flex items-center gap-2 bg-indigo-50 border border-indigo-200 rounded-lg px-2.5 py-1.5 text-xs text-indigo-900 shadow-2xs">
+                    <span class="w-2 h-2 rounded-full bg-indigo-600"></span>
+                    <span class="text-indigo-600 font-semibold">4G/Internet:</span>
+                    <code id="tunnel-url-text" class="text-indigo-700 font-mono font-bold select-all">Đang kết nối...</code>
+                    <button id="btn-copy-tunnel" title="Sao chép link mạng ngoài" class="hover:text-indigo-950 p-1 rounded transition text-indigo-400 hover:bg-indigo-100">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+
+                <!-- Nút Tải lên Excel dự án mới -->
+                <input type="file" id="excel-file-input" accept=".xlsx,.xlsm" class="hidden">
+                <button id="btn-upload-excel" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-800 rounded-lg transition shadow-xs cursor-pointer" title="Tải lên file Excel dự án mới (.xlsx)">
+                    <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-emerald-600"></i>
+                    <span>Tải Lên Excel</span>
+                </button>
+
+                <!-- Nút Làm mới chỉ hiển thị cho Chủ máy (Admin) -->
+                <button id="btn-reload-data" class="hidden items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-lg transition shadow-xs" title="Chỉ chủ máy mới có quyền làm mới dữ liệu">
+                    <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                    <span>Làm mới (Chủ máy)</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
+        
+        <!-- Filter & Actions Bar -->
+        <section class="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs space-y-3.5">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 items-center">
+                <!-- Chọn file dự án -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        <i data-lucide="folder" class="inline w-3.5 h-3.5 mr-1 text-blue-600"></i>Chọn File Dự Án (BOM / PL)
+                    </label>
+                    <select id="select-project" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition">
+                        <option value="">Đang tải danh sách file...</option>
+                    </select>
+                </div>
+
+                <!-- Lọc theo Hạng mục (Sheet: T5P1, T5P2...) -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        <i data-lucide="layers" class="inline w-3.5 h-3.5 mr-1 text-indigo-600"></i>Hạng Mục (Sheet)
+                    </label>
+                    <select id="select-sheet" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition">
+                        <option value="all">📂 Tất cả hạng mục (Sheets)</option>
+                    </select>
+                </div>
+
+                <!-- Lọc trạng thái đồng bộ -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        <i data-lucide="filter" class="inline w-3.5 h-3.5 mr-1 text-blue-600"></i>Tình Trạng Đồng Bộ
+                    </label>
+                    <select id="select-status" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition">
+                        <option value="all">Tất cả cấu kiện</option>
+                        <option value="completed">🟢 Đủ 100% BTP (Có thể tổ hợp)</option>
+                        <option value="partial">🟡 Đang về dở dang (Thiếu linh kiện)</option>
+                        <option value="not_received">🔴 Chưa nhận BTP nào</option>
+                        <option value="shape_issue">🟠 Có vướng mắc Thép hình (Shape)</option>
+                    </select>
+                </div>
+
+                <!-- Ô tìm kiếm nhanh -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1">
+                        <i data-lucide="search" class="inline w-3.5 h-3.5 mr-1 text-blue-600"></i>Tìm Kiếm Cấu Kiện / BTP
+                    </label>
+                    <div class="relative">
+                        <input type="text" id="input-search" placeholder="Tên cấu kiện, bản vẽ, BTP..." 
+                            class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition font-medium">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dòng nút xuất Excel: Xuất Full Tier & Xuất Còn Thiếu -->
+            <div class="pt-3 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-2 text-xs text-slate-600 font-medium">
+                    <span class="font-bold text-slate-700">Phạm vi xuất:</span>
+                    <span id="export-scope-badge" class="px-2.5 py-1 rounded-md bg-slate-100 border border-slate-200 text-slate-800 font-mono font-semibold">Tất cả các sheet</span>
+                    <span class="text-slate-400 hidden sm:inline">• (Mỗi hạng mục tự động tách thành 1 Sheet Excel riêng biệt)</span>
+                </div>
+
+                <div class="flex items-center flex-wrap gap-2.5">
+                    <!-- Nút Xuất Chi Tiết Còn Thiếu -->
+                    <button id="btn-export-missing" title="Chỉ xuất các chi tiết BTP có Số Lượng Còn Thiếu > 0" class="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl transition shadow-xs">
+                        <i data-lucide="file-minus" class="w-4 h-4"></i>
+                        <span>Xuất Chi Tiết Còn Thiếu</span>
+                    </button>
+
+                    <!-- Nút Xuất Full Tier (Toàn Bộ) -->
+                    <button id="btn-export-full" title="Xuất toàn bộ cây phân tầng: Tất cả cấu kiện và 100% linh kiện con" class="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl transition shadow-xs">
+                        <i data-lucide="layers" class="w-4 h-4"></i>
+                        <span>Xuất Full Tier (Toàn Bộ)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Date Selector Pills (Sắp xếp theo Ngày/Tháng/Năm) -->
+            <div class="pt-3 border-t border-slate-200 flex flex-wrap items-center gap-2">
+                <span class="text-xs font-bold text-slate-600 flex items-center gap-1 mr-1">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5 text-blue-600"></i> Ngày nhận (Ngày/Tháng/Năm):
+                </span>
+                <div id="date-pills-container" class="flex flex-wrap items-center gap-1.5">
+                    <button data-date="all" class="date-pill active px-3 py-1 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-xs transition">
+                        Tất cả ngày
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- KPI Summary Cards Sáng Đẹp -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-xs">
+                <div class="space-y-0.5">
+                    <p class="text-xs font-bold text-slate-500 uppercase">Tổng Cấu Kiện (AS Symbol "X")</p>
+                    <p id="kpi-total-assy" class="text-2xl sm:text-3xl font-extrabold text-slate-900">0</p>
+                    <p class="text-[11px] text-slate-500 font-medium">Bóc tách từ BOM</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                    <i data-lucide="box" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <div class="bg-white border border-emerald-200 rounded-2xl p-4 flex items-center justify-between shadow-xs">
+                <div class="space-y-0.5">
+                    <p class="text-xs font-bold text-emerald-700 uppercase">Đủ 100% BTP (Tổ Hợp Ngay)</p>
+                    <p id="kpi-completed-assy" class="text-2xl sm:text-3xl font-extrabold text-emerald-600">0</p>
+                    <p id="kpi-completed-percent" class="text-[11px] text-emerald-600 font-bold">0% tổng cấu kiện</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                    <i data-lucide="check-circle-2" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <div class="bg-white border border-amber-200 rounded-2xl p-4 flex items-center justify-between shadow-xs">
+                <div class="space-y-0.5">
+                    <p class="text-xs font-bold text-amber-700 uppercase">Đang Thiếu Linh Kiện</p>
+                    <p id="kpi-partial-assy" class="text-2xl sm:text-3xl font-extrabold text-amber-600">0</p>
+                    <p class="text-[11px] text-amber-700 font-medium">Cần đôn đốc cấp hàng</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                    <i data-lucide="clock" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <div class="bg-white border border-orange-200 rounded-2xl p-4 flex items-center justify-between shadow-xs">
+                <div class="space-y-0.5">
+                    <p class="text-xs font-bold text-orange-700 uppercase">Cảnh Báo Thép Hình (Shape)</p>
+                    <p id="kpi-shape-issues" class="text-2xl sm:text-3xl font-extrabold text-orange-600">0</p>
+                    <p class="text-[11px] text-orange-700 font-medium">Vướng độ dài phôi cắt</p>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600">
+                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Navigation Tabs -->
+        <div class="flex items-center border-b border-slate-200 space-x-2">
+            <button class="nav-tab active px-4 py-2.5 font-bold text-sm text-blue-600 border-b-2 border-blue-600 flex items-center gap-2" data-tab="tree">
+                <i data-lucide="git-merge" class="w-4 h-4"></i>
+                Cây Cấu Kiện & Chi Tiết BTP
+            </button>
+            <button class="nav-tab px-4 py-2.5 font-bold text-sm text-slate-500 hover:text-slate-800 border-b-2 border-transparent flex items-center gap-2 transition" data-tab="timeline">
+                <i data-lucide="calendar-range" class="w-4 h-4"></i>
+                Bảng Nhận Hàng Theo Ngày (Ngày/Tháng/Năm)
+            </button>
+            <button class="nav-tab px-4 py-2.5 font-bold text-sm text-slate-500 hover:text-slate-800 border-b-2 border-transparent flex items-center gap-2 transition" data-tab="shape">
+                <i data-lucide="alert-octagon" class="w-4 h-4"></i>
+                Chi Tiết Cảnh Báo Thép Hình (Shape)
+                <span id="shape-tab-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-orange-100 text-orange-800 font-bold border border-orange-200">0</span>
+            </button>
+        </div>
+
+        <!-- TAB 1: TREE VIEW CẤU KIỆN & BTP -->
+        <section id="tab-tree-content" class="tab-pane space-y-3.5">
+            <div class="flex items-center justify-between text-xs text-slate-500 px-1">
+                <p>Hiển thị <span id="filtered-assy-count" class="font-extrabold text-slate-900">0</span> cấu kiện phù hợp</p>
+                <div class="flex items-center gap-2">
+                    <button id="btn-expand-all" class="hover:text-slate-900 px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-medium transition shadow-2xs">
+                        [+] Mở rộng tất cả
+                    </button>
+                    <button id="btn-collapse-all" class="hover:text-slate-900 px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-medium transition shadow-2xs">
+                        [-] Thu gọn tất cả
+                    </button>
+                </div>
+            </div>
+
+            <div id="assemblies-container" class="space-y-3">
+                <div class="text-center py-16 bg-white border border-slate-200 rounded-2xl shadow-xs">
+                    <div class="inline-block animate-spin text-blue-600 mb-3">
+                        <i data-lucide="loader-2" class="w-8 h-8"></i>
+                    </div>
+                    <p class="text-slate-500 text-sm font-medium">Đang tải dữ liệu dự án...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: TIMELINE / BẢNG NHẬN HÀNG THEO NGÀY -->
+        <section id="tab-timeline-content" class="tab-pane hidden space-y-4">
+            <div id="daily-matrix-container" class="space-y-4"></div>
+        </section>
+
+        <!-- TAB 3: CẢNH BÁO THÉP HÌNH SHAPE -->
+        <section id="tab-shape-content" class="tab-pane hidden space-y-4">
+            <div class="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-xs">
+                <div class="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-xl p-4 text-orange-900 text-sm">
+                    <i data-lucide="info" class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5"></i>
+                    <div>
+                        <h3 class="font-bold text-orange-900">Lưu ý quản lý vật tư chủng loại Thép Hình (Shape):</h3>
+                        <p class="mt-1 text-xs text-orange-800 leading-relaxed font-medium">
+                            Thép hình (H, I, U, V, Pipe) thường mua theo cây tiêu chuẩn và cắt theo bản vẽ xả phôi (Cutting No).
+                            Nếu chi tiết chưa đạt đủ độ dài tối thiểu theo thiết kế hoặc chưa xả phôi xong, số lượng nhận trên sheet BTP có thể chưa cập nhật.
+                            Danh sách dưới đây liệt kê toàn bộ các chi tiết cần lưu ý để anh em xưởng chủ động kiểm tra phôi thực tế.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-700 uppercase font-bold">
+                                <th class="py-3 px-3">Cấu Kiện (Assembly)</th>
+                                <th class="py-3 px-3">Bản Vẽ</th>
+                                <th class="py-3 px-3">Mã BTP (Chi Tiết)</th>
+                                <th class="py-3 px-3">Quy Cách (Size)</th>
+                                <th class="py-3 px-3 text-right">Chiều Dài (mm)</th>
+                                <th class="py-3 px-3 text-right">SL Còn Thiếu</th>
+                                <th class="py-3 px-3">Kế Hoạch Cắt (CP No)</th>
+                                <th class="py-3 px-3">Tình Trạng & Gợi Ý Xử Lý</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shape-warnings-tbody" class="divide-y divide-slate-200"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 bg-white py-4 text-center text-xs text-slate-500">
+        <p>Hệ Thống Tra Cứu Vật Tư & BTP Nội Bộ AMECC • Chạy trực tiếp trên máy trạm • 100% Miễn phí & Bảo mật dữ liệu</p>
+    </footer>
+
+    <script src="/frontend/app.js"></script>
+</body>
+</html>
