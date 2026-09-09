@@ -569,22 +569,148 @@ function renderDateSelector() {
 }
 const renderDatePills = renderDateSelector;
 
+// Hàm đánh dấu nổi bật từ khóa tìm kiếm (Highlight Search)
+function highlightText(text, query) {
+    if (!text || !query) return text !== undefined && text !== null ? String(text) : '';
+    const str = String(text);
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escaped})`, 'gi');
+    return str.replace(regex, '<mark class="bg-amber-200 text-amber-950 font-bold px-0.5 rounded-xs">$1</mark>');
+}
+
+// Hàm hiển thị dải tiến độ từng Hạng mục (Sheet Progress Breakdown)
+function renderSheetBreakdown() {
+    const section = document.getElementById('sheet-breakdown-section');
+    const container = document.getElementById('sheet-chips-container');
+    if (!section || !container || !state.projectData) return;
+
+    const allAssemblies = state.projectData.assemblies || [];
+    const sheets = state.projectData.sheets || [];
+
+    if (sheets.length <= 1) {
+        section.classList.add('hidden');
+        return;
+    }
+
+    section.classList.remove('hidden');
+
+    // Thống kê theo từng sheet
+    const statsBySheet = {};
+    sheets.forEach(s => {
+        statsBySheet[s] = { total: 0, completed: 0 };
+    });
+
+    allAssemblies.forEach(a => {
+        const s = a.sheet || 'Khac';
+        if (!statsBySheet[s]) statsBySheet[s] = { total: 0, completed: 0 };
+        statsBySheet[s].total++;
+        if (a.status === 'completed') {
+            statsBySheet[s].completed++;
+        }
+    });
+
+    let html = `
+        <button type="button" class="sheet-filter-chip flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95 ${state.selectedSheet === 'all' ? 'bg-blue-600 text-white border-blue-600 ring-2 ring-blue-300' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'}" data-sheet="all">
+            <span>📂 Tất cả (${allAssemblies.length} CK)</span>
+        </button>
+    `;
+
+    sheets.forEach(s => {
+        const st = statsBySheet[s] || { total: 0, completed: 0 };
+        const percent = st.total > 0 ? Math.round((st.completed / st.total) * 100) : 0;
+        const isSelected = state.selectedSheet === s;
+        const badgeColor = percent === 100 ? 'bg-emerald-100 text-emerald-800' : (percent > 0 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600');
+        const activeClass = isSelected ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-300' : 'bg-white text-slate-800 border-slate-200 hover:bg-slate-50';
+
+        html += `
+            <button type="button" class="sheet-filter-chip flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95 ${activeClass}" data-sheet="${s}">
+                <span class="font-mono font-bold">${s}</span>
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${isSelected ? 'bg-white/20 text-white' : badgeColor}">
+                    ${percent}% (${st.completed}/${st.total})
+                </span>
+            </button>
+        `;
+    });
+
+    container.innerHTML = html;
+
+    container.querySelectorAll('.sheet-filter-chip').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const targetSheet = this.dataset.sheet;
+            if (state.selectedSheet === targetSheet && targetSheet !== 'all') {
+                state.selectedSheet = 'all';
+            } else {
+                state.selectedSheet = targetSheet;
+            }
+            const selectSheet = document.getElementById('select-sheet');
+            if (selectSheet) selectSheet.value = state.selectedSheet;
+            
+            const badge = document.getElementById('export-scope-badge');
+            if (badge) {
+                badge.textContent = state.selectedSheet === 'all' ? 'Tất cả các sheet' : `Hạng mục: ${state.selectedSheet}`;
+            }
+            updateCompactFilterBadges();
+            applyFiltersAndRender(true);
+        });
+    });
+}
+
 // 6. Áp dụng bộ lọc và kích hoạt vẽ danh sách
 function applyFiltersAndRender(resetPagination = true) {
     if (!state.projectData) return;
     let assemblies = state.projectData.assemblies || [];
+
+    // Kiểm tra và hiển thị nút Đặt lại bộ lọc (Reset All Filters)
+    const isFiltered = (state.selectedSheet && state.selectedSheet !== 'all') ||
+                       (state.selectedStatus && state.selectedStatus !== 'all') ||
+                       (state.selectedDate && state.selectedDate !== 'all') ||
+                       (state.searchQuery && state.searchQuery.trim() !== '');
+
+    const btnReset = document.getElementById('btn-reset-filters');
+    const btnCompactReset = document.getElementById('btn-compact-reset-filters');
+    if (btnReset) {
+        if (isFiltered) {
+            btnReset.classList.remove('hidden');
+            btnReset.classList.add('flex');
+        } else {
+            btnReset.classList.add('hidden');
+            btnReset.classList.remove('flex');
+        }
+    }
+    if (btnCompactReset) {
+        if (isFiltered) {
+            btnCompactReset.classList.remove('hidden');
+            btnCompactReset.classList.add('flex');
+        } else {
+            btnCompactReset.classList.add('hidden');
+            btnCompactReset.classList.remove('flex');
+        }
+    }
 
     // Lọc theo Hạng mục (Sheet)
     if (state.selectedSheet && state.selectedSheet !== 'all') {
         assemblies = assemblies.filter(a => a.sheet === state.selectedSheet);
     }
 
-    // Lọc theo Tìm kiếm
+    // Lọc theo Tìm kiếm & Tự động mở rộng cấu kiện khớp BTP con
     if (state.searchQuery) {
         const q = state.searchQuery.toLowerCase();
         assemblies = assemblies.filter(a => {
-            if (a.assembly_no.toLowerCase().includes(q) || a.dwg.toLowerCase().includes(q) || a.size.toLowerCase().includes(q)) return true;
-            return a.parts.some(p => p.part_no.toLowerCase().includes(q) || p.part_cut.toLowerCase().includes(q) || p.size.toLowerCase().includes(q));
+            const matchAssy = a.assembly_no.toLowerCase().includes(q) || 
+                              a.dwg.toLowerCase().includes(q) || 
+                              a.size.toLowerCase().includes(q);
+            const matchParts = a.parts && a.parts.some(p => 
+                (p.part_no && p.part_no.toLowerCase().includes(q)) || 
+                (p.part_cut && p.part_cut.toLowerCase().includes(q)) || 
+                (p.size && p.size.toLowerCase().includes(q)) ||
+                (p.material && p.material.toLowerCase().includes(q)) ||
+                (p.ghi_chu && p.ghi_chu.toLowerCase().includes(q))
+            );
+            if (matchParts) {
+                state.expandedAssemblies.add(a.id);
+                return true;
+            }
+            return matchAssy;
         });
     }
 
@@ -612,6 +738,7 @@ function applyFiltersAndRender(resetPagination = true) {
     const countElem = document.getElementById('filtered-assy-count');
     if (countElem) countElem.textContent = assemblies.length;
 
+    renderSheetBreakdown();
     renderAssemblies();
 }
 
@@ -622,6 +749,13 @@ function buildPartsTableHtml(assy) {
     }
 
     return `
+        <!-- Chỉ báo vuốt ngang trên màn hình điện thoại -->
+        <div class="sm:hidden flex items-center justify-between text-[11px] text-slate-500 font-medium px-1 mb-1.5">
+            <span class="flex items-center gap-1 text-blue-600 font-bold">
+                <span>👈</span> Vuốt ngang xem đủ 11 cột BTP <span>👉</span>
+            </span>
+            <span class="font-mono font-semibold text-slate-700">${assy.parts.length} BTP</span>
+        </div>
         <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-2xs">
             <table class="w-full text-left text-xs border-collapse">
                 <thead>
@@ -673,9 +807,9 @@ function buildPartsTableHtml(assy) {
                         const ghiChu = p.ghi_chu || '';
                         let ghiChuHtml = '';
                         if (ghiChu) {
-                            ghiChuHtml = `<span class="text-xs text-slate-700 font-medium">${ghiChu}</span>`;
+                            ghiChuHtml = `<span class="text-xs text-slate-700 font-medium">${highlightText(ghiChu, state.searchQuery)}</span>`;
                         } else if (p.ktra_noi) {
-                            ghiChuHtml = `<span class="text-xs text-slate-700 font-medium">Ktra nối: ${p.ktra_noi}</span>`;
+                            ghiChuHtml = `<span class="text-xs text-slate-700 font-medium">Ktra nối: ${highlightText(p.ktra_noi, state.searchQuery)}</span>`;
                         } else {
                             ghiChuHtml = '<span class="text-slate-300">-</span>';
                         }
@@ -683,9 +817,9 @@ function buildPartsTableHtml(assy) {
                         const isDone = p.is_fully_received;
                         return `
                             <tr class="hover:bg-slate-50/80 transition ${isDone ? 'bg-emerald-50/40' : ''}">
-                                <td class="py-2 px-3 font-bold text-slate-900 font-mono">${p.display_name}</td>
+                                <td class="py-2 px-3 font-bold text-slate-900 font-mono">${highlightText(p.display_name, state.searchQuery)}</td>
                                 <td class="py-2 px-3">${chungLoaiBadge}</td>
-                                <td class="py-2 px-3 font-mono text-slate-700">${p.size}</td>
+                                <td class="py-2 px-3 font-mono text-slate-700">${highlightText(p.size, state.searchQuery)}</td>
                                 <td class="py-2 px-3 text-right font-mono font-medium">${p.length || '-'}</td>
                                 <td class="py-2 px-3 text-right font-mono font-bold">${p.tqty}</td>
                                 <td class="py-2 px-3 text-right font-mono font-bold text-blue-600">${p.da_nhan}</td>
@@ -759,7 +893,6 @@ function renderAssemblies() {
             statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-300 flex items-center gap-1">${SVG_ICONS.x} Chưa có BTP</span>`;
         }
 
-
         const chevron = isExpanded ? SVG_ICONS.chevronDown : SVG_ICONS.chevronRight;
         const detailsContent = isExpanded ? buildPartsTableHtml(assy) : '';
 
@@ -773,9 +906,9 @@ function renderAssemblies() {
                         </button>
                         <div class="min-w-0 max-w-full">
                             <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                                <span class="text-sm sm:text-base font-extrabold text-slate-900 tracking-wide break-words">${assy.assembly_no}</span>
-                                <span class="text-[11px] sm:text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono font-bold break-all">${assy.dwg}</span>
-                                <span class="text-[11px] sm:text-xs text-slate-500 font-mono break-all">${assy.size}</span>
+                                <span class="text-sm sm:text-base font-extrabold text-slate-900 tracking-wide break-words">${highlightText(assy.assembly_no, state.searchQuery)}</span>
+                                <span class="text-[11px] sm:text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-mono font-bold break-all">${highlightText(assy.dwg, state.searchQuery)}</span>
+                                <span class="text-[11px] sm:text-xs text-slate-500 font-mono break-all">${highlightText(assy.size, state.searchQuery)}</span>
                             </div>
                             <p class="text-xs text-slate-500 mt-0.5 font-medium truncate">Sheet: <span class="text-blue-700 font-mono font-semibold">${assy.sheet}</span> • Gồm <strong class="text-slate-900">${assy.total_parts_count}</strong> BTP con</p>
                         </div>
@@ -1064,6 +1197,44 @@ function setupEventListeners() {
     if (btnCompactCal) {
         btnCompactCal.addEventListener('click', () => openCalendarModal());
     }
+
+    // Nút Đặt lại toàn bộ bộ lọc (Reset All Filters)
+    const handleResetFilters = () => {
+        state.selectedSheet = 'all';
+        state.selectedStatus = 'all';
+        state.selectedDate = 'all';
+        state.searchQuery = '';
+
+        const selectSheet = document.getElementById('select-sheet');
+        if (selectSheet) selectSheet.value = 'all';
+
+        const selectStatus = document.getElementById('select-status');
+        if (selectStatus) selectStatus.value = 'all';
+
+        const selectDate = document.getElementById('select-date');
+        if (selectDate) selectDate.value = 'all';
+
+        const curDateLabel = document.getElementById('current-date-label');
+        if (curDateLabel) curDateLabel.textContent = 'Tất cả ngày';
+
+        const inputSearch = document.getElementById('input-search');
+        if (inputSearch) inputSearch.value = '';
+
+        const compactSearch = document.getElementById('compact-input-search');
+        if (compactSearch) compactSearch.value = '';
+
+        const badge = document.getElementById('export-scope-badge');
+        if (badge) badge.textContent = 'Tất cả các sheet';
+
+        updateCompactFilterBadges();
+        applyFiltersAndRender(true);
+    };
+
+    const btnReset = document.getElementById('btn-reset-filters');
+    if (btnReset) btnReset.addEventListener('click', handleResetFilters);
+
+    const btnCompactReset = document.getElementById('btn-compact-reset-filters');
+    if (btnCompactReset) btnCompactReset.addEventListener('click', handleResetFilters);
 
     // Tìm kiếm với Debounce 250ms (Đồng bộ 2 chiều giữa thanh Đầy đủ và thanh Thu gọn)
     let searchTimeout = null;

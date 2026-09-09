@@ -114,15 +114,20 @@ def get_cached_project_json(file_path: str, force_reload: bool = False) -> bytes
     with _RAM_LOCK:
         return _RAM_CACHE[file_path]["json_bytes"]
 
+from concurrent.futures import ThreadPoolExecutor
+
 def warm_up_cache(data_folder: str):
-    """Làm nóng bộ nhớ đệm (Pre-cache / Warm-up) chạy ngầm khi server khởi động"""
+    """Làm nóng bộ nhớ đệm (Pre-cache / Warm-up) chạy ngầm đa luồng khi server khởi động hoặc làm mới"""
     projects = list_available_projects(data_folder)
+    if not projects:
+        return
+
     try:
-        print(f"[*] Dang nap du lieu (Warm-up) cho {len(projects)} file du an vao RAM...")
+        print(f"[*] Dang nap du lieu da luong (Warm-up) cho {len(projects)} file du an vao RAM...")
     except Exception:
         pass
         
-    for p in projects:
+    def _load_single(p):
         try:
             get_cached_project(p["file_path"])
             try:
@@ -134,9 +139,13 @@ def warm_up_cache(data_folder: str):
                 print(f"  [-] Loi nap {p['display_name']}: {e}")
             except Exception:
                 pass
+
+    workers = min(4, os.cpu_count() or 4)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        list(executor.map(_load_single, projects))
                 
     try:
-        print("[*] Bo nho dem RAM da san sang phuc vu voi toc do cao!")
+        print(f"[*] Bo nho dem RAM da nap xong {len(projects)} file, san sang phuc vu voi toc do cao!")
     except Exception:
         pass
 

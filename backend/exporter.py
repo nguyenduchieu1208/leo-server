@@ -263,6 +263,20 @@ def export_project_excel(
 
         ws.row_dimensions[cur_row].height = 24
 
+        # Tự động căn chỉnh độ rộng cột vừa vặn với nội dung (tối đa 50 ký tự)
+        for col in ws.columns:
+            max_len = 0
+            col_letter = get_column_letter(col[0].column)
+            for cell in col:
+                if cell.row == cur_row:  # Bỏ qua dòng tổng cộng đã merge
+                    continue
+                v_str = str(cell.value or "")
+                if len(v_str) > max_len:
+                    max_len = len(v_str)
+            if max_len > 0:
+                current_w = ws.column_dimensions[col_letter].width or 12
+                ws.column_dimensions[col_letter].width = min(max(current_w, max_len + 3), 50)
+
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
