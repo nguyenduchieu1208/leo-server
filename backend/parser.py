@@ -181,10 +181,12 @@ def detect_bom_columns(ws, max_scan_rows: int = 15) -> Tuple[int, Dict[str, int]
                 temp_map["qty"] = c
             elif cell_val in ["t.q'ty", "t'qty", "t.qty"] and "tqty" not in temp_map:
                 temp_map["tqty"] = c
-            elif "u.weight" in cell_val:
+            elif cell_val in ["u.weight", "uweight", "đơn trọng", "don trong"]:
                 temp_map["uweight"] = c
-            elif "t.weight" in cell_val:
+            elif cell_val in ["t.weight", "tweight", "tổng trọng", "tong trong"]:
                 temp_map["tweight"] = c
+            elif cell_val in ["dvg", "dang", "dạng", "phan giao to", "phân giao tổ", "đơn vị gc", "đơn vị gia công"]:
+                temp_map["dvg"] = c
             elif "remark" in cell_val or "ghi chú" in cell_val or "ghi chu" in cell_val or "note" in cell_val:
                 temp_map["remark"] = c
             elif "as symbol" in cell_val or "as symble" in cell_val or "as_symbol" in cell_val:
@@ -208,6 +210,7 @@ def detect_bom_columns(ws, max_scan_rows: int = 15) -> Tuple[int, Dict[str, int]
         "tqty": 12,
         "uweight": 13,
         "tweight": 14,
+        "dvg": 16,
         "remark": 30,
         "as_symbol": 31
     }
@@ -248,6 +251,8 @@ def detect_btp_sheet_data(ws) -> Dict[str, Any]:
                     col_map["da_nhan"] = c_idx
                 elif "còn thiếu" in t or "con thieu" in t:
                     col_map["con_thieu"] = c_idx
+                elif "dvg" in t or "đơn vị" in t or "gia công" in t:
+                    col_map["dvg"] = c_idx
                 elif "cutting no" in t or "cp no" in t:
                     col_map["cutting_no"] = c_idx
                 elif "qty cutting" in t:
@@ -255,6 +260,18 @@ def detect_btp_sheet_data(ws) -> Dict[str, Any]:
                 elif "ktra nối" in t or "ktra noi" in t or "kiểm tra nối" in t or "nối" in t:
                     col_map["ktra_noi"] = c_idx
             break
+
+    # Quét bổ sung cột DVG nếu chưa thấy ở hàng tiêu đề
+    if "dvg" not in col_map:
+        for scan_r in [header_row, header_row - 1]:
+            if 1 <= scan_r <= ws.max_row:
+                for c in range(1, min(150, ws.max_column + 1)):
+                    cv = str(ws.cell(scan_r, c).value or "").strip().upper()
+                    if cv == "DVG" or "DVG" in cv or "ĐƠN VỊ GC" in cv:
+                        col_map["dvg"] = c
+                        break
+                if "dvg" in col_map:
+                    break
 
     col_defaults = {
         "chung_loai": 3,
@@ -461,6 +478,8 @@ def detect_btp_sheet_data(ws) -> Dict[str, Any]:
         qty_cutting = parse_number(ws.cell(r, col_map.get("qty_cutting", 34)).value, is_int=True)
         ktra_noi_val = ws.cell(r, col_map["ktra_noi"]).value if "ktra_noi" in col_map else None
         ktra_noi_str = clean_str(ktra_noi_val) if ktra_noi_val not in ["-", "0", None] else ""
+        dvg_val = ws.cell(r, col_map["dvg"]).value if "dvg" in col_map else None
+        dvg_str = clean_str(dvg_val).upper() if dvg_val not in ["-", "0", None] else ""
         
         item_obj = {
             "row": r,
@@ -475,6 +494,7 @@ def detect_btp_sheet_data(ws) -> Dict[str, Any]:
             "tweight": parse_number(ws.cell(r, col_map["tweight"]).value),
             "da_nhan": da_nhan_num,
             "con_thieu": con_thieu_num,
+            "dvg": dvg_str,
             "dates_received": dates_received,
             "ktra_noi": ktra_noi_str,
             "cutting_no": cutting_str,
@@ -642,6 +662,23 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
                     note_items.append(bom_remark)
                 ghi_chu = " | ".join(note_items)
                 
+                # Xác định Đơn vị gia công (DVG)
+                dvg_candidate = ""
+                if btp_info and btp_info.get("dvg"):
+                    dvg_candidate = btp_info.get("dvg")
+                if not dvg_candidate and "dvg" in col_map:
+                    dvg_candidate = clean_str(ws_bom.cell(r, col_map["dvg"]).value)
+
+                dvg_clean = dvg_candidate.strip().upper() if dvg_candidate else ""
+                if not dvg_clean or dvg_clean in ["-", "0", "NONE", "NULL"]:
+                    dvg_clean = "KHÁC"
+
+                # Tính toán trọng lượng
+                uweight = uweight_val if uweight_val is not None else 0.0
+                tweight = tweight_val if tweight_val is not None else round(tqty_val * uweight, 2)
+                da_nhan_weight = round(min(da_nhan, tqty_val) * uweight, 2) if uweight else 0.0
+                con_thieu_weight = round(max(0.0, con_thieu * uweight), 2) if uweight else 0.0
+
                 part_entry = {
                     "row_index": r,
                     "part_no": part_no,
@@ -654,10 +691,13 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
                     "material": mat_val,
                     "qty": qty_val,
                     "tqty": tqty_val,
-                    "uweight": uweight_val,
-                    "tweight": tweight_val,
+                    "uweight": uweight,
+                    "tweight": tweight,
+                    "da_nhan_weight": da_nhan_weight,
+                    "con_thieu_weight": con_thieu_weight,
                     "da_nhan": da_nhan,
                     "con_thieu": con_thieu,
+                    "dvg": dvg_clean,
                     "dates_received": dates_received,
                     "ktra_noi": ktra_noi,
                     "remark": bom_remark,
@@ -704,6 +744,82 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
     not_received_assy = sum(1 for a in all_assemblies if a["status"] == "not_received")
     total_shape_issues = sum(1 for a in all_assemblies if a["has_shape_issue"])
 
+    # Tổng hợp phân tích theo Đơn vị gia công (DVG: MCC, KHO, PMC, WTC...)
+    dvg_summary_dict: Dict[str, Dict[str, Any]] = {}
+    for assy in all_assemblies:
+        for p in assy["parts"]:
+            dvg_code = p.get("dvg") or "KHÁC"
+            if dvg_code not in dvg_summary_dict:
+                dvg_summary_dict[dvg_code] = {
+                    "dvg": dvg_code,
+                    "total_qty": 0,
+                    "da_nhan_qty": 0,
+                    "con_thieu_qty": 0,
+                    "total_weight": 0.0,
+                    "da_nhan_weight": 0.0,
+                    "con_thieu_weight": 0.0,
+                    "parts_count": 0,
+                    "missing_parts_count": 0,
+                    "missing_parts": []
+                }
+            d = dvg_summary_dict[dvg_code]
+            d["total_qty"] += p["tqty"]
+            d["da_nhan_qty"] += p["da_nhan"]
+            d["con_thieu_qty"] += p["con_thieu"]
+            d["total_weight"] = round(d["total_weight"] + (p.get("tweight") or 0.0), 2)
+            d["da_nhan_weight"] = round(d["da_nhan_weight"] + (p.get("da_nhan_weight") or 0.0), 2)
+            d["con_thieu_weight"] = round(d["con_thieu_weight"] + (p.get("con_thieu_weight") or 0.0), 2)
+            d["parts_count"] += 1
+            if p["con_thieu"] > 0:
+                d["missing_parts_count"] += 1
+                d["missing_parts"].append({
+                    "assembly_no": assy["assembly_no"],
+                    "dwg": assy["dwg"],
+                    "sheet": assy["sheet"],
+                    "part_name": p["display_name"],
+                    "part_no": p["part_no"],
+                    "size": p["size"],
+                    "material": p["material"],
+                    "tqty": p["tqty"],
+                    "da_nhan": p["da_nhan"],
+                    "con_thieu": p["con_thieu"],
+                    "uweight": p["uweight"],
+                    "con_thieu_weight": p.get("con_thieu_weight", 0.0),
+                    "cutting_no": p.get("shape_analysis", {}).get("cutting_no") or p.get("cutting_no", ""),
+                    "ktra_noi": p.get("ktra_noi", "")
+                })
+
+    for d in dvg_summary_dict.values():
+        d["completion_rate_qty"] = round(d["da_nhan_qty"] / d["total_qty"] * 100, 1) if d["total_qty"] > 0 else 0.0
+        d["completion_rate_weight"] = round(d["da_nhan_weight"] / d["total_weight"] * 100, 1) if d["total_weight"] > 0 else 0.0
+        d["missing_parts"].sort(key=lambda x: x["con_thieu_weight"], reverse=True)
+
+    dvg_list = sorted(list(dvg_summary_dict.values()), key=lambda x: x["total_weight"], reverse=True)
+
+    project_dvg_totals = {
+        "total_weight": round(sum(d["total_weight"] for d in dvg_list), 2),
+        "da_nhan_weight": round(sum(d["da_nhan_weight"] for d in dvg_list), 2),
+        "con_thieu_weight": round(sum(d["con_thieu_weight"] for d in dvg_list), 2),
+        "total_qty": sum(d["total_qty"] for d in dvg_list),
+        "da_nhan_qty": sum(d["da_nhan_qty"] for d in dvg_list),
+        "con_thieu_qty": sum(d["con_thieu_qty"] for d in dvg_list),
+        "completion_rate_weight": 0.0,
+        "completion_rate_qty": 0.0
+    }
+    if project_dvg_totals["total_weight"] > 0:
+        project_dvg_totals["completion_rate_weight"] = round(
+            project_dvg_totals["da_nhan_weight"] / project_dvg_totals["total_weight"] * 100, 1
+        )
+    if project_dvg_totals["total_qty"] > 0:
+        project_dvg_totals["completion_rate_qty"] = round(
+            project_dvg_totals["da_nhan_qty"] / project_dvg_totals["total_qty"] * 100, 1
+        )
+
+    dvg_analytics = {
+        "by_dvg": dvg_list,
+        "totals": project_dvg_totals
+    }
+
     return {
         "project_id": project_code,
         "file_path": file_path,
@@ -719,7 +835,8 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
         ),
         "assemblies": all_assemblies,
         "daily_delivery": daily_delivery_summary,
-        "shape_warnings": shape_warnings_list
+        "shape_warnings": shape_warnings_list,
+        "dvg_analytics": dvg_analytics
     }
 
 def _finalize_assembly_metrics(assy: Dict[str, Any], shape_warnings_list: List[Dict[str, Any]]):

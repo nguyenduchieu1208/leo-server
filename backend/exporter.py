@@ -32,9 +32,12 @@ EXPORT_HEADERS = [
     ("Quy Cách (Size)", 20, "left"),
     ("Chiều Dài (mm)", 14, "right"),
     ("Vật Liệu", 14, "center"),
+    ("Đơn Vị (DVG)", 12, "center"),
     ("SL Thiết Kế", 13, "right"),
     ("Đã Nhận", 12, "right"),
     ("Còn Thiếu", 14, "right"),
+    ("Đơn Trọng (kg)", 13, "right"),
+    ("KL Thiếu (kg)", 14, "right"),
     ("Ktra Nối", 12, "center"),
     ("Kế Hoạch Cắt (CP No)", 22, "left"),
     ("Tình Trạng BTP", 25, "left"),
@@ -146,6 +149,7 @@ def export_project_excel(
         total_tqty_sheet = 0
         total_danhan_sheet = 0
         total_missing_sheet = 0
+        total_missing_weight_sheet = 0.0
 
         for assy_group in assy_list:
             assy = assy_group["assembly"]
@@ -160,10 +164,14 @@ def export_project_excel(
                 tqty_val = p.get("tqty", 0)
                 da_nhan_val = p.get("da_nhan", 0)
                 con_thieu_val = p.get("con_thieu", 0)
+                uweight_val = round(float(p.get("uweight") or 0), 2)
+                con_thieu_weight = round(float(p.get("con_thieu_weight") or (con_thieu_val * uweight_val)), 1)
+                dvg_val = p.get("dvg") or ""
 
                 total_tqty_sheet += tqty_val
                 total_danhan_sheet += da_nhan_val
                 total_missing_sheet += con_thieu_val
+                total_missing_weight_sheet += con_thieu_weight
 
                 # Format cột còn thiếu
                 if con_thieu_val > 0:
@@ -202,9 +210,12 @@ def export_project_excel(
                     (p.get("size", ""), alignments["left"], font_data, None),
                     (p.get("length", ""), alignments["right"], font_data, None),
                     (p.get("material", ""), alignments["center"], font_data, None),
+                    (dvg_val, alignments["center"], font_data, None),
                     (tqty_val, alignments["right"], font_data, None),
                     (da_nhan_val, alignments["right"], font_data, None),
                     (con_thieu_val, alignments["right"], font_thieu, fill_thieu),
+                    (uweight_val if uweight_val > 0 else "-", alignments["right"], font_data, None),
+                    (con_thieu_weight if con_thieu_val > 0 else "-", alignments["right"], font_thieu if con_thieu_val > 0 else font_data, fill_thieu if con_thieu_val > 0 else None),
                     (p.get("ktra_noi", ""), alignments["center"], font_data, None),
                     (sa.get("cutting_no", "") or p.get("cutting_no", "") or "", alignments["left"], font_data, None),
                     (status_text, alignments["left"], font_data, None),
@@ -229,38 +240,52 @@ def export_project_excel(
         ws.freeze_panes = "A2"
 
         # 4. Dòng tổng kết ở cuối sheet
-        ws.merge_cells(start_row=cur_row, start_column=1, end_row=cur_row, end_column=11)
+        ws.merge_cells(start_row=cur_row, start_column=1, end_row=cur_row, end_column=12)
         tot_label_cell = ws.cell(cur_row, 1, "TỔNG CỘNG HẠNG MỤC:")
         tot_label_cell.font = font_total
         tot_label_cell.alignment = Alignment(horizontal="right", vertical="center")
         tot_label_cell.fill = fill_total
 
-        for c in range(1, 12):
+        for c in range(1, 13):
             ws.cell(cur_row, c).border = border_thin
             ws.cell(cur_row, c).fill = fill_total
 
-        # Tổng SL Thiết kế
-        c_tqty = ws.cell(cur_row, 12, total_tqty_sheet)
+        # Tổng SL Thiết kế (cột 13)
+        c_tqty = ws.cell(cur_row, 13, total_tqty_sheet)
         c_tqty.font = font_total
         c_tqty.alignment = alignments["right"]
         c_tqty.fill = fill_total
         c_tqty.border = border_thin
 
-        # Tổng Đã nhận
-        c_dn = ws.cell(cur_row, 13, total_danhan_sheet)
+        # Tổng Đã nhận (cột 14)
+        c_dn = ws.cell(cur_row, 14, total_danhan_sheet)
         c_dn.font = Font(name="Times New Roman", size=11, bold=True, color="166534")
         c_dn.alignment = alignments["right"]
         c_dn.fill = fill_total
         c_dn.border = border_thin
 
-        # Tổng Còn thiếu
-        tot_val_cell = ws.cell(cur_row, 14, total_missing_sheet)
+        # Tổng Còn thiếu (cột 15)
+        tot_val_cell = ws.cell(cur_row, 15, total_missing_sheet)
         tot_val_cell.font = Font(name="Times New Roman", size=11, bold=True, color="DC2626")
         tot_val_cell.alignment = alignments["right"]
         tot_val_cell.fill = fill_total
         tot_val_cell.border = border_thin
 
-        for c in range(15, len(EXPORT_HEADERS) + 1):
+        # Cột 16 (Đơn Trọng): để trống ở dòng tổng
+        c_u = ws.cell(cur_row, 16, "-")
+        c_u.font = font_total
+        c_u.alignment = alignments["center"]
+        c_u.fill = fill_total
+        c_u.border = border_thin
+
+        # Cột 17 (Tổng KL Thiếu):
+        c_w = ws.cell(cur_row, 17, round(total_missing_weight_sheet, 1))
+        c_w.font = Font(name="Times New Roman", size=11, bold=True, color="DC2626")
+        c_w.alignment = alignments["right"]
+        c_w.fill = fill_total
+        c_w.border = border_thin
+
+        for c in range(18, len(EXPORT_HEADERS) + 1):
             ws.cell(cur_row, c).border = border_thin
             ws.cell(cur_row, c).fill = fill_total
 
@@ -337,6 +362,10 @@ def export_project_csv(
                         notes.append(p["remark"])
                     ghi_chu_val = " | ".join(notes)
 
+                uweight_val = round(float(p.get("uweight") or 0), 2)
+                con_thieu_weight = round(float(p.get("con_thieu_weight") or (con_thieu_val * uweight_val)), 1)
+                dvg_val = p.get("dvg") or ""
+
                 row = [
                     stt_counter,
                     sheet_name,
@@ -349,9 +378,12 @@ def export_project_csv(
                     p.get("size", ""),
                     p.get("length", ""),
                     p.get("material", ""),
+                    dvg_val,
                     tqty_val,
                     da_nhan_val,
                     con_thieu_val,
+                    uweight_val if uweight_val > 0 else "",
+                    con_thieu_weight if con_thieu_val > 0 else "",
                     p.get("ktra_noi", ""),
                     sa.get("cutting_no", "") or p.get("cutting_no", "") or "",
                     status_text,

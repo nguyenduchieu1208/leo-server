@@ -32,7 +32,10 @@ let state = {
     visibleCount: 35,
     filteredAssemblies: [],
     activeTab: 'tree',
-    scrollObserver: null
+    scrollObserver: null,
+    dvgUnit: 'kg',
+    activeDvgFilter: 'all',
+    dvgSearchQuery: ''
 };
 
 // Cập nhật các nhãn trên thanh bộ lọc thu gọn
@@ -338,9 +341,10 @@ async function loadProjectData(filePath, forceReload = false) {
             shapeTabBadge.textContent = state.projectData.total_shape_issues || 0;
         }
 
-        // Tải nội dung tab tương ứng nếu đang mở Tab 2 hoặc 3
+        // Tải nội dung tab tương ứng nếu đang mở Tab 2, 3 hoặc 4
         if (state.activeTab === 'timeline') renderDailyTimeline();
         if (state.activeTab === 'shape') renderShapeWarnings();
+        if (state.activeTab === 'dvg') renderDvgAnalytics();
 
     } catch (e) {
         container.innerHTML = `
@@ -815,6 +819,7 @@ function applyFiltersAndRender(resetPagination = true) {
 
     renderSheetBreakdown();
     renderAssemblies();
+    if (state.activeTab === 'dvg') renderDvgAnalytics();
 }
 
 // 7. Tạo HTML chi tiết bảng BTP con (Chỉ tạo khi người dùng bấm mở thẻ)
@@ -827,7 +832,7 @@ function buildPartsTableHtml(assy) {
         <!-- Chỉ báo vuốt ngang trên màn hình điện thoại -->
         <div class="sm:hidden flex items-center justify-between text-[11px] text-slate-500 font-medium px-1 mb-1.5">
             <span class="flex items-center gap-1 text-blue-600 font-bold">
-                <span>👈</span> Vuốt ngang xem đủ 11 cột BTP <span>👉</span>
+                <span>👈</span> Vuốt ngang xem đủ 12 cột BTP <span>👉</span>
             </span>
             <span class="font-mono font-semibold text-slate-700">${assy.parts.length} BTP</span>
         </div>
@@ -837,6 +842,7 @@ function buildPartsTableHtml(assy) {
                     <tr class="bg-slate-100 text-slate-700 border-b border-slate-200 uppercase font-bold text-[11px]">
                         <th class="py-2 px-3">Mã BTP (Chi tiết)</th>
                         <th class="py-2 px-3">Chủng Loại</th>
+                        <th class="py-2 px-3">DVG</th>
                         <th class="py-2 px-3">Quy Cách (Size)</th>
                         <th class="py-2 px-3 text-right">Chiều Dài (mm)</th>
                         <th class="py-2 px-3 text-right">SL Thiết Kế</th>
@@ -895,6 +901,7 @@ function buildPartsTableHtml(assy) {
                             <tr class="hover:bg-slate-50/80 transition ${isDone ? 'bg-emerald-50/40' : ''}">
                                 <td class="py-2 px-3 font-bold text-slate-900 font-mono">${highlightText(p.display_name, state.searchQuery)}</td>
                                 <td class="py-2 px-3">${chungLoaiBadge}</td>
+                                <td class="py-2 px-3"><span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${getDvgBadgeClass(p.dvg)}">${p.dvg || '-'}</span></td>
                                 <td class="py-2 px-3 font-mono text-slate-700">${highlightText(p.size, state.searchQuery)}</td>
                                 <td class="py-2 px-3 text-right font-mono font-medium">${p.length || '-'}</td>
                                 <td class="py-2 px-3 text-right font-mono font-bold">${p.tqty}</td>
@@ -1226,6 +1233,716 @@ function renderShapeWarnings() {
         </div>
     `;
     lucide.createIcons();
+}
+
+// =============================================================================
+// MODULE: DASHBOARD PHÂN TÍCH TIẾN ĐỘ & KHỐI LƯỢNG DVG (MCC, KHO, PMC, WTC...)
+// =============================================================================
+
+function getDvgBadgeClass(dvg) {
+    const d = (dvg || '').toUpperCase();
+    if (d === 'MCC') return 'bg-blue-100 text-blue-800 border-blue-300';
+    if (d === 'PMC') return 'bg-purple-100 text-purple-800 border-purple-300';
+    if (d === 'KHO') return 'bg-amber-100 text-amber-800 border-amber-300';
+    if (d === 'WTC') return 'bg-teal-100 text-teal-800 border-teal-300';
+    if (d === 'FAC2') return 'bg-indigo-100 text-indigo-800 border-indigo-300';
+    return 'bg-slate-100 text-slate-700 border-slate-300';
+}
+
+function formatWeightVal(weightKg) {
+    if (weightKg === null || weightKg === undefined || isNaN(weightKg)) return '0 kg';
+    const unit = state.dvgUnit || 'kg';
+    if (unit === 'ton') {
+        const tons = weightKg / 1000;
+        return `${tons.toLocaleString('vi-VN', { minimumFractionDigits: 1, maximumFractionDigits: 3 })} Tấn`;
+    }
+    return `${Math.round(weightKg).toLocaleString('vi-VN')} kg`;
+}
+
+function computeDvgAnalyticsData() {
+    if (!state.projectData || !state.projectData.assemblies) {
+        return {
+            byDvg: [],
+            totals: {
+                total_weight: 0,
+                da_nhan_weight: 0,
+                con_thieu_weight: 0,
+                total_qty: 0,
+                da_nhan_qty: 0,
+                con_thieu_qty: 0,
+                completion_rate_weight: 0,
+                completion_rate_qty: 0
+            }
+        };
+    }
+
+    const byDvgMap = {};
+    const targetSheet = state.selectedSheet;
+
+    state.projectData.assemblies.forEach(assy => {
+        if (targetSheet && targetSheet !== 'all' && assy.sheet !== targetSheet) return;
+
+        (assy.parts || []).forEach(p => {
+            let dvg = (p.dvg || '').trim().toUpperCase();
+            if (!dvg || dvg === '-' || dvg === '0' || dvg === 'NONE') {
+                dvg = 'KHÁC';
+            }
+
+            if (!byDvgMap[dvg]) {
+                byDvgMap[dvg] = {
+                    dvg: dvg,
+                    total_qty: 0,
+                    da_nhan_qty: 0,
+                    con_thieu_qty: 0,
+                    total_weight: 0,
+                    da_nhan_weight: 0,
+                    con_thieu_weight: 0,
+                    parts_count: 0,
+                    missing_parts_count: 0,
+                    missing_parts: []
+                };
+            }
+
+            const item = byDvgMap[dvg];
+            const tqty = Number(p.tqty) || 0;
+            const daNhan = Number(p.da_nhan) || 0;
+            const conThieu = p.con_thieu !== undefined ? Number(p.con_thieu) : Math.max(0, tqty - daNhan);
+            const uweight = Number(p.uweight) || 0;
+            const tweight = p.tweight !== undefined && p.tweight !== null ? Number(p.tweight) : (tqty * uweight);
+            const daNhanWeight = p.da_nhan_weight !== undefined ? Number(p.da_nhan_weight) : (Math.min(daNhan, tqty) * uweight);
+            const conThieuWeight = p.con_thieu_weight !== undefined ? Number(p.con_thieu_weight) : (Math.max(0, conThieu) * uweight);
+
+            item.total_qty += tqty;
+            item.da_nhan_qty += daNhan;
+            item.con_thieu_qty += conThieu;
+            item.total_weight += tweight;
+            item.da_nhan_weight += daNhanWeight;
+            item.con_thieu_weight += conThieuWeight;
+            item.parts_count += 1;
+
+            if (conThieu > 0) {
+                item.missing_parts_count += 1;
+                item.missing_parts.push({
+                    dvg: dvg,
+                    sheet: assy.sheet || '',
+                    assembly_no: assy.assembly_no || '',
+                    dwg: assy.dwg || '',
+                    part_no: p.part_no || '',
+                    part_cut: p.part_cut || '',
+                    display_name: p.display_name || p.part_cut || p.part_no,
+                    size: p.size || '',
+                    material: p.material || '',
+                    tqty: tqty,
+                    da_nhan: daNhan,
+                    con_thieu: conThieu,
+                    uweight: uweight,
+                    con_thieu_weight: conThieuWeight,
+                    cutting_no: (p.shape_analysis && p.shape_analysis.cutting_no) || p.cutting_no || '',
+                    ktra_noi: p.ktra_noi || '',
+                    ghi_chu: p.ghi_chu || p.remark || ''
+                });
+            }
+        });
+    });
+
+    const byDvgList = Object.values(byDvgMap);
+    byDvgList.forEach(d => {
+        d.completion_rate_qty = d.total_qty > 0 ? Math.round((d.da_nhan_qty / d.total_qty) * 1000) / 10 : 0;
+        d.completion_rate_weight = d.total_weight > 0 ? Math.round((d.da_nhan_weight / d.total_weight) * 1000) / 10 : 0;
+        d.missing_parts.sort((a, b) => b.con_thieu_weight - a.con_thieu_weight);
+    });
+
+    // Sắp xếp các DVG theo tổng khối lượng giảm dần
+    byDvgList.sort((a, b) => b.total_weight - a.total_weight);
+
+    const totals = {
+        total_weight: byDvgList.reduce((acc, x) => acc + x.total_weight, 0),
+        da_nhan_weight: byDvgList.reduce((acc, x) => acc + x.da_nhan_weight, 0),
+        con_thieu_weight: byDvgList.reduce((acc, x) => acc + x.con_thieu_weight, 0),
+        total_qty: byDvgList.reduce((acc, x) => acc + x.total_qty, 0),
+        da_nhan_qty: byDvgList.reduce((acc, x) => acc + x.da_nhan_qty, 0),
+        con_thieu_qty: byDvgList.reduce((acc, x) => acc + x.con_thieu_qty, 0),
+        completion_rate_weight: 0,
+        completion_rate_qty: 0
+    };
+    if (totals.total_weight > 0) {
+        totals.completion_rate_weight = Math.round((totals.da_nhan_weight / totals.total_weight) * 1000) / 10;
+    }
+    if (totals.total_qty > 0) {
+        totals.completion_rate_qty = Math.round((totals.da_nhan_qty / totals.total_qty) * 1000) / 10;
+    }
+
+    return { byDvg: byDvgList, totals: totals };
+}
+
+// Render Dashboard DVG
+function renderDvgAnalytics() {
+    if (!state.projectData) return;
+    const { byDvg, totals } = computeDvgAnalyticsData();
+
+    // 1. Cập nhật nhãn phạm vi lọc
+    const filterBadge = document.getElementById('dvg-current-filter-badge');
+    if (filterBadge) {
+        filterBadge.textContent = state.selectedSheet === 'all' ? 'Tất cả hạng mục' : `Hạng mục: ${state.selectedSheet}`;
+    }
+
+    // 2. Cập nhật trạng thái nút đơn vị (kg / tấn)
+    const btnUnitKg = document.getElementById('btn-dvg-unit-kg');
+    const btnUnitTon = document.getElementById('btn-dvg-unit-ton');
+    if (btnUnitKg && btnUnitTon) {
+        if (state.dvgUnit === 'ton') {
+            btnUnitTon.classList.add('bg-indigo-600', 'text-white', 'shadow-xs');
+            btnUnitTon.classList.remove('text-slate-400');
+            btnUnitKg.classList.remove('bg-indigo-600', 'text-white', 'shadow-xs');
+            btnUnitKg.classList.add('text-slate-400');
+        } else {
+            btnUnitKg.classList.add('bg-indigo-600', 'text-white', 'shadow-xs');
+            btnUnitKg.classList.remove('text-slate-400');
+            btnUnitTon.classList.remove('bg-indigo-600', 'text-white', 'shadow-xs');
+            btnUnitTon.classList.add('text-slate-400');
+        }
+    }
+
+    // 3. Cập nhật 4 thẻ KPI
+    const kpiTotalW = document.getElementById('kpi-dvg-total-weight');
+    const kpiTotalQ = document.getElementById('kpi-dvg-total-qty');
+    const kpiRecW = document.getElementById('kpi-dvg-received-weight');
+    const kpiRecQ = document.getElementById('kpi-dvg-received-qty');
+    const kpiWRate = document.getElementById('kpi-dvg-weight-rate');
+    const kpiMissW = document.getElementById('kpi-dvg-missing-weight');
+    const kpiMissQ = document.getElementById('kpi-dvg-missing-qty');
+    const kpiMissRate = document.getElementById('kpi-dvg-missing-rate');
+    const kpiUnitsCount = document.getElementById('kpi-dvg-units-count');
+    const kpiUnitsDesc = document.getElementById('kpi-dvg-units-desc');
+
+    if (kpiTotalW) kpiTotalW.textContent = formatWeightVal(totals.total_weight);
+    if (kpiTotalQ) kpiTotalQ.textContent = `Tổng ${totals.total_qty.toLocaleString('vi-VN')} chi tiết (pcs)`;
+
+    if (kpiRecW) kpiRecW.textContent = formatWeightVal(totals.da_nhan_weight);
+    if (kpiRecQ) kpiRecQ.textContent = `Đã nhận ${totals.da_nhan_qty.toLocaleString('vi-VN')} pcs`;
+    if (kpiWRate) kpiWRate.textContent = `${totals.completion_rate_weight}%`;
+
+    if (kpiMissW) kpiMissW.textContent = formatWeightVal(totals.con_thieu_weight);
+    if (kpiMissQ) kpiMissQ.textContent = `Còn thiếu ${totals.con_thieu_qty.toLocaleString('vi-VN')} pcs`;
+    const missRate = totals.total_weight > 0 ? Math.round((totals.con_thieu_weight / totals.total_weight) * 1000) / 10 : 0;
+    if (kpiMissRate) kpiMissRate.textContent = `${missRate}% còn thiếu`;
+
+    if (kpiUnitsCount) kpiUnitsCount.textContent = byDvg.length;
+    if (kpiUnitsDesc) {
+        const topDvgs = byDvg.slice(0, 4).map(d => d.dvg).join(', ');
+        kpiUnitsDesc.textContent = topDvgs ? `${topDvgs}...` : 'Chưa có DVG';
+    }
+
+    // 4. Cập nhật Thống kê phân tích vật tư thiếu trực quan (Strip)
+    const stripSum = document.getElementById('dvg-strip-missing-summary');
+    const stripTop = document.getElementById('dvg-strip-top-missing');
+    if (stripSum) {
+        stripSum.textContent = `${formatWeightVal(totals.con_thieu_weight)} (${totals.con_thieu_qty.toLocaleString('vi-VN')} chi tiết)`;
+    }
+    if (stripTop) {
+        const missingDvgs = [...byDvg].filter(d => d.con_thieu_weight > 0 || d.con_thieu_qty > 0)
+                                      .sort((a, b) => b.con_thieu_weight - a.con_thieu_weight);
+        if (missingDvgs.length > 0) {
+            const topM = missingDvgs[0];
+            const percentTop = totals.con_thieu_weight > 0 ? Math.round((topM.con_thieu_weight / totals.con_thieu_weight) * 1000) / 10 : 0;
+            stripTop.textContent = `⚡ Đơn vị thiếu khối lượng nhiều nhất: ${topM.dvg} (thiếu ${formatWeightVal(topM.con_thieu_weight)}, chiếm ${percentTop}% tổng KL thiếu - ${topM.con_thieu_qty.toLocaleString('vi-VN')} pcs)`;
+        } else {
+            stripTop.textContent = `🎉 Toàn bộ các đơn vị gia công đã giao đủ 100% khối lượng và chi tiết!`;
+        }
+    }
+
+    // 5. Render Biểu đồ thanh tiến độ từng DVG
+    const progressContainer = document.getElementById('dvg-progress-bars-container');
+    if (progressContainer) {
+        if (byDvg.length === 0) {
+            progressContainer.innerHTML = `<p class="text-xs text-slate-400 p-4 text-center">Không có dữ liệu DVG trong phạm vi lọc này.</p>`;
+        } else {
+            progressContainer.innerHTML = byDvg.map(d => {
+                const wRate = d.completion_rate_weight;
+                const qRate = d.completion_rate_qty;
+                const isSelected = state.activeDvgFilter === d.dvg;
+                const borderClass = isSelected ? 'border-indigo-500 ring-2 ring-indigo-300 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-slate-50/60 hover:border-slate-300';
+                const rateColor = wRate >= 90 ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : (wRate >= 50 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-rose-700 bg-rose-50 border-rose-200');
+                const fillBarColor = wRate >= 90 ? 'bg-emerald-500' : (wRate >= 50 ? 'bg-amber-500' : 'bg-rose-500');
+
+                return `
+                    <div class="dvg-progress-card p-4 rounded-2xl border ${borderClass} transition cursor-pointer hover:shadow-xs flex flex-col justify-between" data-dvg="${d.dvg}">
+                        <div>
+                            <div class="flex items-center justify-between gap-2 mb-2.5">
+                                <div class="flex items-center gap-2">
+                                    <span class="px-2.5 py-1 rounded-lg text-xs font-extrabold font-mono ${getDvgBadgeClass(d.dvg)}">${d.dvg}</span>
+                                    <span class="text-xs font-bold text-slate-700">${d.parts_count} chi tiết</span>
+                                </div>
+                                <span class="text-xs font-extrabold px-2 py-0.5 rounded-md border font-mono ${rateColor}">${wRate}% hoàn thành</span>
+                            </div>
+
+                            <!-- Tiến độ khối lượng -->
+                            <div class="space-y-1 mt-2">
+                                <div class="flex justify-between text-[11px] font-semibold">
+                                    <span class="text-slate-600">Khối lượng: <strong class="text-emerald-700">${formatWeightVal(d.da_nhan_weight)}</strong> / ${formatWeightVal(d.total_weight)}</span>
+                                    <span class="${d.con_thieu_weight > 0 ? 'text-rose-600 font-bold' : 'text-slate-400'}">Thiếu: ${formatWeightVal(d.con_thieu_weight)}</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                                    <div class="${fillBarColor} h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, wRate)}%"></div>
+                                </div>
+                            </div>
+
+                            <!-- Tiến độ số lượng -->
+                            <div class="space-y-1 mt-2.5 pt-2 border-t border-slate-200/60">
+                                <div class="flex justify-between text-[11px] font-medium text-slate-500">
+                                    <span>Số lượng: <strong class="text-slate-800">${d.da_nhan_qty.toLocaleString('vi-VN')}</strong> / ${d.total_qty.toLocaleString('vi-VN')} pcs (${qRate}%)</span>
+                                    <span class="${d.con_thieu_qty > 0 ? 'text-rose-600 font-bold' : 'text-slate-400'}">Thiếu: ${d.con_thieu_qty.toLocaleString('vi-VN')} pcs</span>
+                                </div>
+                                <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                                    <div class="bg-blue-600 h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, qRate)}%"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Thanh thao tác trên từng thẻ biểu đồ -->
+                        <div class="mt-3 pt-2.5 border-t border-slate-200/80 flex items-center justify-between gap-2">
+                            <span class="text-[11px] font-bold ${isSelected ? 'text-indigo-700' : 'text-slate-500'}">
+                                ${isSelected ? '● Đang chọn xem' : '🔍 Bấm để lọc'}
+                            </span>
+                            <button type="button" class="btn-card-export-missing flex items-center gap-1 px-2.5 py-1 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold transition shadow-2xs cursor-pointer active:scale-95" data-dvg="${d.dvg}" title="Xuất báo cáo phân tích vật tư thiếu của đơn vị ${d.dvg}">
+                                <i data-lucide="download" class="w-3 h-3"></i>
+                                <span>Báo Cáo Thiếu ${d.dvg}</span>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            progressContainer.querySelectorAll('.dvg-progress-card').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    if (e.target.closest('.btn-card-export-missing')) return;
+                    const dvgName = this.dataset.dvg;
+                    state.activeDvgFilter = (state.activeDvgFilter === dvgName) ? 'all' : dvgName;
+                    renderDvgAnalytics();
+                    const section = document.getElementById('dvg-missing-parts-section');
+                    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                });
+            });
+
+            progressContainer.querySelectorAll('.btn-card-export-missing').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const dvgName = this.dataset.dvg;
+                    exportDvgMissingPartsExcel(dvgName);
+                });
+            });
+        }
+    }
+
+    // 5. Render Bảng Tổng Hợp DVG (Table)
+    const tbody = document.getElementById('dvg-summary-tbody');
+    const tfoot = document.getElementById('dvg-summary-tfoot');
+    if (tbody) {
+        tbody.innerHTML = byDvg.map(d => {
+            const isSelected = state.activeDvgFilter === d.dvg;
+            const rowClass = isSelected ? 'bg-indigo-50/70 font-semibold' : 'hover:bg-slate-50';
+            const rateColor = d.completion_rate_weight >= 90 ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : (d.completion_rate_weight >= 50 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-rose-700 bg-rose-50 border-rose-200');
+            const barFillColor = d.completion_rate_weight >= 90 ? 'bg-emerald-500' : (d.completion_rate_weight >= 50 ? 'bg-amber-500' : 'bg-rose-500');
+
+            return `
+                <tr class="${rowClass} transition">
+                    <td class="py-2.5 px-3.5">
+                        <span class="px-2 py-0.5 rounded text-xs font-mono font-bold ${getDvgBadgeClass(d.dvg)}">${d.dvg}</span>
+                        ${isSelected ? '<span class="ml-1 text-[10px] text-indigo-600 font-bold">● Đang lọc</span>' : ''}
+                    </td>
+                    <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">${formatWeightVal(d.total_weight)}</td>
+                    <td class="py-2.5 px-3 text-right font-mono font-bold text-emerald-600">${formatWeightVal(d.da_nhan_weight)}</td>
+                    <td class="py-2.5 px-3 text-right font-mono font-bold text-rose-600">${formatWeightVal(d.con_thieu_weight)}</td>
+                    <td class="py-2.5 px-3 text-center">
+                        <div class="flex items-center gap-1.5 justify-center">
+                            <div class="w-16 bg-slate-200 rounded-full h-2 overflow-hidden">
+                                <div class="${barFillColor} h-full rounded-full" style="width: ${Math.min(100, d.completion_rate_weight)}%"></div>
+                            </div>
+                            <span class="text-[11px] font-mono font-bold px-1.5 py-0.2 rounded border ${rateColor}">${d.completion_rate_weight}%</span>
+                        </div>
+                    </td>
+                    <td class="py-2.5 px-3 text-right font-mono text-slate-700">${d.total_qty.toLocaleString('vi-VN')}</td>
+                    <td class="py-2.5 px-3 text-right font-mono text-emerald-600 font-bold">${d.da_nhan_qty.toLocaleString('vi-VN')}</td>
+                    <td class="py-2.5 px-3 text-right font-mono text-rose-600 font-bold">${d.con_thieu_qty.toLocaleString('vi-VN')}</td>
+                    <td class="py-2.5 px-3 text-center">
+                        <div class="flex items-center justify-center gap-1">
+                            <button type="button" class="btn-filter-dvg-table px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] border border-indigo-200 transition cursor-pointer" data-dvg="${d.dvg}" title="Xem chi tiết các vật tư thiếu của ${d.dvg}">
+                                👁️ Chi Tiết
+                            </button>
+                            <button type="button" class="btn-export-single-dvg px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold text-[11px] border border-emerald-200 transition cursor-pointer" data-dvg="${d.dvg}" title="Xuất file Excel vật tư thiếu của ${d.dvg}">
+                                📥 Excel
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        tbody.querySelectorAll('.btn-filter-dvg-table').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const dvg = this.dataset.dvg;
+                state.activeDvgFilter = (state.activeDvgFilter === dvg) ? 'all' : dvg;
+                renderDvgAnalytics();
+                const section = document.getElementById('dvg-missing-parts-section');
+                if (section) section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+        });
+
+        tbody.querySelectorAll('.btn-export-single-dvg').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const dvg = this.dataset.dvg;
+                exportDvgMissingPartsExcel(dvg);
+            });
+        });
+    }
+
+    if (tfoot) {
+        tfoot.innerHTML = `
+            <tr class="bg-slate-100/90 text-slate-900 border-t-2 border-slate-300">
+                <td class="py-3 px-3.5 font-bold uppercase">TỔNG CỘNG (${byDvg.length} DVG)</td>
+                <td class="py-3 px-3 text-right font-mono font-extrabold">${formatWeightVal(totals.total_weight)}</td>
+                <td class="py-3 px-3 text-right font-mono font-extrabold text-emerald-700">${formatWeightVal(totals.da_nhan_weight)}</td>
+                <td class="py-3 px-3 text-right font-mono font-extrabold text-rose-700">${formatWeightVal(totals.con_thieu_weight)}</td>
+                <td class="py-3 px-3 text-center font-mono font-extrabold text-indigo-700">${totals.completion_rate_weight}% KL</td>
+                <td class="py-3 px-3 text-right font-mono font-bold">${totals.total_qty.toLocaleString('vi-VN')}</td>
+                <td class="py-3 px-3 text-right font-mono font-bold text-emerald-700">${totals.da_nhan_qty.toLocaleString('vi-VN')}</td>
+                <td class="py-3 px-3 text-right font-mono font-bold text-rose-700">${totals.con_thieu_qty.toLocaleString('vi-VN')}</td>
+                <td class="py-3 px-3 text-center">
+                    <button type="button" id="btn-tfoot-export-all" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] transition shadow-2xs cursor-pointer" title="Xuất báo cáo tổng hợp tất cả DVG">
+                        📥 Xuất Tổng
+                    </button>
+                </td>
+            </tr>
+        `;
+        const btnFootExport = document.getElementById('btn-tfoot-export-all');
+        if (btnFootExport) {
+            btnFootExport.addEventListener('click', exportDvgSummaryExcel);
+        }
+    }
+
+    // 6. Render Danh Sách Chi Tiết Vật Tư Còn Thiếu
+    renderDvgMissingPartsTable(byDvg);
+    if (window.lucide) lucide.createIcons();
+}
+
+function renderDvgMissingPartsTable(byDvg) {
+    const badge = document.getElementById('dvg-active-filter-badge');
+    const tbody = document.getElementById('dvg-missing-tbody');
+    if (!tbody) return;
+
+    if (badge) {
+        badge.textContent = state.activeDvgFilter === 'all' ? 'Tất Cả DVG' : `Đơn Vị: ${state.activeDvgFilter}`;
+    }
+
+    let allMissing = [];
+    byDvg.forEach(d => {
+        if (state.activeDvgFilter !== 'all' && d.dvg !== state.activeDvgFilter) return;
+        allMissing.push(...d.missing_parts);
+    });
+
+    // Lọc theo từ khóa tìm kiếm trong bảng chi tiết nếu có
+    const q = (state.dvgSearchQuery || '').trim().toLowerCase();
+    if (q) {
+        allMissing = allMissing.filter(p => {
+            return (p.display_name || '').toLowerCase().includes(q) ||
+                   (p.assembly_no || '').toLowerCase().includes(q) ||
+                   (p.dwg || '').toLowerCase().includes(q) ||
+                   (p.size || '').toLowerCase().includes(q) ||
+                   (p.cutting_no || '').toLowerCase().includes(q);
+        });
+    }
+
+    if (allMissing.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="12" class="py-8 text-center text-slate-400 italic">
+                    ${q ? 'Không tìm thấy chi tiết vật tư nào khớp với từ khóa tìm kiếm.' : 'Không có chi tiết vật tư nào còn thiếu cho lựa chọn này!'}
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    // Giới hạn hiển thị 100 chi tiết đầu tiên có khối lượng thiếu lớn nhất để màn hình siêu mượt
+    const displayList = allMissing.slice(0, 100);
+
+    tbody.innerHTML = displayList.map(p => {
+        return `
+            <tr class="hover:bg-slate-50">
+                <td class="py-2.5 px-3">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${getDvgBadgeClass(p.dvg)}">${p.dvg}</span>
+                </td>
+                <td class="py-2.5 px-3 font-mono font-bold text-slate-900">${p.assembly_no}</td>
+                <td class="py-2.5 px-3 font-mono text-slate-600">${p.dwg}</td>
+                <td class="py-2.5 px-3 font-mono font-bold text-blue-700">${p.display_name}</td>
+                <td class="py-2.5 px-3 font-mono text-slate-700">${p.size}</td>
+                <td class="py-2.5 px-3 text-right font-mono">${p.tqty}</td>
+                <td class="py-2.5 px-3 text-right font-mono text-emerald-600 font-bold">${p.da_nhan}</td>
+                <td class="py-2.5 px-3 text-right font-mono text-rose-600 font-extrabold bg-rose-50/50">${p.con_thieu}</td>
+                <td class="py-2.5 px-3 text-right font-mono text-slate-600">${p.uweight ? p.uweight.toFixed(1) : '-'} kg</td>
+                <td class="py-2.5 px-3 text-right font-mono text-rose-700 font-extrabold">${formatWeightVal(p.con_thieu_weight)}</td>
+                <td class="py-2.5 px-3 font-mono text-slate-700">${p.cutting_no || '-'}</td>
+                <td class="py-2.5 px-3">${p.ktra_noi ? `<span class="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-mono text-[10px] font-bold">${p.ktra_noi}</span>` : '-'}</td>
+            </tr>
+        `;
+    }).join('');
+
+    if (allMissing.length > 100) {
+        tbody.innerHTML += `
+            <tr>
+                <td colspan="12" class="py-3 text-center bg-slate-50 text-slate-500 font-medium text-xs">
+                    ⚡ Đang hiển thị 100 chi tiết có khối lượng thiếu lớn nhất trong tổng số ${allMissing.length} chi tiết thiếu. Bấm "Xuất Excel Danh Sách Này" để tải trọn bộ đầy đủ.
+                </td>
+            </tr>
+        `;
+    }
+}
+
+// Xuất file Excel Báo Cáo Tổng Hợp DVG
+function exportDvgSummaryExcel() {
+    if (!state.projectData) {
+        alert("Chưa có dữ liệu dự án!");
+        return;
+    }
+    const { byDvg, totals } = computeDvgAnalyticsData();
+    const projCode = state.currentProject || 'DuAn';
+    const targetSheet = state.selectedSheet !== 'all' ? state.selectedSheet : 'TatCaHangMuc';
+
+    const headers = [
+        "Đơn Vị Gia Công (DVG)",
+        "Tổng Khối Lượng (kg)",
+        "Khối Lượng Đã Nhận (kg)",
+        "Khối Lượng Còn Thiếu (kg)",
+        "Tiến Độ Khối Lượng (%)",
+        "Tổng Số Lượng (pcs)",
+        "Số Lượng Đã Nhận (pcs)",
+        "Số Lượng Còn Thiếu (pcs)",
+        "Tiến Độ Số Lượng (%)",
+        "Số Chủng Loại Chi Tiết",
+        "Số Chi Tiết Đang Thiếu"
+    ];
+
+    const rows = byDvg.map(d => [
+        d.dvg,
+        Math.round(d.total_weight * 10) / 10,
+        Math.round(d.da_nhan_weight * 10) / 10,
+        Math.round(d.con_thieu_weight * 10) / 10,
+        d.completion_rate_weight,
+        d.total_qty,
+        d.da_nhan_qty,
+        d.con_thieu_qty,
+        d.completion_rate_qty,
+        d.parts_count,
+        d.missing_parts_count
+    ]);
+
+    rows.push([
+        "TỔNG CỘNG TOÀN BỘ",
+        Math.round(totals.total_weight * 10) / 10,
+        Math.round(totals.da_nhan_weight * 10) / 10,
+        Math.round(totals.con_thieu_weight * 10) / 10,
+        totals.completion_rate_weight,
+        totals.total_qty,
+        totals.da_nhan_qty,
+        totals.con_thieu_qty,
+        totals.completion_rate_qty,
+        "-",
+        "-"
+    ]);
+
+    if (window.XLSX) {
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "BaoCao_DVG");
+        XLSX.writeFile(wb, `BaoCao_DVG_TongHop_${projCode}_${targetSheet}.xlsx`);
+    } else {
+        alert("Thư viện xuất Excel đang khởi tạo, vui lòng thử lại sau vài giây!");
+    }
+}
+
+// Xuất file Excel Báo Cáo Phân Tích Toàn Diện Vật Tư Còn Thiếu Theo DVG (Bao gồm Bảng Tổng Hợp + Bảng Chi Tiết)
+function exportDvgMissingPartsExcel(dvgFilter = 'all') {
+    if (!state.projectData) {
+        alert("Chưa có dữ liệu dự án!");
+        return;
+    }
+    const { byDvg, totals } = computeDvgAnalyticsData();
+    const projCode = state.currentProject || 'DuAn';
+    const targetSheet = state.selectedSheet !== 'all' ? state.selectedSheet : 'TatCaHangMuc';
+
+    const dvgTargetList = (dvgFilter && dvgFilter !== 'all') 
+        ? byDvg.filter(d => d.dvg === dvgFilter) 
+        : byDvg;
+
+    // --- SHEET 1: BẢNG TỔNG HỢP PHÂN TÍCH SỐ LƯỢNG & KHỐI LƯỢNG THIẾU ---
+    const s1Headers = [
+        "Đơn Vị (DVG)",
+        "Tổng SL Thiết Kế (pcs)",
+        "SL Đã Nhận (pcs)",
+        "SL Còn Thiếu (pcs)",
+        "Tiến Độ SL (%)",
+        "Tổng Khối Lượng (kg)",
+        "KL Đã Nhận (kg)",
+        "KL Còn Thiếu (kg)",
+        "KL Còn Thiếu (Tấn)",
+        "Tiến Độ KL (%)",
+        "Số Chi Tiết BTP Thiếu",
+        "Đánh Giá Tiến Độ"
+    ];
+
+    const s1Rows = [];
+    dvgTargetList.forEach(d => {
+        let evalText = "Đã giao đủ 100%";
+        if (d.con_thieu_weight > 0) {
+            evalText = d.completion_rate_weight >= 90 ? "Sắp hoàn thành" : (d.completion_rate_weight >= 50 ? "Đang gia công" : "Cần đôn đốc gấp");
+        }
+
+        s1Rows.push([
+            d.dvg,
+            d.total_qty,
+            d.da_nhan_qty,
+            d.con_thieu_qty,
+            d.completion_rate_qty,
+            Math.round(d.total_weight * 10) / 10,
+            Math.round(d.da_nhan_weight * 10) / 10,
+            Math.round(d.con_thieu_weight * 10) / 10,
+            Math.round(d.con_thieu_weight / 100) / 10,
+            d.completion_rate_weight,
+            d.missing_parts_count,
+            evalText
+        ]);
+    });
+
+    // Dòng tổng cộng cho Sheet 1
+    const subTotalWeight = dvgTargetList.reduce((a, b) => a + b.total_weight, 0);
+    const subDaNhanWeight = dvgTargetList.reduce((a, b) => a + b.da_nhan_weight, 0);
+    const subMissingWeight = dvgTargetList.reduce((a, b) => a + b.con_thieu_weight, 0);
+    const subTotalQty = dvgTargetList.reduce((a, b) => a + b.total_qty, 0);
+    const subDaNhanQty = dvgTargetList.reduce((a, b) => a + b.da_nhan_qty, 0);
+    const subMissingQty = dvgTargetList.reduce((a, b) => a + b.con_thieu_qty, 0);
+    const subMissingParts = dvgTargetList.reduce((a, b) => a + b.missing_parts_count, 0);
+
+    const subRateQ = subTotalQty > 0 ? Math.round((subDaNhanQty / subTotalQty) * 1000) / 10 : 0;
+    const subRateW = subTotalWeight > 0 ? Math.round((subDaNhanWeight / subTotalWeight) * 1000) / 10 : 0;
+
+    s1Rows.push([
+        "TỔNG CỘNG",
+        subTotalQty,
+        subDaNhanQty,
+        subMissingQty,
+        subRateQ,
+        Math.round(subTotalWeight * 10) / 10,
+        Math.round(subDaNhanWeight * 10) / 10,
+        Math.round(subMissingWeight * 10) / 10,
+        Math.round(subMissingWeight / 100) / 10,
+        subRateW,
+        subMissingParts,
+        subMissingWeight > 0 ? `Thiếu ${Math.round(subMissingWeight / 100) / 10} Tấn` : "Đã giao đủ 100%"
+    ]);
+
+    // --- SHEET 2: CHI TIẾT CÁC VẬT TƯ BTP CÒN THIẾU ---
+    const s2Headers = [
+        "STT",
+        "Đơn Vị (DVG)",
+        "Hạng Mục (Sheet)",
+        "Cấu Kiện (Assembly No)",
+        "Bản Vẽ (Drawing)",
+        "Mã BTP (Chi Tiết)",
+        "Quy Cách (Size)",
+        "Vật Liệu",
+        "SL Thiết Kế",
+        "SL Đã Nhận",
+        "SL Còn Thiếu",
+        "Đơn Trọng (kg)",
+        "Khối Lượng Thiếu (kg)",
+        "Khối Lượng Thiếu (Tấn)",
+        "Kế Hoạch Cắt (Cutting No)",
+        "Kiểm Tra Nối",
+        "Ghi Chú"
+    ];
+
+    let allMissing = [];
+    dvgTargetList.forEach(d => {
+        allMissing.push(...d.missing_parts);
+    });
+
+    // Sắp xếp chi tiết thiếu theo khối lượng thiếu giảm dần
+    allMissing.sort((a, b) => b.con_thieu_weight - a.con_thieu_weight);
+
+    if (allMissing.length === 0) {
+        alert("Không có chi tiết vật tư nào còn thiếu cho đơn vị này!");
+        return;
+    }
+
+    const s2Rows = allMissing.map((p, idx) => [
+        idx + 1,
+        p.dvg,
+        p.sheet,
+        p.assembly_no,
+        p.dwg,
+        p.display_name,
+        p.size,
+        p.material,
+        p.tqty,
+        p.da_nhan,
+        p.con_thieu,
+        p.uweight ? Math.round(p.uweight * 100) / 100 : "-",
+        Math.round(p.con_thieu_weight * 10) / 10,
+        Math.round((p.con_thieu_weight / 1000) * 1000) / 1000,
+        p.cutting_no || "-",
+        p.ktra_noi || "-",
+        p.ghi_chu || ""
+    ]);
+
+    s2Rows.push([
+        "TỔNG",
+        "-",
+        "-",
+        "-",
+        "-",
+        `Tổng cộng ${allMissing.length} chi tiết thiếu`,
+        "-",
+        "-",
+        subTotalQty,
+        subDaNhanQty,
+        subMissingQty,
+        "-",
+        Math.round(subMissingWeight * 10) / 10,
+        Math.round(subMissingWeight / 100) / 10,
+        "-",
+        "-",
+        "-"
+    ]);
+
+    if (window.XLSX) {
+        const wb = XLSX.utils.book_new();
+
+        // Sheet 1: Bảng tổng hợp
+        const ws1 = XLSX.utils.aoa_to_sheet([s1Headers, ...s1Rows]);
+        ws1['!cols'] = [
+            { wch: 16 }, { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 16 },
+            { wch: 20 }, { wch: 18 }, { wch: 20 }, { wch: 20 }, { wch: 16 },
+            { wch: 22 }, { wch: 20 }
+        ];
+        XLSX.utils.book_append_sheet(wb, ws1, "TongHop_PhanTich_Thieu");
+
+        // Sheet 2: Danh sách chi tiết
+        const ws2 = XLSX.utils.aoa_to_sheet([s2Headers, ...s2Rows]);
+        ws2['!cols'] = [
+            { wch: 6 }, { wch: 14 }, { wch: 18 }, { wch: 22 }, { wch: 22 },
+            { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
+            { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 22 }, { wch: 22 },
+            { wch: 14 }, { wch: 30 }
+        ];
+        XLSX.utils.book_append_sheet(wb, ws2, "ChiTiet_VatTuThieu");
+
+        const dvgLabel = dvgFilter === 'all' ? 'TatCaDVG' : dvgFilter;
+        XLSX.writeFile(wb, `BaoCao_PhanTich_VatTuThieu_${dvgLabel}_${projCode}_${targetSheet}.xlsx`);
+    } else {
+        alert("Thư viện xuất Excel đang khởi tạo, vui lòng thử lại sau vài giây!");
+    }
 }
 
 // 11. Đăng ký sự kiện tương tác
@@ -1598,27 +2315,113 @@ function setupEventListeners() {
         });
     }
 
+    // Hàm chuyển Tab linh hoạt từ bất kỳ nút nào
+    window.switchTab = function(tabName) {
+        document.querySelectorAll('.nav-tab').forEach(t => {
+            t.classList.remove('active', 'text-blue-600', 'border-blue-600');
+            t.classList.add('text-slate-500', 'border-transparent');
+        });
+        const targetTabBtn = document.querySelector(`.nav-tab[data-tab="${tabName}"]`);
+        if (targetTabBtn) {
+            targetTabBtn.classList.add('active', 'text-blue-600', 'border-blue-600');
+            targetTabBtn.classList.remove('text-slate-500', 'border-transparent');
+        }
+
+        state.activeTab = tabName;
+
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+        const targetPane = document.getElementById(`tab-${tabName}-content`);
+        if (targetPane) {
+            targetPane.classList.remove('hidden');
+        }
+
+        if (tabName === 'timeline') renderDailyTimeline();
+        if (tabName === 'shape') renderShapeWarnings();
+        if (tabName === 'dvg') renderDvgAnalytics();
+    };
+
     // Chuyển Tab (Tải lười theo yêu cầu)
     document.querySelectorAll('.nav-tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            document.querySelectorAll('.nav-tab').forEach(t => {
-                t.classList.remove('active', 'text-blue-600', 'border-blue-600');
-                t.classList.add('text-slate-500', 'border-transparent');
-            });
-            tab.classList.add('active', 'text-blue-600', 'border-blue-600');
-            tab.classList.remove('text-slate-500', 'border-transparent');
-
             const tabName = tab.dataset.tab;
-            state.activeTab = tabName;
-
-            document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
-            const targetPane = document.getElementById(`tab-${tabName}-content`);
-            if (targetPane) targetPane.classList.remove('hidden');
-
-            if (tabName === 'timeline') renderDailyTimeline();
-            if (tabName === 'shape') renderShapeWarnings();
+            window.switchTab(tabName);
         });
     });
+
+    // Nút chuyển nhanh sang DVG từ thanh tiêu đề & thanh thu gọn
+    const btnSwitchDvg = document.getElementById('btn-switch-to-dvg');
+    if (btnSwitchDvg) {
+        btnSwitchDvg.addEventListener('click', () => {
+            window.switchTab('dvg');
+            const targetPane = document.getElementById('tab-dvg-content');
+            if (targetPane) targetPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+
+    const btnCompactSwitchDvg = document.getElementById('btn-compact-switch-to-dvg');
+    if (btnCompactSwitchDvg) {
+        btnCompactSwitchDvg.addEventListener('click', () => {
+            window.switchTab('dvg');
+            const targetPane = document.getElementById('tab-dvg-content');
+            if (targetPane) targetPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+
+    // Đổi đơn vị Kg / Tấn trên Dashboard DVG
+    const btnUnitTon = document.getElementById('btn-dvg-unit-ton');
+    if (btnUnitTon) {
+        btnUnitTon.addEventListener('click', () => {
+            state.dvgUnit = 'ton';
+            renderDvgAnalytics();
+        });
+    }
+    const btnUnitKg = document.getElementById('btn-dvg-unit-kg');
+    if (btnUnitKg) {
+        btnUnitKg.addEventListener('click', () => {
+            state.dvgUnit = 'kg';
+            renderDvgAnalytics();
+        });
+    }
+
+    // Nút xuất báo cáo từ biểu đồ số liệu
+    const btnChartExportMiss = document.getElementById('btn-chart-export-missing');
+    if (btnChartExportMiss) {
+        btnChartExportMiss.addEventListener('click', () => {
+            exportDvgMissingPartsExcel(state.activeDvgFilter || 'all');
+        });
+    }
+
+    // Nút xuất báo cáo tổng hợp DVG
+    const btnExportDvgSum = document.getElementById('btn-export-dvg-summary');
+    if (btnExportDvgSum) {
+        btnExportDvgSum.addEventListener('click', exportDvgSummaryExcel);
+    }
+
+    // Nút xuất toàn bộ chi tiết vật tư thiếu gom theo DVG
+    const btnExportDvgAllMiss = document.getElementById('btn-export-dvg-all-missing');
+    if (btnExportDvgAllMiss) {
+        btnExportDvgAllMiss.addEventListener('click', () => exportDvgMissingPartsExcel('all'));
+    }
+
+    // Nút xuất chi tiết vật tư thiếu của DVG đang lọc
+    const btnExportActiveDvgParts = document.getElementById('btn-export-active-dvg-parts');
+    if (btnExportActiveDvgParts) {
+        btnExportActiveDvgParts.addEventListener('click', () => exportDvgMissingPartsExcel(state.activeDvgFilter));
+    }
+
+    // Tìm kiếm trong bảng chi tiết vật tư thiếu DVG
+    const dvgMissingSearch = document.getElementById('dvg-missing-search');
+    if (dvgMissingSearch) {
+        let dvgSearchTimer = null;
+        dvgMissingSearch.addEventListener('input', (e) => {
+            clearTimeout(dvgSearchTimer);
+            dvgSearchTimer = setTimeout(() => {
+                state.dvgSearchQuery = e.target.value;
+                const { byDvg } = computeDvgAnalyticsData();
+                renderDvgMissingPartsTable(byDvg);
+            }, 200);
+        });
+    }
 
     // Mở rộng tất cả các cấu kiện đang hiển thị
     const btnExpandAll = document.getElementById('btn-expand-all');
