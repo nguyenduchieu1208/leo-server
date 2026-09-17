@@ -5,3 +5,7 @@ cache.db
 *.msi
 .vscode/
 .idea/
+Data/
+*.xlsx
+*.xlsm
+*.xls
