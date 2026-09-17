@@ -4,39 +4,48 @@ Hệ thống Web Server nội bộ độc lập, khởi chạy trực tiếp tr�
 
 ---
 
-## 1. Cấu Trúc Thư Mục Chuẩn Hóa
+## 1. Cấu Trúc Thư Mục & Quản Lý 2 Nhánh
 
-Hệ thống được phân chia thành các thư mục chức năng rõ ràng:
+Dự án được phân chia thành **2 nhánh hoạt động song song** phù hợp cho cả nhu cầu nội bộ và xem Online 24/7:
+
+- **Nhánh `main` (Máy chủ nội bộ)**: Dùng để chạy máy chủ trực tiếp trên máy trạm (`run.py`), quản lý file Excel gốc trong `Data/`, phục vụ mạng LAN và người quản trị.
+- **Nhánh `gh-pages` (Web Online 24/24)**: Dùng để phát hành trang web tĩnh trên đám mây (GitHub Pages), chạy 24/7/365 **hoàn toàn tự động và miễn phí**, không cần bật máy tính!
 
 ```text
 d:\Tool\Server_Leo_Nguyen/
 │
-├── backend/                  # Xử lý nghiệp vụ lõi & thuật toán
-│   ├── __init__.py
+├── backend/                  # Xử lý nghiệp vụ lõi, bóc tách cấu kiện & thuật toán
 │   ├── parser.py             # Bóc tách cấu kiện AS Symbol 'X', gom BTP con, map ngày nhận
 │   ├── shape_analyzer.py     # Phân tích chuyên biệt & cảnh báo chủng loại Thép Hình (Shape)
-│   └── cache.py              # Bộ nhớ đệm kép RAM + SQLite chịu tải cao, phản hồi < 2ms
+│   ├── cache.py              # Bộ nhớ đệm kép RAM + SQLite chịu tải cao, phản hồi < 2ms
+│   └── exporter.py           # Xuất file Excel / CSV chi tiết
 │
 ├── frontend/                 # Giao diện Web Dashboard người dùng
 │   ├── index.html            # Trang chủ hiển thị Dashboard, KPI, Cây cấu kiện
-│   ├── style.css             # Giao diện Dark/Modern, thanh tiến độ, badges phân loại
-│   └── app.js                # Xử lý lọc ngày, tìm kiếm tức thì, mở rộng BTP con
+│   ├── style.css             # Giao diện Light/Modern, thanh tiến độ, badges phân loại
+│   └── app.js                # Xử lý Dual-Mode: Chạy Server lẫn Online 24/24 tĩnh
 │
-├── server/                   # Máy chủ API & Điều phối kết nối
-│   ├── __init__.py
-│   ├── app.py                # FastAPI Web Server, nén dữ liệu GZip, phục vụ REST API
-│   └── tunnel.py             # Điều phối kết nối mạng ngoài Cloudflare Tunnel (Miễn phí 100%)
+├── online_247/               # GÓI WEB ONLINE 24/24 (Được đóng gói tự động cho nhánh gh-pages)
+│   ├── index.html            # Trang web tĩnh độc lập
+│   ├── style.css
+│   ├── app.js
+│   └── data/                 # Toàn bộ dữ liệu các dự án đã biên dịch thành JSON siêu nhẹ
+│       ├── projects.json     # Danh mục tất cả các dự án
+│       ├── A290.json, B272.json...
 │
-├── Data/                     # Thư mục chứa các file Excel (.xlsx), hỗ trợ cả thư mục con
-│   ├── A290PL.xlsx
-│   ├── A320PL.xlsx
-│   ├── U324PL.xlsx
-│   └── ... (các thư mục con hoặc file Excel mới copy vào)
+├── tools/                    # Các công cụ hỗ trợ tự động hóa
+│   ├── build_static_data.py  # Biên dịch dữ liệu Excel sang gói web tĩnh
+│   └── sync_to_branch.py     # Tự động đẩy dữ liệu sang nhánh gh-pages
 │
-├── run_server.bat            # File khởi chạy nhanh 1-Click (Chỉ cần nhấp đúp chuột)
-├── run.py                    # Trình khởi chạy tổng thể All-in-One (Server + Tunnel)
+├── server/                   # Máy chủ API & Điều phối kết nối (FastAPI + Tunnel)
+├── Data/                     # Thư mục chứa các file Excel gốc (.xlsx)
+│
+├── run_server.bat            # Khởi chạy nhanh máy chủ trên máy tính (Nhấp đúp chuột)
+├── dong_bo_sang_online.bat   # 1-Click đồng bộ dữ liệu mới sang nhánh Online 24/24
+├── run.py                    # Trình khởi chạy tổng thể All-in-One
 └── README.md                 # Hướng dẫn sử dụng
 ```
+
 
 ---
 
