@@ -35,6 +35,7 @@ if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
 from backend.parser import list_available_projects
+from backend.parser_qlda import list_available_qlda_projects, parse_qlda_file
 from backend.cache import get_cached_project, get_cached_project_json, warm_up_cache, clear_all_cache
 from backend.exporter import export_project_excel, export_project_csv, export_missing_parts_excel
 
@@ -62,6 +63,7 @@ async def add_custom_headers(request: Request, call_next):
     return response
 
 DATA_FOLDER = os.path.join(BASE_DIR, "Data")
+QLDA_FOLDER = os.path.join(BASE_DIR, "03.QLDA")
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
 
 if os.path.exists(FRONTEND_DIR):
@@ -186,6 +188,60 @@ async def get_project_data(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi đọc file {os.path.basename(target_path)}: {str(e)}")
 
+# Cache bộ nhớ cho QLDA
+_qlda_cache = {}
+
+@app.get("/api/qlda/projects")
+async def get_qlda_projects():
+    """Lấy danh sách các dự án QLDA kèm thông tin kích thước và ngày cập nhật"""
+    projects = list_available_qlda_projects(QLDA_FOLDER)
+    return {
+        "count": len(projects),
+        "data_folder": QLDA_FOLDER,
+        "projects": projects
+    }
+
+@app.get("/api/qlda/project-data")
+async def get_qlda_project_data(
+    request: Request,
+    project_id: Optional[str] = Query(None),
+    file_path: Optional[str] = Query(None),
+    force_reload: bool = Query(False)
+):
+    """
+    Trả về toàn bộ dữ liệu tiến độ 5 công đoạn của 1 dự án QLDA
+    """
+    target_path = None
+    if file_path and os.path.exists(file_path):
+        target_path = file_path
+    elif project_id:
+        projects = list_available_qlda_projects(QLDA_FOLDER)
+        for p in projects:
+            if p["project_id"].lower() == project_id.lower() or p["file_name"].lower() == project_id.lower():
+                target_path = p["file_path"]
+                break
+                
+    if not target_path or not os.path.exists(target_path):
+        projects = list_available_qlda_projects(QLDA_FOLDER)
+        if projects:
+            target_path = projects[0]["file_path"]
+        else:
+            raise HTTPException(status_code=404, detail="Không tìm thấy file Excel nào trong thư mục 03.QLDA")
+
+    # Kiểm tra cache
+    if not force_reload and target_path in _qlda_cache:
+        cached_mtime, cached_data = _qlda_cache[target_path]
+        current_mtime = os.path.getmtime(target_path)
+        if current_mtime <= cached_mtime:
+            return cached_data
+
+    try:
+        data = parse_qlda_file(target_path)
+        _qlda_cache[target_path] = (os.path.getmtime(target_path), data)
+        return data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi đọc file QLDA {os.path.basename(target_path)}: {str(e)}")
+
 @app.get("/api/export-excel")
 @app.get("/api/export-missing")
 @app.get("/api/export-csv")
@@ -266,6 +322,7 @@ async def api_clear_cache(request: Request):
         )
         
     clear_all_cache()
+    _qlda_cache.clear()
     projects = list_available_projects(DATA_FOLDER)
     threading.Thread(target=warm_up_cache, args=(DATA_FOLDER,), daemon=True).start()
     return {
