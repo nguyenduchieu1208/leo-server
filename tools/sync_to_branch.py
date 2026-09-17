@@ -78,7 +78,7 @@ def sync_online():
     if push_pages_ok:
         print("🎉 HOÀN TẤT ĐỒNG BỘ LÊN NHÁNH ONLINE 24/24 THÀNH CÔNG!")
         print("📌 Trang web của bạn đang hoạt động 24/7 tại địa chỉ:")
-        print("   👉 https://nguyenduchieu1208.github.io/amecc-server/")
+        print("   👉 https://nguyenduchieu1208.github.io/leo-server/")
         print("   (Không cần bật máy tính, không cần mở server, truy cập mọi lúc mọi nơi)")
     else:
         print("⚠️ Đã tạo nhánh online (gh-pages) tại máy thành công!")
