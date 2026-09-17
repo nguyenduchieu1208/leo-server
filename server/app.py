@@ -86,6 +86,10 @@ async def serve_style_css():
 async def serve_app_js():
     return FileResponse(os.path.join(FRONTEND_DIR, "app.js"), media_type="application/javascript")
 
+@app.get("/logo.png")
+async def serve_logo_png():
+    return FileResponse(os.path.join(FRONTEND_DIR, "logo.png"), media_type="image/png")
+
 
 def get_lan_ip() -> str:
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

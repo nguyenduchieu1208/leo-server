@@ -50,21 +50,23 @@ def build_static_package():
 
     # 2. Sao chép các file frontend sang online_247
     print("[1/4] Đóng gói giao diện Frontend...")
-    for filename in ["index.html", "style.css", "app.js"]:
+    for filename in ["index.html", "style.css", "app.js", "logo.png"]:
         src = os.path.join(FRONTEND_DIR, filename)
         dst = os.path.join(OUTPUT_DIR, filename)
         if os.path.exists(src):
-            with open(src, "r", encoding="utf-8") as f:
-                content = f.read()
-            # Đảm bảo đường dẫn tài nguyên trong index.html là relative để chạy được trên GitHub Pages / Vercel
-            if filename == "index.html":
-                content = content.replace('href="/frontend/style.css', 'href="style.css')
-                content = content.replace('src="/frontend/app.js', 'src="app.js')
-                # Tích hợp thêm SheetJS CDN để xuất Excel trực tiếp trên trình duyệt
-                if "xlsx.full.min.js" not in content:
-                    content = content.replace('</head>', '    <!-- SheetJS Client-side Export -->\n    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>\n</head>')
-            with open(dst, "w", encoding="utf-8") as f:
-                f.write(content)
+            if filename.endswith((".html", ".css", ".js")):
+                with open(src, "r", encoding="utf-8") as f:
+                    content = f.read()
+                # Đảm bảo đường dẫn tài nguyên trong index.html là relative để chạy được trên GitHub Pages / Vercel
+                if filename == "index.html":
+                    content = content.replace('href="/frontend/style.css', 'href="style.css')
+                    content = content.replace('src="/frontend/app.js', 'src="app.js')
+                    if "xlsx.bundle.js" not in content and "xlsx.full.min.js" not in content:
+                        content = content.replace('</head>', '    <!-- xlsx-js-style Export -->\n    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>\n</head>')
+                with open(dst, "w", encoding="utf-8") as f:
+                    f.write(content)
+            else:
+                shutil.copyfile(src, dst)
             print(f"  -> Đã đóng gói: {filename}")
 
     # 3. Quét danh sách file Excel trong Data/

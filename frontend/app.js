@@ -53,8 +53,21 @@ function updateCompactFilterBadges() {
     const cSearch = document.getElementById('compact-input-search');
     const mainSearch = document.getElementById('input-search');
     
-    if (pSelect && mainPSelect && mainPSelect.value && pSelect.value !== mainPSelect.value) {
-        pSelect.value = mainPSelect.value;
+    if (pSelect && mainPSelect) {
+        if (mainPSelect.value) {
+            pSelect.value = mainPSelect.value;
+        }
+        if (!pSelect.value && state.currentProject) {
+            for (let i = 0; i < pSelect.options.length; i++) {
+                if (pSelect.options[i].value.includes(state.currentProject) || pSelect.options[i].text.includes(state.currentProject)) {
+                    pSelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+        if (!pSelect.value && mainPSelect.selectedIndex >= 0 && pSelect.options.length > mainPSelect.selectedIndex) {
+            pSelect.selectedIndex = mainPSelect.selectedIndex;
+        }
     }
     if (sSelect && sSelect.value !== state.selectedSheet) {
         sSelect.value = state.selectedSheet || 'all';
@@ -2236,8 +2249,61 @@ function exportDvgSummaryExcel() {
 
     if (window.XLSX) {
         const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        
+        const borderThin = {
+            top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+        };
+
+        // Format hàng tiêu đề (Navy/Indigo)
+        for (let c = 0; c < headers.length; c++) {
+            const addr = XLSX.utils.encode_cell({ r: 0, c });
+            if (ws[addr]) {
+                ws[addr].s = {
+                    fill: { fgColor: { rgb: '312E81' } },
+                    font: { name: 'Arial', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+                    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                    border: borderThin
+                };
+            }
+        }
+
+        // Format các hàng dữ liệu (Kẻ viền, định dạng số, xen kẽ màu)
+        for (let r = 1; r <= rows.length; r++) {
+            const isTotalRow = (r === rows.length);
+            const isEven = (r % 2 === 0);
+            const rowBg = isTotalRow ? 'FEF08A' : (isEven ? 'F8FAFC' : 'FFFFFF');
+
+            for (let c = 0; c < headers.length; c++) {
+                const addr = XLSX.utils.encode_cell({ r, c });
+                if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+
+                const isNum = typeof ws[addr].v === 'number';
+                const isWeight = [3, 4, 5, 6].includes(c);
+
+                ws[addr].s = {
+                    fill: { fgColor: { rgb: rowBg } },
+                    font: { 
+                        name: 'Arial', 
+                        sz: 10, 
+                        bold: isTotalRow, 
+                        color: { rgb: isTotalRow ? '713F12' : '1E293B' } 
+                    },
+                    alignment: { 
+                        horizontal: isNum ? 'right' : (c === 0 ? 'left' : 'center'), 
+                        vertical: 'center' 
+                    },
+                    border: borderThin,
+                    numFmt: isWeight ? '#,##0.0' : (isNum ? '#,##0' : undefined)
+                };
+            }
+        }
+
         ws['!autofilter'] = { ref: `A1:M${rows.length + 1}` };
         ws['!freeze'] = { ySplit: 1 };
+        ws['!rows'] = [{ hpt: 26 }, ...rows.map((_, idx) => ({ hpt: idx === rows.length - 1 ? 22 : 20 }))];
         ws['!cols'] = [
             { wch: 22 }, { wch: 18 }, { wch: 14 }, { wch: 18 }, { wch: 18 },
             { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
@@ -2426,10 +2492,46 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
     if (window.XLSX) {
         const wb = XLSX.utils.book_new();
 
+        const borderThin = {
+            top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+        };
+
         // Sheet 1: Bảng tổng hợp
         const ws1 = XLSX.utils.aoa_to_sheet([s1Headers, ...s1Rows]);
+        for (let c = 0; c < s1Headers.length; c++) {
+            const addr = XLSX.utils.encode_cell({ r: 0, c });
+            if (ws1[addr]) {
+                ws1[addr].s = {
+                    fill: { fgColor: { rgb: '312E81' } },
+                    font: { name: 'Arial', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+                    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                    border: borderThin
+                };
+            }
+        }
+        for (let r = 1; r <= s1Rows.length; r++) {
+            const isTotalRow = (r === s1Rows.length);
+            const isEven = (r % 2 === 0);
+            const rowBg = isTotalRow ? 'FEF08A' : (isEven ? 'F8FAFC' : 'FFFFFF');
+            for (let c = 0; c < s1Headers.length; c++) {
+                const addr = XLSX.utils.encode_cell({ r, c });
+                if (!ws1[addr]) ws1[addr] = { t: 's', v: '' };
+                const isNum = typeof ws1[addr].v === 'number';
+                ws1[addr].s = {
+                    fill: { fgColor: { rgb: rowBg } },
+                    font: { name: 'Arial', sz: 10, bold: isTotalRow, color: { rgb: isTotalRow ? '713F12' : '1E293B' } },
+                    alignment: { horizontal: isNum ? 'right' : (c === 0 ? 'left' : 'center'), vertical: 'center' },
+                    border: borderThin,
+                    numFmt: isNum ? '#,##0' : undefined
+                };
+            }
+        }
         ws1['!autofilter'] = { ref: `A1:N${s1Rows.length + 1}` };
         ws1['!freeze'] = { ySplit: 1 };
+        ws1['!rows'] = [{ hpt: 26 }, ...s1Rows.map(() => ({ hpt: 20 }))];
         ws1['!cols'] = [
             { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 18 }, { wch: 20 },
             { wch: 20 }, { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 18 },
@@ -2439,8 +2541,48 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
 
         // Sheet 2: Danh sách chi tiết
         const ws2 = XLSX.utils.aoa_to_sheet([s2Headers, ...s2Rows]);
+        for (let c = 0; c < s2Headers.length; c++) {
+            const addr = XLSX.utils.encode_cell({ r: 0, c });
+            if (ws2[addr]) {
+                ws2[addr].s = {
+                    fill: { fgColor: { rgb: '1E3A8A' } },
+                    font: { name: 'Arial', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+                    alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                    border: borderThin
+                };
+            }
+        }
+        for (let r = 1; r <= s2Rows.length; r++) {
+            const isEven = (r % 2 === 0);
+            const rowBg = isEven ? 'F8FAFC' : 'FFFFFF';
+            const rowData = s2Rows[r - 1];
+            const conThieuVal = rowData[11];
+
+            for (let c = 0; c < s2Headers.length; c++) {
+                const addr = XLSX.utils.encode_cell({ r, c });
+                if (!ws2[addr]) ws2[addr] = { t: 's', v: '' };
+                const isNum = typeof ws2[addr].v === 'number';
+                let cellFill = rowBg;
+                let cellFont = { name: 'Arial', sz: 10, color: { rgb: '1E293B' } };
+
+                // Nổi bật cột còn thiếu
+                if (c === 11 && conThieuVal > 0) {
+                    cellFill = 'FEE2E2';
+                    cellFont = { name: 'Arial', sz: 10, bold: true, color: { rgb: 'DC2626' } };
+                }
+
+                ws2[addr].s = {
+                    fill: { fgColor: { rgb: cellFill } },
+                    font: cellFont,
+                    alignment: { horizontal: isNum ? 'right' : ([0, 1, 8, 17].includes(c) ? 'center' : 'left'), vertical: 'center' },
+                    border: borderThin,
+                    numFmt: isNum ? '#,##0' : undefined
+                };
+            }
+        }
         ws2['!autofilter'] = { ref: `A1:S${s2Rows.length + 1}` };
         ws2['!freeze'] = { ySplit: 1 };
+        ws2['!rows'] = [{ hpt: 26 }, ...s2Rows.map(() => ({ hpt: 20 }))];
         ws2['!cols'] = [
             { wch: 6 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 22 },
             { wch: 22 }, { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 14 },
@@ -2807,8 +2949,65 @@ function setupEventListeners() {
 
         if (format === 'xlsx' && window.XLSX) {
             const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+            
+            const borderThin = {
+                top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+                bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+                left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+                right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+            };
+
+            // Style Hàng 1: Tiêu đề Navy Blue AMECC chuyên nghiệp
+            for (let c = 0; c < headers.length; c++) {
+                const addr = XLSX.utils.encode_cell({ r: 0, c });
+                if (ws[addr]) {
+                    ws[addr].s = {
+                        fill: { fgColor: { rgb: '1E3A8A' } },
+                        font: { name: 'Arial', sz: 10, bold: true, color: { rgb: 'FFFFFF' } },
+                        alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                        border: borderThin
+                    };
+                }
+            }
+
+            // Style Hàng dữ liệu: Viền kẻ toàn bộ, căn lề, định dạng số, làm nổi bật chi tiết thiếu
+            for (let r = 1; r <= rows.length; r++) {
+                const isEven = (r % 2 === 0);
+                const rowBg = isEven ? 'F8FAFC' : 'FFFFFF';
+                const rowData = rows[r - 1];
+                const conThieuVal = rowData[10];
+
+                for (let c = 0; c < headers.length; c++) {
+                    const addr = XLSX.utils.encode_cell({ r, c });
+                    if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+
+                    const isNum = typeof ws[addr].v === 'number';
+                    const isCenter = [5, 11].includes(c);
+                    let cellFill = rowBg;
+                    let cellFont = { name: 'Arial', sz: 10, color: { rgb: '1E293B' } };
+
+                    // Nổi bật cột còn thiếu bằng màu đỏ cảnh báo
+                    if (c === 10 && conThieuVal > 0) {
+                        cellFill = 'FEE2E2';
+                        cellFont = { name: 'Arial', sz: 10, bold: true, color: { rgb: 'DC2626' } };
+                    }
+
+                    ws[addr].s = {
+                        fill: { fgColor: { rgb: cellFill } },
+                        font: cellFont,
+                        alignment: { 
+                            horizontal: isNum ? 'right' : (isCenter ? 'center' : 'left'), 
+                            vertical: 'center' 
+                        },
+                        border: borderThin,
+                        numFmt: isNum ? '#,##0' : undefined
+                    };
+                }
+            }
+
             ws['!autofilter'] = { ref: `A1:O${rows.length + 1}` };
             ws['!freeze'] = { ySplit: 1 };
+            ws['!rows'] = [{ hpt: 28 }, ...rows.map(() => ({ hpt: 20 }))];
             ws['!cols'] = [
                 { wch: 18 }, { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 20 },
                 { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 14 },
@@ -3132,7 +3331,7 @@ const qldaState = {
     currentPage: 1,
     pageSize: 50,
     isLoading: false,
-    sortBy: 'incomplete_first', // 'incomplete_first', 'weight_desc', 'weight_asc', 'code_asc', 'code_desc', 'drawing_asc', 'qty_desc', 'stt_asc'
+    sortBy: 'stt_asc', // Mặc định: 'stt_asc' (Thứ tự file gốc chuẩn)
     sortCol: null,
     sortDir: 'asc'
 };
@@ -3535,10 +3734,13 @@ function filterQldaItems() {
     } else {
         // Sắp xếp theo lựa chọn trong Dropdown Sắp Xếp
         switch (qldaState.sortBy) {
-            case 'incomplete_first':
+            case 'stt_asc':
             default:
+                // Thứ tự file gốc là mặc định chuẩn 100%
+                filtered.sort((a, b) => (a.stt || 0) - (b.stt || 0));
+                break;
+            case 'incomplete_first':
                 // Ưu tiên chưa xong lên đầu (Chưa làm -> Đang làm -> Gá -> Hàn -> TH Thử -> NT -> BG)
-                // Cùng trạng thái thì ưu tiên cấu kiện nặng nhất lên trước
                 filtered.sort((a, b) => {
                     const pA = QLDA_STATUS_PRIORITY[a.status] || 99;
                     const pB = QLDA_STATUS_PRIORITY[b.status] || 99;
@@ -3897,12 +4099,18 @@ function renderQldaPagination() {
 
     const pageInfo = document.getElementById('qlda-page-info');
     if (pageInfo) pageInfo.textContent = `Trang ${currentPage} / ${totalPages}`;
+    const pageInfoBottom = document.getElementById('qlda-page-info-bottom');
+    if (pageInfoBottom) pageInfoBottom.textContent = `Trang ${currentPage} / ${totalPages}`;
 
     const btnPrev = document.getElementById('btn-qlda-prev-page');
     if (btnPrev) btnPrev.disabled = (currentPage <= 1);
+    const btnPrevBottom = document.getElementById('btn-qlda-prev-page-bottom');
+    if (btnPrevBottom) btnPrevBottom.disabled = (currentPage <= 1);
 
     const btnNext = document.getElementById('btn-qlda-next-page');
     if (btnNext) btnNext.disabled = (currentPage >= totalPages);
+    const btnNextBottom = document.getElementById('btn-qlda-next-page-bottom');
+    if (btnNextBottom) btnNextBottom.disabled = (currentPage >= totalPages);
 
     const statusEl = document.getElementById('qlda-pagination-status');
     if (statusEl) {
@@ -4223,6 +4431,105 @@ async function exportQldaToExcel() {
         ws['!autofilter'] = { ref: `A3:AG${endRow}` };
         ws['!freeze'] = { ySplit: 3 };
 
+        // Áp dụng định dạng bảng, màu sắc công đoạn, viền kẻ bảng và bộ lọc chuyên nghiệp
+        const borderThin = {
+            top: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            bottom: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+        };
+        const borderSubtotal = {
+            top: { style: 'thin', color: { rgb: '94A3B8' } },
+            bottom: { style: 'thin', color: { rgb: '94A3B8' } },
+            left: { style: 'thin', color: { rgb: 'CBD5E1' } },
+            right: { style: 'thin', color: { rgb: 'CBD5E1' } }
+        };
+
+        // Hàng 1: Phân nhóm 5 công đoạn với màu sắc nhận diện chuẩn form mẫu gốc
+        const groupsDef = [
+            { start: 0, end: 15, fill: '2D3748', color: 'FFFFFF' }, // Thông tin cấu kiện
+            { start: 16, end: 18, fill: 'BEE3F8', color: '2B6CB0' }, // Gá lắp
+            { start: 19, end: 21, fill: 'FEEBC8', color: 'C05621' }, // Hàn
+            { start: 22, end: 24, fill: 'E9D8FD', color: '6B46C1' }, // Tổ hợp thử
+            { start: 25, end: 27, fill: 'C6F6D5', color: '22543D' }, // Nghiệm thu
+            { start: 28, end: 32, fill: 'B2F5EA', color: '234E52' }  // Bàn giao
+        ];
+
+        groupsDef.forEach(g => {
+            for (let c = g.start; c <= g.end; c++) {
+                const addr = XLSX.utils.encode_cell({ r: 0, c });
+                if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+                ws[addr].s = {
+                    fill: { fgColor: { rgb: g.fill } },
+                    font: { name: 'Arial', sz: 11, bold: true, color: { rgb: g.color } },
+                    alignment: { horizontal: 'center', vertical: 'center' },
+                    border: borderThin
+                };
+            }
+        });
+
+        // Hàng 2: Hàng Tổng Hợp Subtotal
+        for (let c = 0; c < 33; c++) {
+            const addr = XLSX.utils.encode_cell({ r: 1, c });
+            if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+            const isNum = typeof ws[addr].v === 'number';
+            const isWeight = [12, 18, 21, 24, 27, 30].includes(c);
+            ws[addr].s = {
+                fill: { fgColor: { rgb: 'EDF2F7' } },
+                font: { name: 'Arial', sz: 10, bold: true, color: { rgb: '1A202C' } },
+                alignment: { horizontal: isNum ? 'right' : 'center', vertical: 'center' },
+                border: borderSubtotal,
+                numFmt: isWeight ? '#,##0.0' : (isNum ? '#,##0' : undefined)
+            };
+        }
+
+        // Hàng 3: Tiêu đề cột
+        for (let c = 0; c < 33; c++) {
+            const addr = XLSX.utils.encode_cell({ r: 2, c });
+            if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+            ws[addr].s = {
+                fill: { fgColor: { rgb: 'E2E8F0' } },
+                font: { name: 'Arial', sz: 10, bold: true, color: { rgb: '1E293B' } },
+                alignment: { horizontal: 'center', vertical: 'center', wrapText: true },
+                border: borderThin
+            };
+        }
+
+        // Hàng 4+: Dữ liệu chi tiết từng cấu kiện (Kẻ viền, định dạng số, xen kẽ màu)
+        for (let r = 3; r < 3 + dataRows.length; r++) {
+            const rowIdx = r - 3;
+            const isEven = (rowIdx % 2 === 0);
+            const rowBg = isEven ? 'FFFFFF' : 'F8FAFC';
+
+            for (let c = 0; c < 33; c++) {
+                const addr = XLSX.utils.encode_cell({ r, c });
+                if (!ws[addr]) ws[addr] = { t: 's', v: '' };
+
+                const isNum = typeof ws[addr].v === 'number';
+                const isWeight = [11, 12, 18, 21, 24, 27, 30].includes(c);
+                const isCenter = [0, 2, 3, 6, 14, 16, 19, 22, 25, 28].includes(c);
+
+                ws[addr].s = {
+                    fill: { fgColor: { rgb: rowBg } },
+                    font: { name: 'Arial', sz: 10, color: { rgb: '1E293B' } },
+                    alignment: { 
+                        horizontal: isNum ? 'right' : (isCenter ? 'center' : 'left'), 
+                        vertical: 'center' 
+                    },
+                    border: borderThin,
+                    numFmt: isWeight ? '#,##0.0' : (isNum ? '#,##0' : undefined)
+                };
+            }
+        }
+
+        // Đặt chiều cao dòng chuẩn
+        ws['!rows'] = [
+            { hpt: 26 }, // Hàng 1
+            { hpt: 22 }, // Hàng 2
+            { hpt: 26 }, // Hàng 3
+            ...dataRows.map(() => ({ hpt: 20 }))
+        ];
+
         // Độ rộng 33 cột chuẩn form
         ws['!cols'] = [
             { wch: 12 }, { wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
@@ -4403,27 +4710,41 @@ function setupQldaEventListeners() {
         });
     }
 
-    // 11. Phân trang: Trang trước / Trang sau
-    const btnPrevPage = document.getElementById('btn-qlda-prev-page');
-    if (btnPrevPage) {
-        btnPrevPage.addEventListener('click', () => {
-            if (qldaState.currentPage > 1) {
-                qldaState.currentPage--;
-                renderQldaTable();
+    // 11. Phân trang: Trang trước / Trang sau (Cả trên đỉnh và dưới đáy bảng)
+    function qldaGoPrev(scrollToTop = false) {
+        if (qldaState.currentPage > 1) {
+            qldaState.currentPage--;
+            renderQldaTable();
+            if (scrollToTop) {
+                const matrixEl = document.getElementById('qlda-assemblies-tbody');
+                if (matrixEl) matrixEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
-        });
+        }
     }
 
-    const btnNextPage = document.getElementById('btn-qlda-next-page');
-    if (btnNextPage) {
-        btnNextPage.addEventListener('click', () => {
-            const totalPages = Math.ceil((qldaState.filteredItems || []).length / qldaState.pageSize);
-            if (qldaState.currentPage < totalPages) {
-                qldaState.currentPage++;
-                renderQldaTable();
+    function qldaGoNext(scrollToTop = false) {
+        const totalPages = Math.ceil((qldaState.filteredItems || []).length / qldaState.pageSize);
+        if (qldaState.currentPage < totalPages) {
+            qldaState.currentPage++;
+            renderQldaTable();
+            if (scrollToTop) {
+                const matrixEl = document.getElementById('qlda-assemblies-tbody');
+                if (matrixEl) matrixEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
-        });
+        }
     }
+
+    const btnPrevPage = document.getElementById('btn-qlda-prev-page');
+    if (btnPrevPage) btnPrevPage.addEventListener('click', () => qldaGoPrev(false));
+
+    const btnPrevPageBottom = document.getElementById('btn-qlda-prev-page-bottom');
+    if (btnPrevPageBottom) btnPrevPageBottom.addEventListener('click', () => qldaGoPrev(true));
+
+    const btnNextPage = document.getElementById('btn-qlda-next-page');
+    if (btnNextPage) btnNextPage.addEventListener('click', () => qldaGoNext(false));
+
+    const btnNextPageBottom = document.getElementById('btn-qlda-next-page-bottom');
+    if (btnNextPageBottom) btnNextPageBottom.addEventListener('click', () => qldaGoNext(true));
 
     // 12. Kích thước trang (Page Size)
     const selectPageSize = document.getElementById('select-qlda-page-size');
