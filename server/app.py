@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, Response
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 
 if sys.stdout and hasattr(sys.stdout, "reconfigure"):
     try:
@@ -35,8 +36,15 @@ if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
 from backend.parser import list_available_projects
-from backend.parser_qlda import list_available_qlda_projects, parse_qlda_file
-from backend.cache import get_cached_project, get_cached_project_json, warm_up_cache, clear_all_cache
+from backend.parser_qlda import list_available_qlda_projects, parse_qlda_file, generate_qlda_export_excel
+from backend.cache import (
+    get_cached_project, 
+    get_cached_project_json, 
+    get_cached_qlda, 
+    get_cached_qlda_json, 
+    warm_up_cache, 
+    clear_all_cache
+)
 from backend.exporter import export_project_excel, export_project_csv, export_missing_parts_excel
 
 app = FastAPI(title="Server Tra Cứu Vật Tư & BTP Theo Ngày - Amecc2", version="2.5.0")
@@ -107,7 +115,7 @@ def is_host_admin(request: Request) -> bool:
 
 @app.on_event("startup")
 async def on_startup():
-    threading.Thread(target=warm_up_cache, args=(DATA_FOLDER,), daemon=True).start()
+    threading.Thread(target=warm_up_cache, args=(DATA_FOLDER, QLDA_FOLDER), daemon=True).start()
 
 @app.get("/")
 async def serve_index():
@@ -209,7 +217,7 @@ async def get_qlda_project_data(
     force_reload: bool = Query(False)
 ):
     """
-    Trả về toàn bộ dữ liệu tiến độ 5 công đoạn của 1 dự án QLDA
+    Trả về toàn bộ dữ liệu tiến độ 5 công đoạn của 1 dự án QLDA (phản hồi trong 0.001s từ RAM/SQLite)
     """
     target_path = None
     if file_path and os.path.exists(file_path):
@@ -228,19 +236,81 @@ async def get_qlda_project_data(
         else:
             raise HTTPException(status_code=404, detail="Không tìm thấy file Excel nào trong thư mục 03.QLDA")
 
-    # Kiểm tra cache
-    if not force_reload and target_path in _qlda_cache:
-        cached_mtime, cached_data = _qlda_cache[target_path]
-        current_mtime = os.path.getmtime(target_path)
-        if current_mtime <= cached_mtime:
-            return cached_data
-
     try:
-        data = parse_qlda_file(target_path)
-        _qlda_cache[target_path] = (os.path.getmtime(target_path), data)
-        return data
+        json_bytes = get_cached_qlda_json(target_path, force_reload=force_reload)
+        return Response(content=json_bytes, media_type="application/json")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi đọc file QLDA {os.path.basename(target_path)}: {str(e)}")
+
+@app.get("/api/qlda/export-excel")
+async def export_qlda_excel_endpoint(
+    request: Request,
+    project_id: Optional[str] = Query(None),
+    file_path: Optional[str] = Query(None),
+    hang_muc: Optional[str] = Query(None),
+    phan_giao: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    q: Optional[str] = Query(None)
+):
+    """
+    Xuất file Excel đúng chuẩn form mẫu gốc của người dùng:
+    - Loại bỏ hoàn toàn các cột: A, C, D, T đến AI, AS, BB đến hết
+    - Giữ trọn vẹn 5 công đoạn (Gá lắp, Hàn, Tổ hợp thử, Nghiệm thu, Bàn giao)
+    - Định dạng tiêu đề gộp nhóm, hàng Subtotal tự động co giãn, phông chữ Times New Roman chuẩn form
+    """
+    target_path = None
+    if file_path and os.path.exists(file_path):
+        target_path = file_path
+    elif project_id:
+        projects = list_available_qlda_projects(QLDA_FOLDER)
+        for p in projects:
+            if p["project_id"].lower() == project_id.lower() or p["file_name"].lower() == project_id.lower():
+                target_path = p["file_path"]
+                break
+                
+    if not target_path or not os.path.exists(target_path):
+        projects = list_available_qlda_projects(QLDA_FOLDER)
+        if projects:
+            target_path = projects[0]["file_path"]
+        else:
+            raise HTTPException(status_code=404, detail="Không tìm thấy file Excel nào trong thư mục 03.QLDA")
+
+    try:
+        project_data = get_cached_qlda(target_path)
+        items = project_data.get("items", [])
+        
+        filtered_items = items
+        if hang_muc and hang_muc != "all":
+            filtered_items = [it for it in filtered_items if it.get("hang_muc") == hang_muc]
+        if phan_giao and phan_giao != "all":
+            filtered_items = [it for it in filtered_items if it.get("phan_giao") == phan_giao]
+        if status and status != "all":
+            filtered_items = [it for it in filtered_items if it.get("status") == status]
+        if q:
+            q_lower = q.lower().strip()
+            filtered_items = [it for it in filtered_items if (
+                q_lower in (it.get("so_chi_tiet") or "").lower() or
+                q_lower in (it.get("ten_ban_ve") or "").lower() or
+                q_lower in (it.get("hang_muc") or "").lower() or
+                q_lower in (it.get("size") or "").lower() or
+                q_lower in (it.get("profile") or "").lower()
+            )]
+
+        excel_io = generate_qlda_export_excel(project_data, filtered_items)
+        pid = project_data.get("project_id", "QLDA")
+        filename = f"QLDA_{pid}_TienDoCongDoan.xlsx"
+        quoted_filename = urllib.parse.quote(filename)
+        headers = {
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quoted_filename}",
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+        return StreamingResponse(
+            excel_io,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi xuất file Excel QLDA: {str(e)}")
 
 @app.get("/api/export-excel")
 @app.get("/api/export-missing")
@@ -322,19 +392,20 @@ async def api_clear_cache(request: Request):
         )
         
     clear_all_cache()
-    _qlda_cache.clear()
     projects = list_available_projects(DATA_FOLDER)
-    threading.Thread(target=warm_up_cache, args=(DATA_FOLDER,), daemon=True).start()
+    qlda_projects = list_available_qlda_projects(QLDA_FOLDER)
+    threading.Thread(target=warm_up_cache, args=(DATA_FOLDER, QLDA_FOLDER), daemon=True).start()
     return {
         "status": "success",
         "count": len(projects),
-        "message": f"Đã quét và nạp lại toàn bộ {len(projects)} file PL trong thư mục Data vào RAM thành công!",
+        "count_qlda": len(qlda_projects),
+        "message": f"Đã quét và nạp lại toàn bộ {len(projects)} file PL và {len(qlda_projects)} file QLDA vào RAM thành công!",
         "projects": [p["file_name"] for p in projects]
     }
 
 @app.post("/api/upload-excel")
 async def upload_excel(request: Request, file: UploadFile = File(...)):
-    """Bảo mật: Chỉ duy nhất chủ máy (localhost) mới được phép tải lên file Excel"""
+    """Bảo mật: Chỉ duy nhất chủ máy (localhost) mới được phép tải lên file Excel PL"""
     if not is_host_admin(request):
         raise HTTPException(
             status_code=403, 
@@ -351,8 +422,34 @@ async def upload_excel(request: Request, file: UploadFile = File(...)):
         shutil.copyfileobj(file.file, buffer)
         
     clear_all_cache()
-    threading.Thread(target=warm_up_cache, args=(DATA_FOLDER,), daemon=True).start()
+    threading.Thread(target=warm_up_cache, args=(DATA_FOLDER, QLDA_FOLDER), daemon=True).start()
     return {"status": "success", "message": f"Đã nạp file {file.filename} vào hệ thống thành công!"}
+
+@app.post("/api/upload-qlda-excel")
+async def upload_qlda_excel(request: Request, file: UploadFile = File(...)):
+    """Bảo mật: Chỉ duy nhất chủ máy (localhost) mới được phép tải lên file Excel QLDA"""
+    if not is_host_admin(request):
+        raise HTTPException(
+            status_code=403, 
+            detail="Bạn không có quyền! Chỉ chủ máy mới được phép tải lên file Excel QLDA."
+        )
+
+    if not file.filename or not file.filename.endswith((".xlsx", ".xlsm")):
+        raise HTTPException(status_code=400, detail="Chỉ chấp nhận file Excel đuôi .xlsx hoặc .xlsm")
+    
+    os.makedirs(QLDA_FOLDER, exist_ok=True)
+    dest_path = os.path.join(QLDA_FOLDER, file.filename)
+    with open(dest_path, "wb") as buffer:
+        import shutil
+        shutil.copyfileobj(file.file, buffer)
+        
+    # Nạp và lưu vĩnh viễn vào SQLite & RAM ngay lập tức
+    try:
+        get_cached_qlda(dest_path, force_reload=True)
+    except Exception as e:
+        print(f"[-] Loi pre-cache file QLDA vua tai len: {e}")
+
+    return {"status": "success", "message": f"Đã nạp và lưu trữ file QLDA {file.filename} vào hệ thống thành công!"}
 
 def run_server(port: int = 8000):
     lan_ip = get_lan_ip()

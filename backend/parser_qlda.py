@@ -355,3 +355,229 @@ def list_available_qlda_projects(qlda_dir):
             "updated_at": datetime.fromtimestamp(mtime).strftime("%d/%m/%Y %H:%M")
         })
     return projects
+
+def generate_qlda_export_excel(project_data, filtered_items=None):
+    """
+    Xuất file Excel tiến độ cấu kiện QLDA đúng chuẩn form mẫu của người dùng:
+    - Loại bỏ hoàn toàn các cột: A (TT), C (Group ID), D (Group/Shipment), T đến AI, AS (Số AFI), BB đến hết
+    - Giữ lại đầy đủ 5 công đoạn: Gá lắp, Hàn, Tổ hợp thử, Nghiệm thu, Bàn giao
+    - Hàng 1: Tiêu đề gộp nhóm phân theo công đoạn với màu sắc nhận diện
+    - Hàng 2: Hàng tổng hợp Subtotal tự động co giãn theo bộ lọc
+    - Hàng 3: Tên cột chuẩn xác như form gốc
+    - Hàng 4+: Dữ liệu chi tiết từng cấu kiện
+    """
+    import io
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Progress"
+
+    items = filtered_items if filtered_items is not None else project_data.get("items", [])
+    proj_id = project_data.get("project_id", "QLDA")
+
+    font_family = "Times New Roman"
+    header_font = Font(name=font_family, size=11, bold=True)
+    subtotal_font = Font(name=font_family, size=11, bold=True, color="1A202C")
+    data_font = Font(name=font_family, size=11)
+    
+    thin_border = Border(
+        left=Side(style='thin', color='CBD5E0'),
+        right=Side(style='thin', color='CBD5E0'),
+        top=Side(style='thin', color='CBD5E0'),
+        bottom=Side(style='thin', color='CBD5E0')
+    )
+
+    # 33 Cột chuẩn theo form mẫu Quản Lý Dự Án của người dùng (sau khi loại bỏ: A, C, D, T..AI, AS, BB..end)
+    columns_def = [
+        {"name": "Số Dự Án", "width": 12, "align": "center"},             # 1 (B)
+        {"name": "Hạng mục", "width": 24, "align": "left"},               # 2 (E)
+        {"name": "MH", "width": 10, "align": "center"},                   # 3 (F)
+        {"name": "Ngày giao hàng(WO)", "width": 16, "align": "center"},    # 4 (G)
+        {"name": "Dạng sản phẩm", "width": 16, "align": "left"},          # 5 (H)
+        {"name": "Phân loại", "width": 14, "align": "left"},              # 6 (I)
+        {"name": "Phân giao", "width": 12, "align": "center"},            # 7 (J)
+        {"name": "Tên bản vẽ", "width": 24, "align": "left"},             # 8 (K)
+        {"name": "Số chi tiết", "width": 16, "align": "left"},            # 9 (L)
+        {"name": "Size", "width": 18, "align": "left"},                   # 10 (M)
+        {"name": "T'Qty", "width": 10, "align": "right", "format": "#,##0"},   # 11 (N)
+        {"name": "U.Weight", "width": 12, "align": "right", "format": "#,##0.0"}, # 12 (O)
+        {"name": "T.Weight", "width": 14, "align": "right", "format": "#,##0.0"}, # 13 (P)
+        {"name": "Profile", "width": 20, "align": "left"},                # 14 (Q)
+        {"name": "ID", "width": 12, "align": "center"},                   # 15 (R)
+        {"name": "Note", "width": 16, "align": "left"},                   # 16 (S)
+        # 1. Gá lắp (AJ..AL)
+        {"name": "Ngày Gá", "width": 13, "align": "center"},              # 17 (AJ)
+        {"name": "SL Gá", "width": 10, "align": "right", "format": "#,##0"},   # 18 (AK)
+        {"name": "KL Gá", "width": 14, "align": "right", "format": "#,##0.0"}, # 19 (AL)
+        # 2. Hàn (AM..AO)
+        {"name": "Ngày Hàn", "width": 13, "align": "center"},             # 20 (AM)
+        {"name": "SL Hàn", "width": 10, "align": "right", "format": "#,##0"},   # 21 (AN)
+        {"name": "KL Hàn", "width": 14, "align": "right", "format": "#,##0.0"}, # 22 (AO)
+        # 3. Tổ hợp thử (AP..AR)
+        {"name": "Ngày TH", "width": 13, "align": "center"},              # 23 (AP)
+        {"name": "SL TH", "width": 10, "align": "right", "format": "#,##0"},   # 24 (AQ)
+        {"name": "KL TH", "width": 14, "align": "right", "format": "#,##0.0"}, # 25 (AR)
+        # 4. Nghiệm thu (AT..AV)
+        {"name": "Ngày NT", "width": 13, "align": "center"},              # 26 (AT)
+        {"name": "SL NT", "width": 10, "align": "right", "format": "#,##0"},   # 27 (AU)
+        {"name": "KL NT", "width": 14, "align": "right", "format": "#,##0.0"}, # 28 (AV)
+        # 5. Bàn giao (AW..BA)
+        {"name": "Ngày BG", "width": 13, "align": "center"},              # 29 (AW)
+        {"name": "SL BG", "width": 10, "align": "right", "format": "#,##0"},   # 30 (AX)
+        {"name": "KL BG", "width": 14, "align": "right", "format": "#,##0.0"}, # 31 (AY)
+        {"name": "Đơn vị nhận", "width": 16, "align": "left"},            # 32 (AZ)
+        {"name": "Số biên bản", "width": 16, "align": "left"}             # 33 (BA)
+    ]
+
+    total_cols = len(columns_def)
+    end_row = 3 + len(items)
+    if len(items) == 0:
+        end_row = 4
+
+    # Đặt độ rộng cột
+    for idx, col_cfg in enumerate(columns_def, start=1):
+        col_letter = get_column_letter(idx)
+        ws.column_dimensions[col_letter].width = col_cfg["width"]
+
+    # Đặt chiều cao dòng
+    ws.row_dimensions[1].height = 26
+    ws.row_dimensions[2].height = 22
+    ws.row_dimensions[3].height = 26
+
+    # Định nghĩa các nhóm công đoạn ở Hàng 1 (theo đúng nhóm mẫu của người dùng)
+    groups = [
+        {"title": f"DỰ ÁN:{proj_id}", "start": 1, "end": 16, "fill": "2D3748", "color": "FFFFFF"},
+        {"title": "Gá lắp", "start": 17, "end": 19, "fill": "BEE3F8", "color": "2B6CB0"},
+        {"title": "Hàn", "start": 20, "end": 22, "fill": "FEEBC8", "color": "C05621"},
+        {"title": "Tổ hợp thử", "start": 23, "end": 25, "fill": "E9D8FD", "color": "6B46C1"},
+        {"title": "Nghiệm thu", "start": 26, "end": 28, "fill": "C6F6D5", "color": "22543D"},
+        {"title": "Bàn giao", "start": 29, "end": 33, "fill": "B2F5EA", "color": "234E52"}
+    ]
+
+    for g in groups:
+        ws.merge_cells(start_row=1, start_column=g["start"], end_row=1, end_column=g["end"])
+        first_cell = ws.cell(1, g["start"], g["title"])
+        first_cell.alignment = Alignment(horizontal="center", vertical="center")
+        first_cell.font = Font(name=font_family, size=12, bold=True, color=g["color"])
+        
+        fill_obj = PatternFill(start_color=g["fill"], end_color=g["fill"], fill_type="solid")
+        for c in range(g["start"], g["end"] + 1):
+            cell = ws.cell(1, c)
+            cell.fill = fill_obj
+            cell.border = thin_border
+
+    # Hàng 2: Hàng Tổng Hợp Subtotal (theo form mẫu)
+    subtotal_fill = PatternFill(start_color="EDF2F7", end_color="EDF2F7", fill_type="solid")
+    for c in range(1, total_cols + 1):
+        cell = ws.cell(2, c)
+        cell.fill = subtotal_fill
+        cell.border = thin_border
+        cell.font = subtotal_font
+
+    ws.cell(2, 1, "Information ID").alignment = Alignment(horizontal="center", vertical="center")
+    ws.cell(2, 8, "Information Item").alignment = Alignment(horizontal="center", vertical="center")
+    ws.cell(2, 16, "=IF(WEEKDAY(TODAY()-1)=1,TODAY()-2,TODAY()-1)").alignment = Alignment(horizontal="center", vertical="center")
+    ws.cell(2, 33, f'=SUBSTITUTE(A1,"DỰ ÁN:","")&"-"').alignment = Alignment(horizontal="center", vertical="center")
+    
+    # Subtotal công thức cho các cột số lượng và khối lượng (Col 11=K, 13=M, 18=R, 19=S, 21=U, 22=V, 24=X, 25=Y, 27=AA, 28=AB, 30=AD, 31=AE)
+    subtotal_cols = [
+        (11, "#,##0"),      # T'Qty (K)
+        (13, "#,##0.0"),    # T.Weight (M)
+        (18, "#,##0"),      # SL Gá (R)
+        (19, "#,##0.0"),    # KL Gá (S)
+        (21, "#,##0"),      # SL Hàn (U)
+        (22, "#,##0.0"),    # KL Hàn (V)
+        (24, "#,##0"),      # SL TH (X)
+        (25, "#,##0.0"),    # KL TH (Y)
+        (27, "#,##0"),      # SL NT (AA)
+        (28, "#,##0.0"),    # KL NT (AB)
+        (30, "#,##0"),      # SL BG (AD)
+        (31, "#,##0.0"),    # KL BG (AE)
+    ]
+    for c_idx, num_fmt in subtotal_cols:
+        col_let = get_column_letter(c_idx)
+        cell = ws.cell(2, c_idx)
+        cell.value = f"=SUBTOTAL(9, {col_let}4:{col_let}{end_row})"
+        cell.number_format = num_fmt
+        cell.alignment = Alignment(horizontal="right", vertical="center")
+
+    # Hàng 3: Tiêu Đề Cột
+    h3_fill = PatternFill(start_color="E2E8F0", end_color="E2E8F0", fill_type="solid")
+    for idx, col_cfg in enumerate(columns_def, start=1):
+        cell = ws.cell(3, idx, col_cfg["name"])
+        cell.fill = h3_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = thin_border
+
+    # Hàng 4+: Ghi dữ liệu 33 cột
+    for r_offset, item in enumerate(items, start=4):
+        ws.row_dimensions[r_offset].height = 20
+
+        row_values = [
+            item.get("du_an") or proj_id,               # 1: Số Dự Án (B)
+            item.get("hang_muc", ""),                   # 2: Hạng mục (E)
+            item.get("mh", ""),                         # 3: MH (F)
+            item.get("ngay_giao_wo", ""),               # 4: Ngày giao hàng(WO) (G)
+            item.get("dang_sp", ""),                    # 5: Dạng sản phẩm (H)
+            item.get("phan_loai", ""),                  # 6: Phân loại (I)
+            item.get("phan_giao", ""),                  # 7: Phân giao (J)
+            item.get("ten_ban_ve", ""),                 # 8: Tên bản vẽ (K)
+            item.get("so_chi_tiet", ""),                # 9: Số chi tiết (L)
+            item.get("size", ""),                       # 10: Size (M)
+            item.get("tqty", 0),                        # 11: T'Qty (N)
+            item.get("uweight", 0.0),                   # 12: U.Weight (O)
+            item.get("tweight", 0.0),                   # 13: T.Weight (P)
+            item.get("profile", ""),                    # 14: Profile (Q)
+            item.get("id", ""),                         # 15: ID (R)
+            item.get("note", ""),                       # 16: Note (S)
+            # 1. Gá lắp
+            item.get("ga_lap", {}).get("ngay", ""),     # 17: Ngày Gá (AJ)
+            item.get("ga_lap", {}).get("sl", 0),        # 18: SL Gá (AK)
+            item.get("ga_lap", {}).get("kl", 0.0),      # 19: KL Gá (AL)
+            # 2. Hàn
+            item.get("han", {}).get("ngay", ""),        # 20: Ngày Hàn (AM)
+            item.get("han", {}).get("sl", 0),           # 21: SL Hàn (AN)
+            item.get("han", {}).get("kl", 0.0),         # 22: KL Hàn (AO)
+            # 3. Tổ hợp thử
+            item.get("to_hop_thu", {}).get("ngay", ""), # 23: Ngày TH (AP)
+            item.get("to_hop_thu", {}).get("sl", 0),    # 24: SL TH (AQ)
+            item.get("to_hop_thu", {}).get("kl", 0.0),  # 25: KL TH (AR)
+            # 4. Nghiệm thu
+            item.get("nghiem_thu", {}).get("ngay", ""), # 26: Ngày NT (AT)
+            item.get("nghiem_thu", {}).get("sl", 0),    # 27: SL NT (AU)
+            item.get("nghiem_thu", {}).get("kl", 0.0),  # 28: KL NT (AV)
+            # 5. Bàn giao
+            item.get("ban_giao", {}).get("ngay", ""),   # 29: Ngày BG (AW)
+            item.get("ban_giao", {}).get("sl", 0),      # 30: SL BG (AX)
+            item.get("ban_giao", {}).get("kl", 0.0),    # 31: KL BG (AY)
+            item.get("ban_giao", {}).get("don_vi_nhan", ""), # 32: Đơn vị nhận (AZ)
+            item.get("ban_giao", {}).get("so_bien_ban", "")  # 33: Số biên bản (BA)
+        ]
+
+        for c_idx, val in enumerate(row_values, start=1):
+            cell = ws.cell(r_offset, c_idx)
+            cell.value = val
+            cell.font = data_font
+            cell.border = thin_border
+
+            col_cfg = columns_def[c_idx - 1]
+            cell.alignment = Alignment(horizontal=col_cfg.get("align", "left"), vertical="center")
+
+            if "format" in col_cfg and isinstance(val, (int, float)):
+                cell.number_format = col_cfg["format"]
+
+    # Thiết lập Bộ Lọc Tự Động (AutoFilter) cho toàn bộ bảng bắt đầu từ dòng tiêu đề cột 3
+    last_col_letter = get_column_letter(total_cols)
+    ws.auto_filter.ref = f"A3:{last_col_letter}{end_row}"
+
+    # Cố định tiêu đề (Freeze Panes) từ dòng 4
+    ws.freeze_panes = "A4"
+
+    # Xuất ra bộ nhớ BytesIO
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    return output

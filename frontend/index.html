@@ -195,38 +195,6 @@
                         </div>
                     </div>
 
-                    <!-- Dòng nút xuất: Excel (.xlsx) / CSV (.csv) -->
-                    <div class="pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2.5">
-                        <div class="flex items-center gap-2 text-xs text-slate-600 font-medium">
-                            <span class="font-bold text-slate-700">Phạm vi xuất:</span>
-                            <span id="export-scope-badge" class="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-800 font-mono font-semibold text-[11px]">Tất cả các sheet</span>
-                            <span class="text-slate-400 hidden md:inline">• (Có sẵn Tiêu đề & Bộ lọc)</span>
-                        </div>
-
-                        <div class="flex items-center flex-wrap gap-2">
-                            <!-- Chọn định dạng xuất: Excel hoặc CSV -->
-                            <div class="flex items-center gap-1 bg-slate-100 border border-slate-300 rounded-xl px-2 py-1">
-                                <span class="text-[11px] font-bold text-slate-600">Định dạng:</span>
-                                <select id="select-export-format" class="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer">
-                                    <option value="xlsx">📊 Excel (.xlsx)</option>
-                                    <option value="csv">📄 CSV (.csv)</option>
-                                </select>
-                            </div>
-
-                            <!-- Nút Xuất Chi Tiết Còn Thiếu -->
-                            <button id="btn-export-missing" title="Chỉ xuất các chi tiết BTP có Số Lượng Còn Thiếu > 0" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer">
-                                <i data-lucide="file-minus" class="w-3.5 h-3.5"></i>
-                                <span>Xuất Chi Tiết Còn Thiếu</span>
-                            </button>
-
-                            <!-- Nút Xuất Full Tier (Toàn Bộ) -->
-                            <button id="btn-export-full" title="Xuất toàn bộ cây phân tầng: Tất cả cấu kiện và 100% linh kiện con" class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer">
-                                <i data-lucide="layers" class="w-3.5 h-3.5"></i>
-                                <span>Xuất Full Tier (Toàn Bộ)</span>
-                            </button>
-                        </div>
-                    </div>
-
                     <!-- Chỗ Chọn Ngày Nhận Trực Quan & Mở Lịch Không Lo Toét Mắt -->
                     <div class="pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2.5">
                         <div class="flex items-center gap-2 flex-wrap">
@@ -260,23 +228,26 @@
                     </div>
                 </div>
 
-                <!-- 2. KHỐI THU GỌN (COMPACT BAR - HIỂN THỊ KHI THU HỒI NHỎ LẠI) -->
+                <!-- 2. KHỐI THU GỌN (COMPACT BAR - BẤM THAY ĐỔI DỰ ÁN & SHEET NGAY KHI THU GỌN) -->
                 <div id="filter-compact-content" class="hidden px-3 sm:px-4 py-2 bg-white flex flex-wrap items-center justify-between gap-2.5 transition-all">
                     <div class="flex items-center gap-2 flex-wrap text-xs">
-                        <!-- Tên File Dự Án -->
-                        <div class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 font-bold font-mono shadow-2xs" title="File dự án đang mở">
-                            <i data-lucide="folder" class="w-3.5 h-3.5 text-blue-600"></i>
-                            <span id="compact-project-label">...</span>
+                        <!-- Chọn File Dự Án (Bấm được ngay khi thu gọn) -->
+                        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-50 border border-blue-300 text-blue-950 font-bold shadow-2xs hover:border-blue-500 transition">
+                            <i data-lucide="folder" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0"></i>
+                            <select id="compact-select-project" class="bg-transparent font-bold text-xs text-blue-950 focus:outline-none cursor-pointer max-w-[170px] sm:max-w-[240px] truncate" title="Thay đổi dự án ngay khi thu gọn">
+                            </select>
                         </div>
 
-                        <!-- Hạng Mục Sheet -->
-                        <div class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 font-bold shadow-2xs" title="Hạng mục Sheet đang lọc">
-                            <i data-lucide="layers" class="w-3.5 h-3.5 text-indigo-600"></i>
-                            <span id="compact-sheet-label">Tất cả sheet</span>
+                        <!-- Chọn Hạng Mục Sheet (Bấm được ngay khi thu gọn) -->
+                        <div class="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-indigo-50 border border-indigo-300 text-indigo-950 font-bold shadow-2xs hover:border-indigo-500 transition">
+                            <i data-lucide="layers" class="w-3.5 h-3.5 text-indigo-600 flex-shrink-0"></i>
+                            <select id="compact-select-sheet" class="bg-transparent font-bold text-xs text-indigo-950 focus:outline-none cursor-pointer max-w-[130px] sm:max-w-[180px] truncate" title="Thay đổi hạng mục (sheet) ngay khi thu gọn">
+                                <option value="all">📂 Tất cả sheet</option>
+                            </select>
                         </div>
 
                         <!-- Nút Lịch & Ngày Đang Chọn (Bấm mở luôn cuốn lịch) -->
-                        <button id="btn-compact-calendar" type="button" class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 font-bold transition shadow-2xs cursor-pointer active:scale-95" title="Bấm để mở lịch chọn ngày">
+                        <button id="btn-compact-calendar" type="button" class="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 font-bold transition shadow-2xs cursor-pointer active:scale-95" title="Bấm để mở lịch chọn ngày">
                             <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-600"></i>
                             <span id="compact-date-label">Tất cả ngày</span>
                         </button>
@@ -318,8 +289,8 @@
 
                         <!-- Nút Mở Rộng duy nhất khi thu gọn -->
                         <button id="btn-expand-filter" type="button" 
-                            class="flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer active:scale-95"
-                            title="Mở lại đầy đủ 3 dòng tùy chọn lọc và xuất file">
+                            class="flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer active:scale-95" 
+                            title="Mở rộng bảng điều khiển bộ lọc đầy đủ">
                             <i data-lucide="chevrons-down" class="w-3.5 h-3.5"></i>
                             <span>Mở Rộng Bảng Lọc</span>
                         </button>
@@ -422,14 +393,49 @@
 
         <!-- TAB 1: TREE VIEW CẤU KIỆN & BTP -->
         <section id="tab-tree-content" class="tab-pane space-y-3.5">
-            <div class="flex items-center justify-between text-xs text-slate-500 px-1">
-                <p>Hiển thị <span id="filtered-assy-count" class="font-extrabold text-slate-900">0</span> cấu kiện phù hợp</p>
-                <div class="flex items-center gap-2">
-                    <button id="btn-expand-all" class="hover:text-slate-900 px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-medium transition shadow-2xs">
-                        [+] Mở rộng tất cả
+            <!-- Toolbar Cây Cấu Kiện & Nhóm Nút Xuất BTP -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-3 sm:p-3.5 shadow-2xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div class="flex items-center gap-3 flex-wrap">
+                    <div class="flex items-center gap-1.5 text-xs text-slate-700 font-bold">
+                        <i data-lucide="layers" class="w-4 h-4 text-blue-600"></i>
+                        <span>Hiển thị <span id="filtered-assy-count" class="text-sm font-extrabold text-blue-700">0</span> cấu kiện</span>
+                    </div>
+                    <div class="h-4 w-px bg-slate-200 hidden sm:block"></div>
+                    <div class="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                        <span>Phạm vi:</span>
+                        <span id="export-scope-badge" class="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-800 font-mono font-semibold text-[11px]">Tất cả các sheet</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <button id="btn-expand-all" type="button" class="hover:text-blue-700 hover:bg-blue-50 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 transition shadow-2xs cursor-pointer active:scale-95">
+                            [+] Mở rộng tất cả
+                        </button>
+                        <button id="btn-collapse-all" type="button" class="hover:text-blue-700 hover:bg-blue-50 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 transition shadow-2xs cursor-pointer active:scale-95">
+                            [-] Thu gọn tất cả
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cụm Xuất Dữ Liệu BTP -->
+                <div class="flex items-center flex-wrap gap-2">
+                    <!-- Chọn định dạng xuất: Excel hoặc CSV -->
+                    <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1">
+                        <span class="text-[11px] font-bold text-slate-600">Định dạng:</span>
+                        <select id="select-export-format" class="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer">
+                            <option value="xlsx">📊 Excel (.xlsx)</option>
+                            <option value="csv">📄 CSV (.csv)</option>
+                        </select>
+                    </div>
+
+                    <!-- Nút Xuất Chi Tiết Còn Thiếu -->
+                    <button id="btn-export-missing" type="button" title="Chỉ xuất các chi tiết BTP có Số Lượng Còn Thiếu > 0" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95">
+                        <i data-lucide="file-minus" class="w-3.5 h-3.5"></i>
+                        <span>Xuất Chi Tiết Còn Thiếu</span>
                     </button>
-                    <button id="btn-collapse-all" class="hover:text-slate-900 px-2.5 py-1 rounded-lg bg-white border border-slate-200 font-medium transition shadow-2xs">
-                        [-] Thu gọn tất cả
+
+                    <!-- Nút Xuất Full Tier (Toàn Bộ) -->
+                    <button id="btn-export-full" type="button" title="Xuất toàn bộ cây phân tầng: Tất cả cấu kiện và 100% linh kiện con" class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                        <span>Xuất Full Tier (Toàn Bộ)</span>
                     </button>
                 </div>
             </div>
@@ -840,9 +846,16 @@
 
                     <!-- Nút Thao Tác QLDA -->
                     <div class="flex items-center flex-wrap gap-2">
+                        <input type="file" id="excel-qlda-input" accept=".xlsx,.xlsm" class="hidden">
+                        <button id="btn-upload-qlda-excel" type="button" 
+                            class="hidden items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 active:bg-blue-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95" 
+                            title="Tải lên file Excel QLDA mới vào server">
+                            <i data-lucide="upload-cloud" class="w-3.5 h-3.5"></i>
+                            <span class="hidden sm:inline">Nạp file QLDA</span>
+                        </button>
                         <button id="btn-qlda-export-excel" type="button" 
                             class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95" 
-                            title="Xuất bảng số liệu tiến độ công đoạn ra file Excel">
+                            title="Xuất bảng số liệu tiến độ công đoạn ra file Excel chuẩn form mẫu">
                             <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
                             <span>Xuất Excel Công Đoạn (.xlsx)</span>
                         </button>
@@ -851,14 +864,39 @@
             </div>
 
             <!-- THANH BỘ LỌC ĐA NĂNG CHO QLDA -->
-            <div class="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4 shadow-xs space-y-3">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 sm:gap-3 items-center">
+            <div class="bg-white border border-slate-200 rounded-2xl p-3.5 sm:p-4 shadow-xs space-y-3">
+                <!-- Tiêu đề & Nút thao tác của Bộ Lọc -->
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="w-2 h-2 rounded-full bg-emerald-600"></span>
+                        <span class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                            <i data-lucide="filter" class="w-3.5 h-3.5 text-emerald-600"></i> Bộ Lọc & Tìm Kiếm Tiến Độ
+                        </span>
+                        <span class="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 font-medium">
+                            Hiển thị <span id="qlda-filtered-count" class="font-bold text-emerald-700">0</span> / <span id="qlda-total-count" class="font-bold text-slate-800">0</span> cấu kiện
+                        </span>
+                    </div>
+
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <!-- Nút Xóa / Đặt Lại Bộ Lọc -->
+                        <button id="btn-qlda-reset-filter" type="button" 
+                            class="hidden items-center gap-1 px-2.5 py-1 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition shadow-2xs cursor-pointer active:scale-95" 
+                            title="Xóa tất cả điều kiện lọc và hiển thị lại toàn bộ cấu kiện">
+                            <i data-lucide="rotate-ccw" class="w-3 h-3 text-rose-600"></i>
+                            <span>Đặt lại bộ lọc</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lưới Điều Khiển Bộ Lọc (2 Hàng Cân Đối, Rộng Rãi & Chuẩn Chỉnh) -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <!-- HÀNG 1: DỰ ÁN & PHẠM VI -->
                     <!-- 1. Chọn Dự Án QLDA -->
                     <div>
                         <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 truncate">
-                            <i data-lucide="folder" class="inline w-3 h-3 mr-1 text-emerald-600"></i>Dự Án QLDA (21 File)
+                            <i data-lucide="folder" class="inline w-3 h-3 mr-1 text-emerald-600"></i>Dự Án QLDA
                         </label>
-                        <select id="select-qlda-project" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs sm:text-sm text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition cursor-pointer">
+                        <select id="select-qlda-project" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition cursor-pointer">
                             <option value="">Đang nạp danh sách dự án...</option>
                         </select>
                     </div>
@@ -868,8 +906,8 @@
                         <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 truncate">
                             <i data-lucide="layers" class="inline w-3 h-3 mr-1 text-indigo-600"></i>Hạng Mục (Sheet)
                         </label>
-                        <select id="select-qlda-hangmuc" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition cursor-pointer">
-                            <option value="all">📂 Tất cả hạng mục</option>
+                        <select id="select-qlda-hangmuc" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition cursor-pointer">
+                            <option value="all">📂 Tất cả hạng mục (Sheets)</option>
                         </select>
                     </div>
 
@@ -878,18 +916,19 @@
                         <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 truncate">
                             <i data-lucide="users" class="inline w-3 h-3 mr-1 text-blue-600"></i>Tổ Phân Giao
                         </label>
-                        <select id="select-qlda-phangiao" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition cursor-pointer">
+                        <select id="select-qlda-phangiao" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition cursor-pointer">
                             <option value="all">👥 Tất cả tổ phân giao</option>
                         </select>
                     </div>
 
+                    <!-- HÀNG 2: ĐIỀU KIỆN & TÌM KIẾM -->
                     <!-- 4. Lọc Trạng Thái Công Đoạn -->
                     <div>
                         <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 truncate">
                             <i data-lucide="check-circle" class="inline w-3 h-3 mr-1 text-emerald-600"></i>Trạng Thái Công Đoạn
                         </label>
-                        <select id="select-qlda-status" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition cursor-pointer">
-                            <option value="all">Tất cả trạng thái</option>
+                        <select id="select-qlda-status" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition cursor-pointer">
+                            <option value="all">Tất cả trạng thái công đoạn</option>
                             <option value="BAN_GIAO">🟢 Đã bàn giao 100%</option>
                             <option value="NGHIEM_THU">🔵 Đã nghiệm thu (Chờ BG)</option>
                             <option value="TO_HOP_THU">🟣 Đã tổ hợp thử</option>
@@ -900,110 +939,133 @@
                         </select>
                     </div>
 
-                    <!-- 5. Tìm kiếm nhanh -->
+                    <!-- 5. Sắp Xếp Dữ Liệu -->
                     <div>
                         <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 truncate">
-                            <i data-lucide="search" class="inline w-3 h-3 mr-1 text-slate-600"></i>Tìm Cấu Kiện / Bản Vẽ
+                            <i data-lucide="arrow-up-down" class="inline w-3 h-3 mr-1 text-amber-600"></i>Sắp Xếp Hiển Thị
+                        </label>
+                        <select id="select-qlda-sort" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition cursor-pointer">
+                            <option value="incomplete_first">⚡ Ưu tiên chưa xong (Mặc định)</option>
+                            <option value="weight_desc">⚖️ Khối lượng giảm dần (Nặng nhất)</option>
+                            <option value="weight_asc">⚖️ Khối lượng tăng dần</option>
+                            <option value="code_asc">🔤 Mã cấu kiện (A → Z)</option>
+                            <option value="code_desc">🔤 Mã cấu kiện (Z → A)</option>
+                            <option value="drawing_asc">📄 Tên bản vẽ (A → Z)</option>
+                            <option value="qty_desc">🔢 Số lượng giảm dần</option>
+                            <option value="stt_asc">📋 Thứ tự file gốc</option>
+                        </select>
+                    </div>
+
+                    <!-- 6. Ô Tìm Kiếm Nhanh -->
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1 truncate">
+                            <i data-lucide="search" class="inline w-3 h-3 mr-1 text-slate-600"></i>Tìm Kiếm Nhanh Cấu Kiện
                         </label>
                         <div class="relative">
-                            <input type="text" id="input-qlda-search" placeholder="Mã CK, bản vẽ, size..." 
-                                class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-8 pr-2.5 py-1.5 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
-                            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
+                            <input type="text" id="input-qlda-search" placeholder="Mã cấu kiện, bản vẽ, quy cách..." 
+                                class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-slate-900 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5 sm:top-3"></i>
                         </div>
                     </div>
                 </div>
 
-                <!-- Dòng thao tác phụ: Nút xóa lọc & đếm kết quả -->
-                <div class="flex items-center justify-between pt-1 border-t border-slate-100 text-xs">
-                    <span class="text-slate-500 font-medium">
-                        Hiển thị <span id="qlda-filtered-count" class="font-bold text-emerald-700">0</span> / <span id="qlda-total-count" class="font-bold text-slate-800">0</span> cấu kiện
-                    </span>
-                    <button id="btn-qlda-reset-filter" type="button" class="hidden text-rose-600 hover:text-rose-800 font-semibold items-center gap-1 cursor-pointer">
-                        <i data-lucide="rotate-ccw" class="w-3 h-3"></i>
-                        <span>Đặt lại bộ lọc</span>
-                    </button>
+                <!-- Khu vực hiển thị Filter Tags đang kích hoạt -->
+                <div id="qlda-active-filter-tags" class="hidden flex-wrap items-center gap-1.5 pt-2 border-t border-slate-100 text-xs">
+                    <!-- Được render động từ JavaScript -->
                 </div>
             </div>
 
             <!-- DASHBOARD 5 CÔNG ĐOẠN (5-STAGE VISUAL STEPPER) -->
             <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5 sm:gap-3">
                 <!-- Tổng Cấu Kiện -->
-                <div class="col-span-1 bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Tổng Cấu Kiện</p>
-                    <p id="qlda-kpi-total-items" class="text-2xl font-extrabold text-slate-900 my-1">0</p>
-                    <p id="qlda-kpi-total-qty" class="text-[11px] text-slate-500 font-medium">0 chi tiết (pcs)</p>
+                <div class="col-span-1 bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between min-h-[108px]">
+                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap">Tổng Cấu Kiện</p>
+                    <p id="qlda-kpi-total-items" class="text-xl sm:text-2xl font-extrabold text-slate-900 my-1 whitespace-nowrap">0</p>
+                    <p id="qlda-kpi-total-qty" class="text-[11px] text-slate-500 font-medium whitespace-nowrap">0 chi tiết (pcs)</p>
                 </div>
 
                 <!-- Tổng Khối Lượng -->
-                <div class="col-span-1 bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
-                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide">Tổng Khối Lượng</p>
-                    <p id="qlda-kpi-total-tons" class="text-2xl font-extrabold text-blue-600 my-1">0 Tấn</p>
-                    <p id="qlda-kpi-total-weight-kg" class="text-[11px] text-slate-500 font-medium font-mono">0 kg</p>
+                <div class="col-span-1 bg-white border border-slate-200 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between min-h-[108px]">
+                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wide whitespace-nowrap">Tổng Khối Lượng</p>
+                    <p id="qlda-kpi-total-tons" class="text-xl sm:text-2xl font-extrabold text-blue-600 my-1 whitespace-nowrap flex items-baseline gap-1">
+                        <span>0</span><span class="text-sm font-bold text-blue-500">Tấn</span>
+                    </p>
+                    <p id="qlda-kpi-total-weight-kg" class="text-[11px] text-slate-500 font-medium font-mono whitespace-nowrap">0 kg</p>
                 </div>
 
                 <!-- Công đoạn 1: Gá Lắp -->
-                <div class="col-span-1 bg-blue-50/50 border border-blue-200 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
+                <div class="col-span-1 bg-blue-50/50 border border-blue-200 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between min-h-[108px]">
                     <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-bold text-blue-800 uppercase">1. Gá Lắp</span>
-                        <span id="qlda-rate-ga" class="text-xs font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">0%</span>
+                        <span class="text-[11px] font-bold text-blue-800 uppercase whitespace-nowrap">1. Gá Lắp</span>
+                        <span id="qlda-rate-ga" class="text-xs font-bold text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded whitespace-nowrap">0%</span>
                     </div>
-                    <p id="qlda-tons-ga" class="text-lg font-extrabold text-blue-900 my-1">0 Tấn</p>
+                    <p id="qlda-tons-ga" class="text-base sm:text-lg font-extrabold text-blue-900 my-1 whitespace-nowrap flex items-baseline gap-1">
+                        <span>0</span><span class="text-xs font-bold text-blue-600">Tấn</span>
+                    </p>
                     <div class="w-full bg-blue-100 rounded-full h-1.5 overflow-hidden">
                         <div id="qlda-bar-ga" class="bg-blue-600 h-1.5 rounded-full transition-all" style="width: 0%"></div>
                     </div>
-                    <p id="qlda-qty-ga" class="text-[10px] text-blue-700 mt-1">Đã gá: 0 pcs</p>
+                    <p id="qlda-qty-ga" class="text-[10px] text-blue-700 mt-1 whitespace-nowrap">Đã gá: 0 pcs</p>
                 </div>
 
                 <!-- Công đoạn 2: Hàn -->
-                <div class="col-span-1 bg-amber-50/50 border border-amber-200 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
+                <div class="col-span-1 bg-amber-50/50 border border-amber-200 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between min-h-[108px]">
                     <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-bold text-amber-800 uppercase">2. Hàn</span>
-                        <span id="qlda-rate-han" class="text-xs font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">0%</span>
+                        <span class="text-[11px] font-bold text-amber-800 uppercase whitespace-nowrap">2. Hàn</span>
+                        <span id="qlda-rate-han" class="text-xs font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded whitespace-nowrap">0%</span>
                     </div>
-                    <p id="qlda-tons-han" class="text-lg font-extrabold text-amber-900 my-1">0 Tấn</p>
+                    <p id="qlda-tons-han" class="text-base sm:text-lg font-extrabold text-amber-900 my-1 whitespace-nowrap flex items-baseline gap-1">
+                        <span>0</span><span class="text-xs font-bold text-amber-600">Tấn</span>
+                    </p>
                     <div class="w-full bg-amber-100 rounded-full h-1.5 overflow-hidden">
                         <div id="qlda-bar-han" class="bg-amber-500 h-1.5 rounded-full transition-all" style="width: 0%"></div>
                     </div>
-                    <p id="qlda-qty-han" class="text-[10px] text-amber-700 mt-1">Đã hàn: 0 pcs</p>
+                    <p id="qlda-qty-han" class="text-[10px] text-amber-700 mt-1 whitespace-nowrap">Đã hàn: 0 pcs</p>
                 </div>
 
                 <!-- Công đoạn 3: Tổ Hợp Thử -->
-                <div class="col-span-1 bg-purple-50/50 border border-purple-200 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
+                <div class="col-span-1 bg-purple-50/50 border border-purple-200 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between min-h-[108px]">
                     <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-bold text-purple-800 uppercase">3. Tổ Hợp Thử</span>
-                        <span id="qlda-rate-th" class="text-xs font-bold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded">0%</span>
+                        <span class="text-[11px] font-bold text-purple-800 uppercase whitespace-nowrap">3. TH Thử</span>
+                        <span id="qlda-rate-th" class="text-xs font-bold text-purple-700 bg-purple-100 px-1.5 py-0.5 rounded whitespace-nowrap">0%</span>
                     </div>
-                    <p id="qlda-tons-th" class="text-lg font-extrabold text-purple-900 my-1">0 Tấn</p>
+                    <p id="qlda-tons-th" class="text-base sm:text-lg font-extrabold text-purple-900 my-1 whitespace-nowrap flex items-baseline gap-1">
+                        <span>0</span><span class="text-xs font-bold text-purple-600">Tấn</span>
+                    </p>
                     <div class="w-full bg-purple-100 rounded-full h-1.5 overflow-hidden">
                         <div id="qlda-bar-th" class="bg-purple-600 h-1.5 rounded-full transition-all" style="width: 0%"></div>
                     </div>
-                    <p id="qlda-qty-th" class="text-[10px] text-purple-700 mt-1">Đã TH: 0 pcs (nếu có)</p>
+                    <p id="qlda-qty-th" class="text-[10px] text-purple-700 mt-1 whitespace-nowrap">Đã TH: 0 pcs</p>
                 </div>
 
                 <!-- Công đoạn 4: Nghiệm Thu -->
-                <div class="col-span-1 bg-teal-50/50 border border-teal-200 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
+                <div class="col-span-1 bg-teal-50/50 border border-teal-200 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between min-h-[108px]">
                     <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-bold text-teal-800 uppercase">4. Nghiệm Thu</span>
-                        <span id="qlda-rate-nt" class="text-xs font-bold text-teal-700 bg-teal-100 px-1.5 py-0.5 rounded">0%</span>
+                        <span class="text-[11px] font-bold text-teal-800 uppercase whitespace-nowrap">4. Nghiệm Thu</span>
+                        <span id="qlda-rate-nt" class="text-xs font-bold text-teal-700 bg-teal-100 px-1.5 py-0.5 rounded whitespace-nowrap">0%</span>
                     </div>
-                    <p id="qlda-tons-nt" class="text-lg font-extrabold text-teal-900 my-1">0 Tấn</p>
+                    <p id="qlda-tons-nt" class="text-base sm:text-lg font-extrabold text-teal-900 my-1 whitespace-nowrap flex items-baseline gap-1">
+                        <span>0</span><span class="text-xs font-bold text-teal-600">Tấn</span>
+                    </p>
                     <div class="w-full bg-teal-100 rounded-full h-1.5 overflow-hidden">
                         <div id="qlda-bar-nt" class="bg-teal-600 h-1.5 rounded-full transition-all" style="width: 0%"></div>
                     </div>
-                    <p id="qlda-qty-nt" class="text-[10px] text-teal-700 mt-1">Đã NT: 0 pcs</p>
+                    <p id="qlda-qty-nt" class="text-[10px] text-teal-700 mt-1 whitespace-nowrap">Đã NT: 0 pcs</p>
                 </div>
 
                 <!-- Công đoạn 5: Bàn Giao -->
-                <div class="col-span-1 bg-emerald-50/70 border border-emerald-300 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between">
+                <div class="col-span-1 bg-emerald-50/70 border border-emerald-300 rounded-2xl p-3.5 shadow-xs flex flex-col justify-between min-h-[108px]">
                     <div class="flex items-center justify-between">
-                        <span class="text-[11px] font-bold text-emerald-900 uppercase">5. Bàn Giao</span>
-                        <span id="qlda-rate-bg" class="text-xs font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200">0%</span>
+                        <span class="text-[11px] font-bold text-emerald-900 uppercase whitespace-nowrap">5. Bàn Giao</span>
+                        <span id="qlda-rate-bg" class="text-xs font-bold text-emerald-800 bg-emerald-100 px-1.5 py-0.5 rounded border border-emerald-200 whitespace-nowrap">0%</span>
                     </div>
-                    <p id="qlda-tons-bg" class="text-lg font-extrabold text-emerald-700 my-1">0 Tấn</p>
+                    <p id="qlda-tons-bg" class="text-base sm:text-lg font-extrabold text-emerald-700 my-1 whitespace-nowrap flex items-baseline gap-1">
+                        <span>0</span><span class="text-xs font-bold text-emerald-600">Tấn</span>
+                    </p>
                     <div class="w-full bg-emerald-200 rounded-full h-1.5 overflow-hidden">
                         <div id="qlda-bar-bg" class="bg-emerald-600 h-1.5 rounded-full transition-all" style="width: 0%"></div>
                     </div>
-                    <p id="qlda-qty-bg" class="text-[10px] text-emerald-800 font-semibold mt-1">Đã giao: 0 pcs</p>
+                    <p id="qlda-qty-bg" class="text-[10px] text-emerald-800 font-semibold mt-1 whitespace-nowrap">Đã giao: 0 pcs</p>
                 </div>
             </div>
 
@@ -1012,14 +1074,14 @@
                 <div class="p-3 sm:p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
                     <div class="flex items-center gap-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>
-                        <h3 class="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wide">
+                        <h3 class="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wide whitespace-nowrap">
                             Ma Trận Tiến Độ Chi Tiết Cấu Kiện Chế Tạo
                         </h3>
-                        <span class="text-[11px] text-slate-400 font-medium hidden sm:inline">• Bấm vào mã cấu kiện để xem chi tiết hành trình 5 công đoạn</span>
+                        <span class="text-[11px] text-slate-400 font-medium hidden sm:inline whitespace-nowrap">• Bấm tiêu đề cột để sắp xếp | Bấm mã CK để xem chi tiết</span>
                     </div>
 
                     <!-- Phân trang -->
-                    <div class="flex items-center gap-2 text-xs">
+                    <div class="flex items-center gap-2 text-xs whitespace-nowrap">
                         <button id="btn-qlda-prev-page" class="px-2.5 py-1 bg-white border border-slate-300 rounded-lg font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed">
                             ❮ Trước
                         </button>
@@ -1033,23 +1095,53 @@
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs border-collapse">
                         <thead>
-                            <tr class="bg-slate-100 border-b border-slate-300 text-slate-700 uppercase font-bold text-[10px] sm:text-[11px]">
-                                <th class="py-2.5 px-2 text-center w-10">STT</th>
-                                <th class="py-2.5 px-3">Số Chi Tiết (Mã CK)</th>
-                                <th class="py-2.5 px-2.5">Bản Vẽ</th>
-                                <th class="py-2.5 px-2.5">Hạng Mục</th>
-                                <th class="py-2.5 px-2 text-center">Tổ</th>
-                                <th class="py-2.5 px-2.5">Quy Cách (Size)</th>
-                                <th class="py-2.5 px-2 text-right">T'Qty</th>
-                                <th class="py-2.5 px-2 text-right">Đơn Trọng</th>
-                                <th class="py-2.5 px-2.5 text-right font-extrabold text-blue-800">Tổng KL (kg)</th>
-                                <th class="py-2.5 px-2 text-center">Trạng Thái</th>
-                                <th class="py-2.5 px-2 text-center bg-blue-50/60 text-blue-900 border-l border-blue-200">1. Gá Lắp</th>
-                                <th class="py-2.5 px-2 text-center bg-amber-50/60 text-amber-900 border-l border-amber-200">2. Hàn</th>
-                                <th class="py-2.5 px-2 text-center bg-purple-50/60 text-purple-900 border-l border-purple-200">3. TH Thử</th>
-                                <th class="py-2.5 px-2 text-center bg-teal-50/60 text-teal-900 border-l border-teal-200">4. NT (QC)</th>
-                                <th class="py-2.5 px-2 text-center bg-emerald-50/80 text-emerald-900 border-l border-emerald-300">5. Bàn Giao</th>
-                                <th class="py-2.5 px-2 text-center">Thao Tác</th>
+                            <tr class="bg-slate-100 border-b border-slate-300 text-slate-700 uppercase font-bold text-[10px] sm:text-[11px] select-none whitespace-nowrap">
+                                <th class="py-2.5 px-2 text-center w-10 cursor-pointer hover:bg-slate-200 transition whitespace-nowrap" data-qlda-sort="stt" title="Sắp xếp theo STT">
+                                    <span>STT</span> <span class="qlda-sort-indicator text-[9px] text-slate-400">↕</span>
+                                </th>
+                                <th class="py-2.5 px-3 cursor-pointer hover:bg-slate-200 transition whitespace-nowrap min-w-[120px]" data-qlda-sort="so_chi_tiet" title="Sắp xếp theo Số Chi Tiết (Mã CK)">
+                                    <span>Số Chi Tiết (Mã CK)</span> <span class="qlda-sort-indicator text-[9px] text-slate-400">↕</span>
+                                </th>
+                                <th class="py-2.5 px-2.5 cursor-pointer hover:bg-slate-200 transition whitespace-nowrap min-w-[110px]" data-qlda-sort="ten_ban_ve" title="Sắp xếp theo Bản Vẽ">
+                                    <span>Bản Vẽ</span> <span class="qlda-sort-indicator text-[9px] text-slate-400">↕</span>
+                                </th>
+                                <th class="py-2.5 px-2.5 cursor-pointer hover:bg-slate-200 transition whitespace-nowrap min-w-[120px]" data-qlda-sort="hang_muc" title="Sắp xếp theo Hạng Mục">
+                                    <span>Hạng Mục</span> <span class="qlda-sort-indicator text-[9px] text-slate-400">↕</span>
+                                </th>
+                                <th class="py-2.5 px-2 text-center cursor-pointer hover:bg-slate-200 transition whitespace-nowrap w-12" data-qlda-sort="phan_giao" title="Sắp xếp theo Tổ">
+                                    <span>Tổ</span> <span class="qlda-sort-indicator text-[9px] text-slate-400">↕</span>
+                                </th>
+                                <th class="py-2.5 px-2.5 cursor-pointer hover:bg-slate-200 transition whitespace-nowrap min-w-[120px]" data-qlda-sort="size" title="Sắp xếp theo Quy Cách">
+                                    <span>Quy Cách (Size)</span> <span class="qlda-sort-indicator text-[9px] text-slate-400">↕</span>
+                                </th>
+                                <th class="py-2.5 px-2 text-right cursor-pointer hover:bg-slate-200 transition whitespace-nowrap min-w-[60px]" data-qlda-sort="tqty" title="Sắp xếp theo T'Qty">
+                                    <span>T'Qty</span> <span class="qlda-sort-indicator text-[9px] text-slate-400">↕</span>
+                                </th>
+                                <th class="py-2.5 px-2 text-right cursor-pointer hover:bg-slate-200 transition whitespace-nowrap min-w-[75px]" data-qlda-sort="uweight" title="Sắp xếp theo Đơn Trọng">
+                                    <span>Đơn Trọng</span> <span class="qlda-sort-indicator text-[9px] text-slate-400">↕</span>
+                                </th>
+                                <th class="py-2.5 px-2.5 text-right font-extrabold text-blue-800 cursor-pointer hover:bg-blue-100 transition whitespace-nowrap min-w-[85px]" data-qlda-sort="tweight" title="Sắp xếp theo Tổng KL">
+                                    <span>Tổng KL (kg)</span> <span class="qlda-sort-indicator text-[9px] text-blue-600">↕</span>
+                                </th>
+                                <th class="py-2.5 px-2 text-center cursor-pointer hover:bg-slate-200 transition whitespace-nowrap min-w-[100px]" data-qlda-sort="status" title="Sắp xếp theo Trạng Thái">
+                                    <span>Trạng Thái</span> <span class="qlda-sort-indicator text-[9px] text-slate-400">↕</span>
+                                </th>
+                                <th class="py-2.5 px-2 text-center bg-blue-50/60 text-blue-900 border-l border-blue-200 cursor-pointer hover:bg-blue-100 transition whitespace-nowrap min-w-[85px]" data-qlda-sort="ga_lap" title="Sắp xếp theo Gá Lắp">
+                                    <span>1. Gá Lắp</span> <span class="qlda-sort-indicator text-[9px] text-blue-500">↕</span>
+                                </th>
+                                <th class="py-2.5 px-2 text-center bg-amber-50/60 text-amber-900 border-l border-amber-200 cursor-pointer hover:bg-amber-100 transition whitespace-nowrap min-w-[85px]" data-qlda-sort="han" title="Sắp xếp theo Hàn">
+                                    <span>2. Hàn</span> <span class="qlda-sort-indicator text-[9px] text-amber-500">↕</span>
+                                </th>
+                                <th class="py-2.5 px-2 text-center bg-purple-50/60 text-purple-900 border-l border-purple-200 cursor-pointer hover:bg-purple-100 transition whitespace-nowrap min-w-[85px]" data-qlda-sort="to_hop_thu" title="Sắp xếp theo TH Thử">
+                                    <span>3. TH Thử</span> <span class="qlda-sort-indicator text-[9px] text-purple-500">↕</span>
+                                </th>
+                                <th class="py-2.5 px-2 text-center bg-teal-50/60 text-teal-900 border-l border-teal-200 cursor-pointer hover:bg-teal-100 transition whitespace-nowrap min-w-[95px]" data-qlda-sort="nghiem_thu" title="Sắp xếp theo Nghiệm Thu (QC)">
+                                    <span>4. NT (QC)</span> <span class="qlda-sort-indicator text-[9px] text-teal-500">↕</span>
+                                </th>
+                                <th class="py-2.5 px-2 text-center bg-emerald-50/80 text-emerald-900 border-l border-emerald-300 cursor-pointer hover:bg-emerald-100 transition whitespace-nowrap min-w-[95px]" data-qlda-sort="ban_giao" title="Sắp xếp theo Bàn Giao">
+                                    <span>5. Bàn Giao</span> <span class="qlda-sort-indicator text-[9px] text-emerald-600">↕</span>
+                                </th>
+                                <th class="py-2.5 px-2 text-center whitespace-nowrap w-12">Thao Tác</th>
                             </tr>
                         </thead>
                         <tbody id="qlda-assemblies-tbody" class="divide-y divide-slate-200 font-medium">

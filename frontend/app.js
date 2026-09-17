@@ -43,19 +43,24 @@ let state = {
 let chartDvgBarInstance = null;
 let chartDvgDoughnutInstance = null;
 
-// Cập nhật các nhãn trên thanh bộ lọc thu gọn
+// Cập nhật các lựa chọn và nhãn trên thanh bộ lọc thu gọn
 function updateCompactFilterBadges() {
-    const pLabel = document.getElementById('compact-project-label');
-    const sLabel = document.getElementById('compact-sheet-label');
+    const pSelect = document.getElementById('compact-select-project');
+    const mainPSelect = document.getElementById('select-project');
+    const sSelect = document.getElementById('compact-select-sheet');
+    const mainSSelect = document.getElementById('select-sheet');
     const dLabel = document.getElementById('compact-date-label');
     const cSearch = document.getElementById('compact-input-search');
     const mainSearch = document.getElementById('input-search');
     
-    if (pLabel) {
-        pLabel.textContent = state.currentProject || 'Dự án';
+    if (pSelect && mainPSelect && mainPSelect.value && pSelect.value !== mainPSelect.value) {
+        pSelect.value = mainPSelect.value;
     }
-    if (sLabel) {
-        sLabel.textContent = state.selectedSheet === 'all' ? 'Tất cả sheet' : state.selectedSheet;
+    if (sSelect && sSelect.value !== state.selectedSheet) {
+        sSelect.value = state.selectedSheet || 'all';
+    }
+    if (mainSSelect && mainSSelect.value !== state.selectedSheet) {
+        mainSSelect.value = state.selectedSheet || 'all';
     }
     if (dLabel) {
         dLabel.textContent = state.selectedDate === 'all' ? 'Tất cả ngày' : `📅 Ngày ${formatDateDisplay(state.selectedDate)}`;
@@ -250,8 +255,12 @@ async function loadProjectsList(preferredFilePath = null) {
         state.projects = data.projects || [];
         
         select.innerHTML = '';
+        const compactSelectProj = document.getElementById('compact-select-project');
+        if (compactSelectProj) compactSelectProj.innerHTML = '';
+
         if (state.projects.length === 0) {
             select.innerHTML = '<option value="">Không tìm thấy file PL nào trong thư mục Data</option>';
+            if (compactSelectProj) compactSelectProj.innerHTML = '<option value="">Không có file</option>';
             return;
         }
 
@@ -265,6 +274,13 @@ async function loadProjectsList(preferredFilePath = null) {
             opt.textContent = `${p.display_name || p.project_id}${sizeStr}`;
             if (targetFile && (p.file_path === targetFile || p.project_id === targetFile)) found = true;
             select.appendChild(opt);
+
+            if (compactSelectProj) {
+                const cOpt = document.createElement('option');
+                cOpt.value = p.file_path;
+                cOpt.textContent = p.display_name || p.project_id;
+                compactSelectProj.appendChild(cOpt);
+            }
         });
 
         if (!found && state.projects.length > 0) {
@@ -273,6 +289,7 @@ async function loadProjectsList(preferredFilePath = null) {
 
         if (targetFile) {
             select.value = targetFile;
+            if (compactSelectProj) compactSelectProj.value = targetFile;
             await loadProjectData(targetFile, true);
         }
     } catch (e) {
@@ -380,19 +397,33 @@ function updateKPIs() {
     }
 }
 
-// Hiển thị danh sách dropdown chọn Sheet
+// Hiển thị danh sách dropdown chọn Sheet (Đồng bộ cả thanh Đầy đủ và thanh Thu gọn)
 function renderSheetSelector() {
     const selectSheet = document.getElementById('select-sheet');
-    if (!selectSheet || !state.projectData) return;
+    const compactSelectSheet = document.getElementById('compact-select-sheet');
+    if (!state.projectData) return;
 
-    selectSheet.innerHTML = '<option value="all">📂 Tất cả hạng mục (Sheets)</option>';
+    if (selectSheet) selectSheet.innerHTML = '<option value="all">📂 Tất cả hạng mục (Sheets)</option>';
+    if (compactSelectSheet) compactSelectSheet.innerHTML = '<option value="all">📂 Tất cả sheet</option>';
+
     const bomSheets = state.projectData.bom_sheets || [];
     bomSheets.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s;
-        opt.textContent = `Hạng mục: ${s}`;
-        selectSheet.appendChild(opt);
+        if (selectSheet) {
+            const opt = document.createElement('option');
+            opt.value = s;
+            opt.textContent = `Hạng mục: ${s}`;
+            selectSheet.appendChild(opt);
+        }
+        if (compactSelectSheet) {
+            const cOpt = document.createElement('option');
+            cOpt.value = s;
+            cOpt.textContent = `Sheet: ${s}`;
+            compactSelectSheet.appendChild(cOpt);
+        }
     });
+
+    if (selectSheet) selectSheet.value = state.selectedSheet || 'all';
+    if (compactSelectSheet) compactSelectSheet.value = state.selectedSheet || 'all';
 }
 
 // 5. Quản lý Lịch chọn ngày trực quan & Dropdown chọn ngày
@@ -2205,6 +2236,13 @@ function exportDvgSummaryExcel() {
 
     if (window.XLSX) {
         const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        ws['!autofilter'] = { ref: `A1:M${rows.length + 1}` };
+        ws['!freeze'] = { ySplit: 1 };
+        ws['!cols'] = [
+            { wch: 22 }, { wch: 18 }, { wch: 14 }, { wch: 18 }, { wch: 18 },
+            { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
+            { wch: 16 }, { wch: 16 }, { wch: 16 }
+        ];
         const wb = XLSX.utils.book_new();
         const sheetName = isGiao ? "TongHop_DonViGiao" : "TongHop_DVG";
         XLSX.utils.book_append_sheet(wb, ws, sheetName);
@@ -2390,6 +2428,8 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
 
         // Sheet 1: Bảng tổng hợp
         const ws1 = XLSX.utils.aoa_to_sheet([s1Headers, ...s1Rows]);
+        ws1['!autofilter'] = { ref: `A1:N${s1Rows.length + 1}` };
+        ws1['!freeze'] = { ySplit: 1 };
         ws1['!cols'] = [
             { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 18 }, { wch: 20 },
             { wch: 20 }, { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 18 },
@@ -2399,6 +2439,8 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
 
         // Sheet 2: Danh sách chi tiết
         const ws2 = XLSX.utils.aoa_to_sheet([s2Headers, ...s2Rows]);
+        ws2['!autofilter'] = { ref: `A1:S${s2Rows.length + 1}` };
+        ws2['!freeze'] = { ySplit: 1 };
         ws2['!cols'] = [
             { wch: 6 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 22 },
             { wch: 22 }, { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 14 },
@@ -2416,21 +2458,55 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
 
 // 11. Đăng ký sự kiện tương tác
 function setupEventListeners() {
-    // Đổi File Dự Án
+    // Đổi File Dự Án (Thanh Đầy Đủ)
     const selectProject = document.getElementById('select-project');
     if (selectProject) {
         selectProject.addEventListener('change', (e) => {
             if (e.target.value) {
+                const compactSelectProj = document.getElementById('compact-select-project');
+                if (compactSelectProj) compactSelectProj.value = e.target.value;
                 loadProjectData(e.target.value);
             }
         });
     }
 
-    // Đổi Hạng Mục (Sheet)
+    // Đổi File Dự Án (Thanh Thu Gọn - Thao tác ngay khi thu gọn)
+    const compactSelectProject = document.getElementById('compact-select-project');
+    if (compactSelectProject) {
+        compactSelectProject.addEventListener('change', (e) => {
+            if (e.target.value) {
+                const mainSelect = document.getElementById('select-project');
+                if (mainSelect) mainSelect.value = e.target.value;
+                loadProjectData(e.target.value);
+            }
+        });
+    }
+
+    // Đổi Hạng Mục (Sheet - Thanh Đầy Đủ)
     const selectSheet = document.getElementById('select-sheet');
     if (selectSheet) {
         selectSheet.addEventListener('change', (e) => {
             state.selectedSheet = e.target.value;
+            const compactSelectSheet = document.getElementById('compact-select-sheet');
+            if (compactSelectSheet) compactSelectSheet.value = e.target.value;
+            const badge = document.getElementById('export-scope-badge');
+            if (badge) {
+                badge.textContent = state.selectedSheet === 'all' 
+                    ? 'Tất cả các sheet' 
+                    : `Hạng mục: ${state.selectedSheet}`;
+            }
+            updateCompactFilterBadges();
+            applyFiltersAndRender(true);
+        });
+    }
+
+    // Đổi Hạng Mục (Sheet - Thanh Thu Gọn - Thao tác ngay khi thu gọn)
+    const compactSelectSheet = document.getElementById('compact-select-sheet');
+    if (compactSelectSheet) {
+        compactSelectSheet.addEventListener('change', (e) => {
+            state.selectedSheet = e.target.value;
+            const mainSelect = document.getElementById('select-sheet');
+            if (mainSelect) mainSelect.value = e.target.value;
             const badge = document.getElementById('export-scope-badge');
             if (badge) {
                 badge.textContent = state.selectedSheet === 'all' 
@@ -2475,6 +2551,9 @@ function setupEventListeners() {
 
         const selectSheet = document.getElementById('select-sheet');
         if (selectSheet) selectSheet.value = 'all';
+
+        const compactSelectSheet = document.getElementById('compact-select-sheet');
+        if (compactSelectSheet) compactSelectSheet.value = 'all';
 
         const selectStatus = document.getElementById('select-status');
         if (selectStatus) selectStatus.value = 'all';
@@ -2728,6 +2807,13 @@ function setupEventListeners() {
 
         if (format === 'xlsx' && window.XLSX) {
             const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+            ws['!autofilter'] = { ref: `A1:O${rows.length + 1}` };
+            ws['!freeze'] = { ySplit: 1 };
+            ws['!cols'] = [
+                { wch: 18 }, { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 20 },
+                { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 14 },
+                { wch: 14 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 28 }
+            ];
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "ChiTietBTP");
             XLSX.writeFile(wb, `${modePrefix}_${projCode}${sheetSuffix}.xlsx`);
@@ -3045,7 +3131,20 @@ const qldaState = {
     searchQuery: '',
     currentPage: 1,
     pageSize: 50,
-    isLoading: false
+    isLoading: false,
+    sortBy: 'incomplete_first', // 'incomplete_first', 'weight_desc', 'weight_asc', 'code_asc', 'code_desc', 'drawing_asc', 'qty_desc', 'stt_asc'
+    sortCol: null,
+    sortDir: 'asc'
+};
+
+const QLDA_STATUS_PRIORITY = {
+    'CHUA_LAM': 1,
+    'DANG_LAM': 2,
+    'GA_LAP': 3,
+    'HAN': 4,
+    'TO_HOP_THU': 5,
+    'NGHIEM_THU': 6,
+    'BAN_GIAO': 7
 };
 
 const _qldaDataCache = {};
@@ -3324,7 +3423,7 @@ function setKpiStage(prefix, stageData) {
     }
 }
 
-// Lọc cấu kiện theo các tiêu chí và tìm kiếm
+// Lọc và sắp xếp cấu kiện theo các tiêu chí
 function filterQldaItems() {
     const raw = qldaState.rawItems || [];
     const hm = qldaState.filterHangMuc;
@@ -3332,7 +3431,8 @@ function filterQldaItems() {
     const st = qldaState.filterStatus;
     const q = (qldaState.searchQuery || '').toLowerCase().trim();
 
-    qldaState.filteredItems = raw.filter(item => {
+    // 1. Lọc theo các tiêu chí
+    let filtered = raw.filter(item => {
         if (hm !== 'all' && item.hang_muc !== hm) return false;
         if (pg !== 'all' && item.phan_giao !== pg) return false;
         if (st !== 'all' && item.status !== st) return false;
@@ -3354,6 +3454,126 @@ function filterQldaItems() {
         return true;
     });
 
+    // 2. Sắp xếp dữ liệu (Sorting)
+    const sortCol = qldaState.sortCol;
+    const sortDir = qldaState.sortDir;
+
+    if (sortCol) {
+        // Sắp xếp khi người dùng click vào tiêu đề cột
+        filtered.sort((a, b) => {
+            let valA, valB;
+            switch (sortCol) {
+                case 'stt':
+                    valA = a.stt || 0;
+                    valB = b.stt || 0;
+                    break;
+                case 'so_chi_tiet':
+                    valA = (a.so_chi_tiet || '').toLowerCase();
+                    valB = (b.so_chi_tiet || '').toLowerCase();
+                    break;
+                case 'ten_ban_ve':
+                    valA = (a.ten_ban_ve || '').toLowerCase();
+                    valB = (b.ten_ban_ve || '').toLowerCase();
+                    break;
+                case 'hang_muc':
+                    valA = (a.hang_muc || '').toLowerCase();
+                    valB = (b.hang_muc || '').toLowerCase();
+                    break;
+                case 'phan_giao':
+                    valA = (a.phan_giao || '').toLowerCase();
+                    valB = (b.phan_giao || '').toLowerCase();
+                    break;
+                case 'size':
+                    valA = (a.size || a.profile || '').toLowerCase();
+                    valB = (b.size || b.profile || '').toLowerCase();
+                    break;
+                case 'tqty':
+                    valA = a.tqty || 0;
+                    valB = b.tqty || 0;
+                    break;
+                case 'uweight':
+                    valA = a.uweight || 0;
+                    valB = b.uweight || 0;
+                    break;
+                case 'tweight':
+                    valA = a.tweight || 0;
+                    valB = b.tweight || 0;
+                    break;
+                case 'status':
+                    valA = QLDA_STATUS_PRIORITY[a.status] || 99;
+                    valB = QLDA_STATUS_PRIORITY[b.status] || 99;
+                    break;
+                case 'ga_lap':
+                    valA = a.ga_lap?.sl || 0;
+                    valB = b.ga_lap?.sl || 0;
+                    break;
+                case 'han':
+                    valA = a.han?.sl || 0;
+                    valB = b.han?.sl || 0;
+                    break;
+                case 'to_hop_thu':
+                    valA = a.to_hop_thu?.sl || 0;
+                    valB = b.to_hop_thu?.sl || 0;
+                    break;
+                case 'nghiem_thu':
+                    valA = a.nghiem_thu?.sl || 0;
+                    valB = b.nghiem_thu?.sl || 0;
+                    break;
+                case 'ban_giao':
+                    valA = a.ban_giao?.sl || 0;
+                    valB = b.ban_giao?.sl || 0;
+                    break;
+                default:
+                    valA = a.stt || 0;
+                    valB = b.stt || 0;
+            }
+
+            if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+            if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+            return 0;
+        });
+    } else {
+        // Sắp xếp theo lựa chọn trong Dropdown Sắp Xếp
+        switch (qldaState.sortBy) {
+            case 'incomplete_first':
+            default:
+                // Ưu tiên chưa xong lên đầu (Chưa làm -> Đang làm -> Gá -> Hàn -> TH Thử -> NT -> BG)
+                // Cùng trạng thái thì ưu tiên cấu kiện nặng nhất lên trước
+                filtered.sort((a, b) => {
+                    const pA = QLDA_STATUS_PRIORITY[a.status] || 99;
+                    const pB = QLDA_STATUS_PRIORITY[b.status] || 99;
+                    if (pA !== pB) return pA - pB;
+                    return (b.tweight || 0) - (a.tweight || 0);
+                });
+                break;
+            case 'weight_desc':
+                filtered.sort((a, b) => (b.tweight || 0) - (a.tweight || 0));
+                break;
+            case 'weight_asc':
+                filtered.sort((a, b) => (a.tweight || 0) - (b.tweight || 0));
+                break;
+            case 'code_asc':
+                filtered.sort((a, b) => (a.so_chi_tiet || '').localeCompare(b.so_chi_tiet || ''));
+                break;
+            case 'code_desc':
+                filtered.sort((a, b) => (b.so_chi_tiet || '').localeCompare(a.so_chi_tiet || ''));
+                break;
+            case 'drawing_asc':
+                filtered.sort((a, b) => (a.ten_ban_ve || '').localeCompare(b.ten_ban_ve || ''));
+                break;
+            case 'qty_desc':
+                filtered.sort((a, b) => (b.tqty || 0) - (a.tqty || 0));
+                break;
+            case 'stt_asc':
+                filtered.sort((a, b) => (a.stt || 0) - (b.stt || 0));
+                break;
+        }
+    }
+
+    qldaState.filteredItems = filtered;
+    qldaState.currentPage = 1;
+
+    qldaState.filteredItems = filtered;
     qldaState.currentPage = 1;
 
     const elFiltered = document.getElementById('qlda-filtered-count');
@@ -3361,25 +3581,126 @@ function filterQldaItems() {
     const elTotal = document.getElementById('qlda-total-count');
     if (elTotal) elTotal.textContent = raw.length.toLocaleString();
 
+    const isFiltering = (hm !== 'all' || pg !== 'all' || st !== 'all' || q !== '' || qldaState.sortBy !== 'incomplete_first' || qldaState.sortCol !== null);
     const btnReset = document.getElementById('btn-qlda-reset-filter');
     if (btnReset) {
-        const isFiltering = (hm !== 'all' || pg !== 'all' || st !== 'all' || q !== '');
         if (isFiltering) {
             btnReset.classList.remove('hidden');
-            btnReset.classList.add('flex');
+            btnReset.classList.add('inline-flex');
         } else {
             btnReset.classList.add('hidden');
-            btnReset.classList.remove('flex');
+            btnReset.classList.remove('inline-flex');
         }
     }
 
+    renderQldaActiveFilterTags();
     renderQldaTable();
 }
 
-// Render bảng ma trận tiến độ cấu kiện
+// Render các thẻ lọc (Filter Tags) đang kích hoạt
+function renderQldaActiveFilterTags() {
+    const container = document.getElementById('qlda-active-filter-tags');
+    if (!container) return;
+
+    const hm = qldaState.filterHangMuc;
+    const pg = qldaState.filterPhanGiao;
+    const st = qldaState.filterStatus;
+    const q = (qldaState.searchQuery || '').trim();
+
+    const statusNames = {
+        'BAN_GIAO': 'Đã bàn giao 100%',
+        'NGHIEM_THU': 'Đã nghiệm thu',
+        'TO_HOP_THU': 'Đã tổ hợp thử',
+        'HAN': 'Đã hàn',
+        'GA_LAP': 'Đã gá lắp',
+        'DANG_LAM': 'Đang làm dở dang',
+        'CHUA_LAM': 'Chưa bắt đầu'
+    };
+
+    let tags = [];
+    if (hm !== 'all') {
+        tags.push({ key: 'hm', label: `Hạng mục: ${hm}`, action: () => {
+            qldaState.filterHangMuc = 'all';
+            const sel = document.getElementById('select-qlda-hangmuc');
+            if (sel) sel.value = 'all';
+            filterQldaItems();
+        }});
+    }
+    if (pg !== 'all') {
+        tags.push({ key: 'pg', label: `Tổ: ${pg}`, action: () => {
+            qldaState.filterPhanGiao = 'all';
+            const sel = document.getElementById('select-qlda-phangiao');
+            if (sel) sel.value = 'all';
+            filterQldaItems();
+        }});
+    }
+    if (st !== 'all') {
+        tags.push({ key: 'st', label: `Trạng thái: ${statusNames[st] || st}`, action: () => {
+            qldaState.filterStatus = 'all';
+            const sel = document.getElementById('select-qlda-status');
+            if (sel) sel.value = 'all';
+            filterQldaItems();
+        }});
+    }
+    if (q !== '') {
+        tags.push({ key: 'q', label: `Tìm kiếm: "${q}"`, action: () => {
+            qldaState.searchQuery = '';
+            const inp = document.getElementById('input-qlda-search');
+            if (inp) inp.value = '';
+            filterQldaItems();
+        }});
+    }
+
+    if (tags.length === 0) {
+        container.classList.add('hidden');
+        container.classList.remove('flex');
+        container.innerHTML = '';
+        return;
+    }
+
+    container.classList.remove('hidden');
+    container.classList.add('flex');
+    container.innerHTML = `
+        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Đang lọc:</span>
+        ${tags.map((t, idx) => `
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-medium shadow-2xs">
+                <span>${escapeHtml(t.label)}</span>
+                <button type="button" class="btn-clear-qlda-tag text-emerald-600 hover:text-rose-700 font-bold ml-0.5 cursor-pointer" data-idx="${idx}" title="Bỏ lọc">✕</button>
+            </span>
+        `).join('')}
+    `;
+
+    container.querySelectorAll('.btn-clear-qlda-tag').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.idx, 10);
+            if (tags[idx] && typeof tags[idx].action === 'function') {
+                tags[idx].action();
+            }
+        });
+    });
+}
+
+// Render bảng ma trận tiến độ cấu kiện (Tối ưu căn lề thẳng hàng không bị lệch dòng)
 function renderQldaTable() {
     const tbody = document.getElementById('qlda-assemblies-tbody');
     if (!tbody) return;
+
+    // Cập nhật mũi tên chỉ hướng sắp xếp trên tiêu đề cột
+    document.querySelectorAll('th[data-qlda-sort]').forEach(th => {
+        const col = th.dataset.qldaSort;
+        const icon = th.querySelector('.qlda-sort-indicator');
+        if (icon) {
+            if (qldaState.sortCol === col) {
+                icon.textContent = qldaState.sortDir === 'asc' ? '▲' : '▼';
+                icon.className = 'qlda-sort-indicator text-[10px] text-blue-600 font-bold ml-0.5';
+                th.classList.add('bg-blue-50');
+            } else {
+                icon.textContent = '↕';
+                icon.className = 'qlda-sort-indicator text-[9px] text-slate-400 opacity-60 ml-0.5';
+                th.classList.remove('bg-blue-50');
+            }
+        }
+    });
 
     const items = qldaState.filteredItems || [];
     if (items.length === 0) {
@@ -3414,7 +3735,7 @@ function renderQldaTable() {
 
         const thHasReq = item.to_hop_thu.sl > 0 || item.to_hop_thu.kl > 0;
         const thDone = thHasReq && item.to_hop_thu.sl >= item.tqty;
-        const thCell = thHasReq ? formatStageCell(item.to_hop_thu, item.tqty, 'purple', thDone) : '<span class="text-slate-300">-</span>';
+        const thCell = formatStageCell(item.to_hop_thu, item.tqty, 'purple', thDone);
 
         const ntDone = item.nghiem_thu.sl >= item.tqty && item.tqty > 0;
         const ntCell = formatStageCell(item.nghiem_thu, item.tqty, 'teal', ntDone);
@@ -3423,33 +3744,56 @@ function renderQldaTable() {
         const bgCell = formatHandoverCell(item.ban_giao, item.tqty, bgDone);
 
         html += `
-            <tr class="hover:bg-slate-50 transition border-b border-slate-100 text-slate-800">
-                <td class="py-2.5 px-2 text-center text-slate-400 font-mono text-[11px]">${stt}</td>
-                <td class="py-2.5 px-3">
-                    <button type="button" class="btn-qlda-item-detail text-left font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer flex items-center gap-1.5" data-idx="${item.stt}">
-                        <span>${escapeHtml(item.so_chi_tiet)}</span>
-                        <i data-lucide="external-link" class="w-3 h-3 text-blue-400"></i>
-                    </button>
+            <tr class="hover:bg-slate-50/80 transition border-b border-slate-100 text-slate-800">
+                <td class="py-2 px-2 text-center text-slate-400 font-mono text-[11px] align-top">
+                    <div class="h-[18px] flex items-center justify-center">${stt}</div>
                 </td>
-                <td class="py-2.5 px-2.5 text-slate-700 font-mono text-[11px] truncate max-w-[120px]" title="${escapeHtml(item.ten_ban_ve)}">${escapeHtml(item.ten_ban_ve || '-')}</td>
-                <td class="py-2.5 px-2.5 text-slate-600 truncate max-w-[110px]" title="${escapeHtml(item.hang_muc)}">${escapeHtml(item.hang_muc)}</td>
-                <td class="py-2.5 px-2 text-center">
-                    <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[10px]">${escapeHtml(item.phan_giao)}</span>
+                <td class="py-2 px-3 align-top min-w-[120px]">
+                    <div class="h-[18px] flex items-center">
+                        <button type="button" class="btn-qlda-item-detail text-left font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer flex items-center gap-1.5 truncate max-w-[150px]" data-idx="${item.stt}">
+                            <span class="truncate">${escapeHtml(item.so_chi_tiet)}</span>
+                            <i data-lucide="external-link" class="w-3 h-3 text-blue-400 flex-shrink-0"></i>
+                        </button>
+                    </div>
                 </td>
-                <td class="py-2.5 px-2.5 font-mono text-[11px] text-slate-700 truncate max-w-[130px]" title="${escapeHtml(item.size)}">${escapeHtml(item.size || '-')}</td>
-                <td class="py-2.5 px-2 text-right font-bold text-slate-900">${item.tqty}</td>
-                <td class="py-2.5 px-2 text-right text-slate-500 font-mono">${item.uweight ? item.uweight.toLocaleString() : '-'}</td>
-                <td class="py-2.5 px-2.5 text-right font-extrabold text-blue-900 font-mono">${(item.tweight || 0).toLocaleString()}</td>
-                <td class="py-2.5 px-2 text-center">${statusBadge}</td>
-                <td class="py-2 px-2 text-center bg-blue-50/30 border-l border-blue-100">${gaCell}</td>
-                <td class="py-2 px-2 text-center bg-amber-50/30 border-l border-amber-100">${hanCell}</td>
-                <td class="py-2 px-2 text-center bg-purple-50/30 border-l border-purple-100">${thCell}</td>
-                <td class="py-2 px-2 text-center bg-teal-50/30 border-l border-teal-100">${ntCell}</td>
-                <td class="py-2 px-2 text-center bg-emerald-50/40 border-l border-emerald-200">${bgCell}</td>
-                <td class="py-2.5 px-2 text-center">
-                    <button type="button" class="btn-qlda-item-detail p-1 rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer" title="Xem chi tiết hành trình 5 công đoạn" data-idx="${item.stt}">
-                        <i data-lucide="eye" class="w-3.5 h-3.5"></i>
-                    </button>
+                <td class="py-2 px-2.5 text-slate-700 font-mono text-[11px] align-top min-w-[110px]" title="${escapeHtml(item.ten_ban_ve)}">
+                    <div class="h-[18px] flex items-center truncate max-w-[120px]">${escapeHtml(item.ten_ban_ve || '-')}</div>
+                </td>
+                <td class="py-2 px-2.5 text-slate-600 text-[11px] align-top min-w-[110px]" title="${escapeHtml(item.hang_muc)}">
+                    <div class="h-[18px] flex items-center truncate max-w-[120px]">${escapeHtml(item.hang_muc)}</div>
+                </td>
+                <td class="py-2 px-2 text-center align-top w-12">
+                    <div class="h-[18px] flex items-center justify-center">
+                        <span class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[10px] whitespace-nowrap">${escapeHtml(item.phan_giao)}</span>
+                    </div>
+                </td>
+                <td class="py-2 px-2.5 align-top min-w-[120px] max-w-[140px]">
+                    <div class="h-[18px] flex items-center font-bold text-slate-800 text-[11px] truncate" title="${escapeHtml(item.size || item.dang_sp || '')}">${escapeHtml(item.size || item.dang_sp || '-')}</div>
+                    ${item.profile ? `<div class="h-[16px] flex items-center text-[10px] text-slate-500 font-mono truncate" title="${escapeHtml(item.profile)}">${escapeHtml(item.profile)}</div>` : ''}
+                </td>
+                <td class="py-2 px-2 text-right font-bold text-slate-900 align-top min-w-[60px]">
+                    <div class="h-[18px] flex items-center justify-end font-mono">${item.tqty}</div>
+                </td>
+                <td class="py-2 px-2 text-right text-slate-500 font-mono text-[11px] align-top min-w-[75px]">
+                    <div class="h-[18px] flex items-center justify-end">${item.uweight ? item.uweight.toLocaleString() : '-'}</div>
+                </td>
+                <td class="py-2 px-2.5 text-right font-extrabold text-blue-900 font-mono whitespace-nowrap align-top min-w-[85px]">
+                    <div class="h-[18px] flex items-center justify-end">${(item.tweight || 0).toLocaleString()}</div>
+                </td>
+                <td class="py-2 px-2 text-center whitespace-nowrap align-top min-w-[100px]">
+                    <div class="h-[18px] flex items-center justify-center">${statusBadge}</div>
+                </td>
+                <td class="py-2 px-2 text-center bg-blue-50/20 border-l border-blue-100 align-top min-w-[85px]">${gaCell}</td>
+                <td class="py-2 px-2 text-center bg-amber-50/20 border-l border-amber-100 align-top min-w-[85px]">${hanCell}</td>
+                <td class="py-2 px-2 text-center bg-purple-50/20 border-l border-purple-100 align-top min-w-[85px]">${thCell}</td>
+                <td class="py-2 px-2 text-center bg-teal-50/20 border-l border-teal-100 align-top min-w-[95px]">${ntCell}</td>
+                <td class="py-2 px-2 text-center bg-emerald-50/30 border-l border-emerald-200 align-top min-w-[95px]">${bgCell}</td>
+                <td class="py-2 px-2 text-center align-top w-12">
+                    <div class="h-[18px] flex items-center justify-center">
+                        <button type="button" class="btn-qlda-item-detail p-1 rounded-lg hover:bg-slate-200 text-slate-500 hover:text-slate-800 transition cursor-pointer" title="Xem chi tiết hành trình 5 công đoạn" data-idx="${item.stt}">
+                            <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
         `;
@@ -3471,28 +3815,36 @@ function renderQldaTable() {
 }
 
 function getStatusBadgeHtml(status) {
+    const baseClass = "px-2.5 py-0.5 rounded-full text-[10px] font-bold whitespace-nowrap inline-flex items-center gap-1 shadow-2xs";
     switch (status) {
         case 'BAN_GIAO':
-            return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">🟢 Bàn giao</span>';
+            return `<span class="${baseClass} bg-emerald-100 text-emerald-800 border border-emerald-300">🟢 Bàn giao</span>`;
         case 'NGHIEM_THU':
-            return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800 border border-teal-300">🔵 Nghiệm thu</span>';
+            return `<span class="${baseClass} bg-teal-100 text-teal-800 border border-teal-300">🔵 Nghiệm thu</span>`;
         case 'TO_HOP_THU':
-            return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">🟣 TH Thử</span>';
+            return `<span class="${baseClass} bg-purple-100 text-purple-800 border border-purple-300">🟣 TH Thử</span>`;
         case 'HAN':
-            return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">🟡 Đã hàn</span>';
+            return `<span class="${baseClass} bg-amber-100 text-amber-800 border border-amber-300">🟡 Đã hàn</span>`;
         case 'GA_LAP':
-            return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-300">🟠 Đã gá</span>';
+            return `<span class="${baseClass} bg-blue-100 text-blue-800 border border-blue-300">🟠 Đã gá</span>`;
         case 'DANG_LAM':
-            return '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-800 border border-indigo-300">⏳ Đang làm</span>';
+            return `<span class="${baseClass} bg-indigo-100 text-indigo-800 border border-indigo-300">⏳ Đang làm</span>`;
         case 'CHUA_LAM':
         default:
-            return '<span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 border border-slate-200">⚪ Chưa làm</span>';
+            return `<span class="${baseClass} bg-slate-100 text-slate-500 border border-slate-200">⚪ Chưa làm</span>`;
     }
 }
 
+// Format ô công đoạn chuẩn chỉnh: 3 tầng độ cao cố định (18px - 16px - 15px) tuyệt đối không lệch hàng
 function formatStageCell(stageObj, tqty, colorTheme, isDone) {
     if (!stageObj || (stageObj.sl === 0 && !stageObj.ngay)) {
-        return '<span class="text-slate-300">-</span>';
+        return `
+            <div class="flex flex-col items-center justify-start select-none whitespace-nowrap min-w-[70px]">
+                <span class="h-[18px] flex items-center justify-center text-slate-300 font-mono text-[11px]">-</span>
+                <span class="h-[16px] flex items-center justify-center text-transparent font-mono text-[10px] select-none">-</span>
+                <span class="h-[15px] flex items-center justify-center text-transparent font-mono text-[9px] select-none">-</span>
+            </div>
+        `;
     }
     const sl = stageObj.sl || 0;
     const kl = stageObj.kl || 0;
@@ -3500,30 +3852,37 @@ function formatStageCell(stageObj, tqty, colorTheme, isDone) {
     const textClass = isDone ? 'text-emerald-700 font-bold' : (sl > 0 ? 'text-amber-700 font-bold' : 'text-slate-500');
 
     return `
-        <div class="text-[11px] leading-tight">
-            <span class="${textClass}">${sl}/${tqty}</span>
-            <span class="text-[10px] text-slate-400 block">${kl.toLocaleString()}kg</span>
-            ${dateStr ? `<span class="text-[9px] text-slate-500 font-mono block">${dateStr}</span>` : ''}
+        <div class="flex flex-col items-center justify-start whitespace-nowrap min-w-[70px]">
+            <span class="h-[18px] flex items-center justify-center ${textClass} font-bold text-[11px]">${sl}/${tqty}</span>
+            <span class="h-[16px] flex items-center justify-center text-[10px] text-slate-500 font-mono">${kl > 0 ? `${kl.toLocaleString()}kg` : '-'}</span>
+            <span class="h-[15px] flex items-center justify-center text-[9px] text-slate-400 font-mono">${dateStr || '-'}</span>
         </div>
     `;
 }
 
+// Format ô bàn giao chuẩn chỉnh: 3 dòng đầu khớp hoàn toàn các công đoạn khác, thông tin đơn vị & số BB hiển thị gọn bên dưới
 function formatHandoverCell(bgObj, tqty, isDone) {
     if (!bgObj || (bgObj.sl === 0 && !bgObj.ngay)) {
-        return '<span class="text-slate-300">-</span>';
+        return `
+            <div class="flex flex-col items-center justify-start select-none whitespace-nowrap min-w-[80px]">
+                <span class="h-[18px] flex items-center justify-center text-slate-300 font-mono text-[11px]">-</span>
+                <span class="h-[16px] flex items-center justify-center text-transparent font-mono text-[10px] select-none">-</span>
+                <span class="h-[15px] flex items-center justify-center text-transparent font-mono text-[9px] select-none">-</span>
+            </div>
+        `;
     }
     const sl = bgObj.sl || 0;
     const kl = bgObj.kl || 0;
     const dateStr = bgObj.ngay || '';
     const textClass = isDone ? 'text-emerald-700 font-extrabold' : 'text-amber-700 font-bold';
-    const donVi = bgObj.don_vi_nhan ? `<span class="text-[9px] text-emerald-800 font-bold block truncate max-w-[80px]" title="${escapeHtml(bgObj.don_vi_nhan)}">${escapeHtml(bgObj.don_vi_nhan)}</span>` : '';
-    const soBB = bgObj.so_bien_ban ? `<span class="text-[9px] text-slate-500 font-mono block truncate max-w-[80px]" title="${escapeHtml(bgObj.so_bien_ban)}">BB:${escapeHtml(bgObj.so_bien_ban)}</span>` : '';
+    const donVi = bgObj.don_vi_nhan ? `<div class="text-[9px] text-emerald-800 font-semibold truncate max-w-[95px] mx-auto pt-0.5 border-t border-emerald-200/80 leading-tight" title="${escapeHtml(bgObj.don_vi_nhan)}">${escapeHtml(bgObj.don_vi_nhan)}</div>` : '';
+    const soBB = bgObj.so_bien_ban ? `<div class="text-[9px] text-slate-500 font-mono truncate max-w-[95px] mx-auto leading-tight" title="${escapeHtml(bgObj.so_bien_ban)}">BB:${escapeHtml(bgObj.so_bien_ban)}</div>` : '';
 
     return `
-        <div class="text-[11px] leading-tight">
-            <span class="${textClass}">${sl}/${tqty}</span>
-            <span class="text-[10px] text-slate-400 block">${kl.toLocaleString()}kg</span>
-            ${dateStr ? `<span class="text-[9px] text-slate-500 font-mono block">${dateStr}</span>` : ''}
+        <div class="flex flex-col items-center justify-start whitespace-nowrap min-w-[80px]">
+            <span class="h-[18px] flex items-center justify-center ${textClass} font-bold text-[11px]">${sl}/${tqty}</span>
+            <span class="h-[16px] flex items-center justify-center text-[10px] text-slate-500 font-mono">${kl > 0 ? `${kl.toLocaleString()}kg` : '-'}</span>
+            <span class="h-[15px] flex items-center justify-center text-[9px] text-slate-400 font-mono">${dateStr || '-'}</span>
             ${donVi}
             ${soBB}
         </div>
@@ -3688,13 +4047,8 @@ function closeQldaAssemblyDetail() {
     }
 }
 
-// Xuất file Excel tiến độ công đoạn
-function exportQldaToExcel() {
-    if (typeof XLSX === 'undefined') {
-        alert("Thư viện SheetJS chưa sẵn sàng, vui lòng thử lại sau vài giây.");
-        return;
-    }
-
+// Xuất file Excel tiến độ công đoạn đúng chuẩn form mẫu của người dùng
+async function exportQldaToExcel() {
     const items = qldaState.filteredItems || [];
     if (items.length === 0) {
         alert("Không có cấu kiện nào phù hợp để xuất Excel.");
@@ -3710,50 +4064,182 @@ function exportQldaToExcel() {
     }
 
     try {
-        const dataRows = items.map((it, idx) => ({
-            "STT": idx + 1,
-            "Số Dự Án": it.du_an || qldaState.currentProjectId,
-            "Hạng Mục": it.hang_muc,
-            "MH": it.mh,
-            "Ngày Giao WO": it.ngay_giao_wo,
-            "Dạng SP": it.dang_sp,
-            "Phân Loại": it.phan_loai,
-            "Phân Giao": it.phan_giao,
-            "Tên Bản Vẽ": it.ten_ban_ve,
-            "Số Chi Tiết (Mã CK)": it.so_chi_tiet,
-            "Size": it.size,
-            "T'Qty": it.tqty,
-            "U.Weight (kg)": it.uweight,
-            "T.Weight (kg)": it.tweight,
-            "Profile": it.profile,
-            "ID": it.id,
-            "Ghi Chú": it.note,
-            "Trạng Thái Hiện Tại": it.status,
-            "Ngày Gá": it.ga_lap?.ngay || "",
-            "SL Gá": it.ga_lap?.sl || 0,
-            "KL Gá (kg)": it.ga_lap?.kl || 0,
-            "Ngày Hàn": it.han?.ngay || "",
-            "SL Hàn": it.han?.sl || 0,
-            "KL Hàn (kg)": it.han?.kl || 0,
-            "Ngày TH Thử": it.to_hop_thu?.ngay || "",
-            "SL TH Thử": it.to_hop_thu?.sl || 0,
-            "KL TH Thử (kg)": it.to_hop_thu?.kl || 0,
-            "Ngày NT": it.nghiem_thu?.ngay || "",
-            "SL NT": it.nghiem_thu?.sl || 0,
-            "KL NT (kg)": it.nghiem_thu?.kl || 0,
-            "Ngày Bàn Giao": it.ban_giao?.ngay || "",
-            "SL Bàn Giao": it.ban_giao?.sl || 0,
-            "KL Bàn Giao (kg)": it.ban_giao?.kl || 0,
-            "Đơn Vị Nhận": it.ban_giao?.don_vi_nhan || "",
-            "Số Biên Bản": it.ban_giao?.so_bien_ban || ""
-        }));
+        const projId = qldaState.currentProjectId || "QLDA";
 
-        const ws = XLSX.utils.json_to_sheet(dataRows);
+        // 1. Nếu đang chạy trên Server Python: Gọi endpoint xuất file chuẩn openpyxl
+        if (!state.isStaticMode && qldaState.currentProjectId) {
+            try {
+                const params = new URLSearchParams({
+                    project_id: qldaState.currentProjectId,
+                    hang_muc: qldaState.filterHangMuc,
+                    phan_giao: qldaState.filterPhanGiao,
+                    status: qldaState.filterStatus,
+                    q: qldaState.searchQuery
+                });
+                const res = await fetch(`/api/qlda/export-excel?${params.toString()}`);
+                if (res.ok) {
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    const disposition = res.headers.get('Content-Disposition') || '';
+                    let filename = `QLDA_${projId}_TienDoCongDoan.xlsx`;
+                    if (disposition.includes('filename*=')) {
+                        filename = decodeURIComponent(disposition.split("filename*=UTF-8''")[1] || filename);
+                    } else if (disposition.includes('filename=')) {
+                        filename = disposition.split('filename=')[1].replace(/"/g, '');
+                    }
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                    return;
+                }
+            } catch (errServer) {
+                console.warn("Không tải được file từ server, chuyển sang xuất client-side SheetJS:", errServer);
+            }
+        }
+
+        // 2. Fallback: Xuất bằng SheetJS trên Client-side (Đồng bộ cho bản Online GitHub Pages)
+        if (typeof XLSX === 'undefined') {
+            alert("Thư viện SheetJS chưa sẵn sàng, vui lòng thử lại sau vài giây.");
+            return;
+        }
+        
+        // Hàng 1: Tiêu đề gộp nhóm phân theo công đoạn (chuẩn xác 33 cột theo form mẫu)
+        const row1 = [
+            `DỰ ÁN:${projId}`, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", // 1..16: Thông tin cấu kiện
+            "Gá lắp", "", "",         // 17..19: Gá lắp
+            "Hàn", "", "",            // 20..22: Hàn
+            "Tổ hợp thử", "", "",     // 23..25: Tổ hợp thử
+            "Nghiệm thu", "", "",     // 26..28: Nghiệm thu
+            "Bàn giao", "", "", "", "" // 29..33: Bàn giao
+        ];
+
+        // Hàng 2: Hàng Tổng Hợp Subtotal / Summary (theo form mẫu gốc)
+        let totalQty = 0;
+        let totalWeight = 0;
+        let totalGaQty = 0, totalGaWeight = 0;
+        let totalHanQty = 0, totalHanWeight = 0;
+        let totalThQty = 0, totalThWeight = 0;
+        let totalNtQty = 0, totalNtWeight = 0;
+        let totalBgQty = 0, totalBgWeight = 0;
+
+        items.forEach(it => {
+            totalQty += (it.tqty || 0);
+            totalWeight += (it.tweight || 0);
+            totalGaQty += (it.ga_lap?.sl || 0);
+            totalGaWeight += (it.ga_lap?.kl || 0);
+            totalHanQty += (it.han?.sl || 0);
+            totalHanWeight += (it.han?.kl || 0);
+            totalThQty += (it.to_hop_thu?.sl || 0);
+            totalThWeight += (it.to_hop_thu?.kl || 0);
+            totalNtQty += (it.nghiem_thu?.sl || 0);
+            totalNtWeight += (it.nghiem_thu?.kl || 0);
+            totalBgQty += (it.ban_giao?.sl || 0);
+            totalBgWeight += (it.ban_giao?.kl || 0);
+        });
+
+        const row2 = new Array(33).fill("");
+        row2[0] = "Information ID";
+        row2[7] = "Information Item";
+        row2[10] = totalQty;
+        row2[12] = Math.round(totalWeight * 10) / 10;
+        row2[15] = new Date().toLocaleDateString('vi-VN');
+        row2[17] = totalGaQty;
+        row2[18] = Math.round(totalGaWeight * 10) / 10;
+        row2[20] = totalHanQty;
+        row2[21] = Math.round(totalHanWeight * 10) / 10;
+        row2[23] = totalThQty;
+        row2[24] = Math.round(totalThWeight * 10) / 10;
+        row2[26] = totalNtQty;
+        row2[27] = Math.round(totalNtWeight * 10) / 10;
+        row2[29] = totalBgQty;
+        row2[30] = Math.round(totalBgWeight * 10) / 10;
+        row2[32] = `${projId}-`;
+
+        // Hàng 3: Tên cột chuẩn mẫu theo file gốc (đã loại bỏ A, C, D, T..AI, AS, BB..end - đúng 33 cột)
+        const row3 = [
+            "Số Dự Án", "Hạng mục", "MH", "Ngày giao hàng(WO)", "Dạng sản phẩm", "Phân loại", "Phân giao",
+            "Tên bản vẽ", "Số chi tiết", "Size", "T'Qty", "U.Weight", "T.Weight", "Profile", "ID", "Note",
+            "Ngày Gá", "SL Gá", "KL Gá",
+            "Ngày Hàn", "SL Hàn", "KL Hàn",
+            "Ngày TH", "SL TH", "KL TH",
+            "Ngày NT", "SL NT", "KL NT",
+            "Ngày BG", "SL BG", "KL BG", "Đơn vị nhận", "Số biên bản"
+        ];
+
+        // Hàng 4+: Dữ liệu cấu kiện đúng 33 cột
+        const dataRows = items.map(it => [
+            it.du_an || projId,
+            it.hang_muc || "",
+            it.mh || "",
+            it.ngay_giao_wo || "",
+            it.dang_sp || "",
+            it.phan_loai || "",
+            it.phan_giao || "",
+            it.ten_ban_ve || "",
+            it.so_chi_tiet || "",
+            it.size || "",
+            it.tqty || 0,
+            it.uweight || 0,
+            it.tweight || 0,
+            it.profile || "",
+            it.id || "",
+            it.note || "",
+            it.ga_lap?.ngay || "",
+            it.ga_lap?.sl || 0,
+            it.ga_lap?.kl || 0,
+            it.han?.ngay || "",
+            it.han?.sl || 0,
+            it.han?.kl || 0,
+            it.to_hop_thu?.ngay || "",
+            it.to_hop_thu?.sl || 0,
+            it.to_hop_thu?.kl || 0,
+            it.nghiem_thu?.ngay || "",
+            it.nghiem_thu?.sl || 0,
+            it.nghiem_thu?.kl || 0,
+            it.ban_giao?.ngay || "",
+            it.ban_giao?.sl || 0,
+            it.ban_giao?.kl || 0,
+            it.ban_giao?.don_vi_nhan || "",
+            it.ban_giao?.so_bien_ban || ""
+        ]);
+
+        const ws = XLSX.utils.aoa_to_sheet([row1, row2, row3, ...dataRows]);
+
+        // Cấu hình gộp ô cho dòng 1
+        ws['!merges'] = [
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 15 } },  // A1:P1 - Thông tin cấu kiện
+            { s: { r: 0, c: 16 }, e: { r: 0, c: 18 } }, // Q1:S1 - Gá lắp
+            { s: { r: 0, c: 19 }, e: { r: 0, c: 21 } }, // T1:V1 - Hàn
+            { s: { r: 0, c: 22 }, e: { r: 0, c: 24 } }, // W1:Y1 - Tổ hợp thử
+            { s: { r: 0, c: 25 }, e: { r: 0, c: 27 } }, // Z1:AB1 - Nghiệm thu
+            { s: { r: 0, c: 28 }, e: { r: 0, c: 32 } }  // AC1:AG1 - Bàn giao
+        ];
+
+        const endRow = 3 + dataRows.length;
+        ws['!autofilter'] = { ref: `A3:AG${endRow}` };
+        ws['!freeze'] = { ySplit: 3 };
+
+        // Độ rộng 33 cột chuẩn form
+        ws['!cols'] = [
+            { wch: 12 }, { wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
+            { wch: 12 }, { wch: 24 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 12 },
+            { wch: 14 }, { wch: 22 }, { wch: 10 }, { wch: 16 },
+            { wch: 14 }, { wch: 10 }, { wch: 12 },
+            { wch: 14 }, { wch: 10 }, { wch: 12 },
+            { wch: 14 }, { wch: 10 }, { wch: 12 },
+            { wch: 14 }, { wch: 10 }, { wch: 12 },
+            { wch: 14 }, { wch: 10 }, { wch: 12 }, { wch: 18 }, { wch: 18 }
+        ];
+
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "TienDoCongDoan");
+        XLSX.utils.book_append_sheet(wb, ws, "Progress");
 
         const hmSuffix = qldaState.filterHangMuc !== 'all' ? `_${qldaState.filterHangMuc}` : '';
-        const fileName = `QLDA_${qldaState.currentProjectId}${hmSuffix}_TienDoCongDoan.xlsx`;
+        const fileName = `QLDA_${projId}${hmSuffix}_TienDoCongDoan.xlsx`;
         XLSX.writeFile(wb, fileName);
     } catch (err) {
         console.error("Lỗi xuất Excel QLDA:", err);
@@ -3806,7 +4292,35 @@ function setupQldaEventListeners() {
         });
     }
 
-    // 5. Tìm kiếm với Debounce 250ms
+    // 5. Sắp Xếp Dữ Liệu từ Dropdown
+    const selectSort = document.getElementById('select-qlda-sort');
+    if (selectSort) {
+        selectSort.addEventListener('change', (e) => {
+            qldaState.sortBy = e.target.value;
+            qldaState.sortCol = null; // Xóa sắp xếp theo cột khi chọn dropdown
+            filterQldaItems();
+        });
+    }
+
+    // 6. Bấm tiêu đề cột để sắp xếp trực tiếp (Sortable table headers)
+    document.querySelectorAll('th[data-qlda-sort]').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.qldaSort;
+            if (!col) return;
+            if (qldaState.sortCol === col) {
+                // Đảo chiều sắp xếp
+                qldaState.sortDir = qldaState.sortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                qldaState.sortCol = col;
+                // Mặc định giảm dần cho số lượng và khối lượng, tăng dần cho chữ
+                const descFirstCols = ['tweight', 'tqty', 'uweight', 'ga_lap', 'han', 'to_hop_thu', 'nghiem_thu', 'ban_giao'];
+                qldaState.sortDir = descFirstCols.includes(col) ? 'desc' : 'asc';
+            }
+            filterQldaItems();
+        });
+    });
+
+    // 7. Tìm kiếm với Debounce 250ms
     let qldaSearchTimeout = null;
     const inputSearch = document.getElementById('input-qlda-search');
     if (inputSearch) {
@@ -3820,7 +4334,7 @@ function setupQldaEventListeners() {
         });
     }
 
-    // 6. Nút Đặt lại bộ lọc QLDA
+    // 8. Nút Đặt lại bộ lọc QLDA
     const btnResetFilter = document.getElementById('btn-qlda-reset-filter');
     if (btnResetFilter) {
         btnResetFilter.addEventListener('click', () => {
@@ -3828,6 +4342,9 @@ function setupQldaEventListeners() {
             qldaState.filterPhanGiao = 'all';
             qldaState.filterStatus = 'all';
             qldaState.searchQuery = '';
+            qldaState.sortBy = 'incomplete_first';
+            qldaState.sortCol = null;
+            qldaState.sortDir = 'asc';
             
             const hm = document.getElementById('select-qlda-hangmuc');
             if (hm) hm.value = 'all';
@@ -3835,6 +4352,8 @@ function setupQldaEventListeners() {
             if (pg) pg.value = 'all';
             const st = document.getElementById('select-qlda-status');
             if (st) st.value = 'all';
+            const so = document.getElementById('select-qlda-sort');
+            if (so) so.value = 'incomplete_first';
             const sq = document.getElementById('input-qlda-search');
             if (sq) sq.value = '';
 
@@ -3842,13 +4361,49 @@ function setupQldaEventListeners() {
         });
     }
 
-    // 7. Nút Xuất Excel
+    // 9. Nút Xuất Excel
     const btnExportExcel = document.getElementById('btn-qlda-export-excel');
     if (btnExportExcel) {
         btnExportExcel.addEventListener('click', exportQldaToExcel);
     }
 
-    // 8. Phân trang: Trang trước / Trang sau
+    // 10. Tải lên file QLDA Excel (Host Admin)
+    const btnUploadQlda = document.getElementById('btn-upload-qlda-excel');
+    const inputUploadQlda = document.getElementById('excel-qlda-input');
+    if (btnUploadQlda && inputUploadQlda) {
+        btnUploadQlda.addEventListener('click', () => inputUploadQlda.click());
+        inputUploadQlda.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const originalText = btnUploadQlda.innerHTML;
+            btnUploadQlda.disabled = true;
+            btnUploadQlda.innerHTML = '<span>⏳ Đang tải file...</span>';
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                const res = await fetch('/api/upload-qlda-excel', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Tải file thất bại');
+                alert(`Thành công: ${data.message}`);
+                await loadQldaProjectsList();
+            } catch (err) {
+                console.error(err);
+                alert(`Lỗi tải file QLDA: ${err.message}`);
+            } finally {
+                btnUploadQlda.disabled = false;
+                btnUploadQlda.innerHTML = originalText;
+                inputUploadQlda.value = '';
+                if (window.lucide) lucide.createIcons();
+            }
+        });
+    }
+
+    // 11. Phân trang: Trang trước / Trang sau
     const btnPrevPage = document.getElementById('btn-qlda-prev-page');
     if (btnPrevPage) {
         btnPrevPage.addEventListener('click', () => {
@@ -3870,7 +4425,7 @@ function setupQldaEventListeners() {
         });
     }
 
-    // 9. Kích thước trang (Page Size)
+    // 12. Kích thước trang (Page Size)
     const selectPageSize = document.getElementById('select-qlda-page-size');
     if (selectPageSize) {
         selectPageSize.addEventListener('change', (e) => {
@@ -3880,7 +4435,7 @@ function setupQldaEventListeners() {
         });
     }
 
-    // 10. Đóng Modal chi tiết cấu kiện
+    // 13. Đóng Modal chi tiết cấu kiện
     const btnCloseModal = document.getElementById('btn-close-qlda-modal');
     if (btnCloseModal) btnCloseModal.addEventListener('click', closeQldaAssemblyDetail);
 
