@@ -109,32 +109,8 @@ function parseDateSortKey(dStr) {
     return new Date(s).getTime() || 0;
 }
 
-// Danh sách mật khẩu hợp lệ (Mặc định: amecc2026, amecc, 123456, leo2026)
-const VALID_PINS = ['amecc2026', 'amecc', '123456', 'leo2026'];
-
-function checkAuthStatus() {
-    const isRemembered = localStorage.getItem('amecc_auth_verified') === 'true';
-    const isSession = sessionStorage.getItem('amecc_auth_verified') === 'true';
-    const lockModal = document.getElementById('auth-lock-modal');
-    const lockBtn = document.getElementById('btn-lock-session');
-
-    if (isRemembered || isSession) {
-        if (lockModal) lockModal.classList.add('hidden');
-        if (lockBtn) {
-            lockBtn.classList.remove('hidden');
-            lockBtn.classList.add('inline-flex');
-        }
-        return true;
-    } else {
-        if (lockModal) lockModal.classList.remove('hidden');
-        if (lockBtn) lockBtn.classList.add('hidden');
-        return false;
-    }
-}
-
 document.addEventListener('DOMContentLoaded', async () => {
     lucide.createIcons();
-    checkAuthStatus();
     await loadServerInfo();
     setInterval(loadServerInfo, 15000); // Giãn tần suất polling để không gây nghẽn mạng
     
@@ -1254,77 +1230,6 @@ function renderShapeWarnings() {
 
 // 11. Đăng ký sự kiện tương tác
 function setupEventListeners() {
-    // 0. Xác thực mật khẩu nội bộ
-    const authForm = document.getElementById('auth-form');
-    const authInput = document.getElementById('auth-password-input');
-    const authError = document.getElementById('auth-error-msg');
-    const authRemember = document.getElementById('auth-remember-me');
-    const lockModal = document.getElementById('auth-lock-modal');
-    const lockBtn = document.getElementById('btn-lock-session');
-    const btnTogglePwd = document.getElementById('btn-toggle-password');
-
-    const handleUnlock = () => {
-        if (!authInput) return;
-        const entered = authInput.value.trim().toLowerCase();
-        if (VALID_PINS.includes(entered)) {
-            if (authRemember && authRemember.checked) {
-                localStorage.setItem('amecc_auth_verified', 'true');
-            } else {
-                sessionStorage.setItem('amecc_auth_verified', 'true');
-            }
-            if (lockModal) lockModal.classList.add('hidden');
-            if (authError) authError.classList.add('hidden');
-            authInput.classList.remove('border-red-500', 'bg-red-50');
-            if (lockBtn) {
-                lockBtn.classList.remove('hidden');
-                lockBtn.classList.add('inline-flex');
-            }
-        } else {
-            if (authError) authError.classList.remove('hidden');
-            authInput.classList.add('border-red-500', 'bg-red-50');
-            authInput.focus();
-            authInput.select();
-        }
-    };
-
-    if (authForm) {
-        authForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            handleUnlock();
-        });
-    }
-
-    const btnUnlock = document.getElementById('btn-unlock-app');
-    if (btnUnlock) {
-        btnUnlock.addEventListener('click', handleUnlock);
-    }
-
-    if (btnTogglePwd && authInput) {
-        btnTogglePwd.addEventListener('click', () => {
-            const isPwd = authInput.type === 'password';
-            authInput.type = isPwd ? 'text' : 'password';
-            btnTogglePwd.innerHTML = isPwd ? '<i data-lucide="eye-off" class="w-4 h-4"></i>' : '<i data-lucide="eye" class="w-4 h-4"></i>';
-            if (window.lucide) lucide.createIcons();
-        });
-    }
-
-    if (lockBtn) {
-        lockBtn.addEventListener('click', () => {
-            localStorage.removeItem('amecc_auth_verified');
-            sessionStorage.removeItem('amecc_auth_verified');
-            if (lockModal) {
-                lockModal.classList.remove('hidden');
-                if (authInput) {
-                    authInput.value = '';
-                    authInput.focus();
-                }
-            }
-            lockBtn.classList.add('hidden');
-            lockBtn.classList.remove('inline-flex');
-            if (window.lucide) lucide.createIcons();
-        });
-    }
-
     // Đổi File Dự Án
     const selectProject = document.getElementById('select-project');
     if (selectProject) {
