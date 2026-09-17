@@ -38,7 +38,7 @@ from backend.parser import list_available_projects
 from backend.cache import get_cached_project, get_cached_project_json, warm_up_cache, clear_all_cache
 from backend.exporter import export_project_excel, export_project_csv, export_missing_parts_excel
 
-app = FastAPI(title="Server Tra Cứu Vật Tư & BTP Theo Ngày - AMECC", version="2.5.0")
+app = FastAPI(title="Server Tra Cứu Vật Tư & BTP Theo Ngày - Leo_Server", version="2.5.0")
 
 app.add_middleware(GZipMiddleware, minimum_size=500)
 app.add_middleware(
