@@ -84,7 +84,7 @@ def main():
     lan_ip = get_lan_ip()
 
     print("=" * 72)
-    print("   HỆ THỐNG MÁY CHỦ TRA CỨU VẬT TƯ & BTP THEO NGÀY - LEO_SERVER")
+    print("   HỆ THỐNG MÁY CHỦ TRA CỨU VẬT TƯ & BTP THEO NGÀY - AMECC2")
     print("   (Chạy trực tiếp trên máy - Tối ưu chịu tải cao - 100% Miễn phí)")
     print("=" * 72)
     print(f"📌 Địa chỉ trên máy này:        http://localhost:{port}")
