@@ -222,7 +222,7 @@ def detect_btp_sheet_data(ws) -> Dict[str, Any]:
     header_row = 29
     col_map = {}
     for r in range(15, min(40, ws.max_row + 1)):
-        row_str = [str(ws.cell(r, c).value or "").strip().lower() for c in range(1, min(35, ws.max_column + 1))]
+        row_str = [str(ws.cell(r, c).value or "").strip().lower() for c in range(1, min(150, ws.max_column + 1))]
         if any("part no" in t for t in row_str) and any("chủng loại" in t or "chung loai" in t for t in row_str):
             header_row = r
             for c_idx, t in enumerate(row_str, 1):
@@ -636,10 +636,8 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
                 note_items = []
                 if ktra_noi:
                     note_items.append(f"Ktra nối: {ktra_noi}")
-                if shape_analysis.get("has_length_issue") and shape_analysis.get("message"):
-                    note_items.append(f"Vướng thép hình: {shape_analysis['message']}")
-                elif shape_analysis.get("is_shape") and shape_analysis.get("con_thieu", 0) > 0 and shape_analysis.get("message"):
-                    note_items.append(f"Thép hình: {shape_analysis['message']}")
+                if shape_analysis.get("has_length_issue"):
+                    note_items.append("Chưa đủ chiều dài")
                 if bom_remark:
                     note_items.append(bom_remark)
                 ghi_chu = " | ".join(note_items)

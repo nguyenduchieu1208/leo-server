@@ -86,36 +86,24 @@ def analyze_shape_part(part: Dict[str, Any], btp_info: Optional[Dict[str, Any]] 
             if is_long_section:
                 has_length_issue = True
                 status = "shape_bh_long_section"
-                message = (
-                    f"Dầm BH đoạn dài ({length}mm): Cần tính toán công thức phôi nối dầm dài "
-                    f"(mã cắt: {cutting_no or 'chờ sơ đồ'})."
-                )
+                message = "Chưa đủ chiều dài"
             else:
                 # Các đoạn BH thông thường: cho phép chênh lệch 1 ít theo quy chuẩn A290
                 has_length_issue = False
                 status = "shape_bh_normal"
-                message = (
-                    f"Chi tiết BH ({length}mm): Thường nhập 1 khi nhận dầm "
-                    f"(cho phép dung sai chênh lệch gia công theo chuẩn A290)."
-                )
+                message = ""
         else:
             # Đối với thép hình Shape chuẩn (H, I, U, V...)
             has_length_issue = True
             if cutting_no and cutting_no not in ["-", "0", ""]:
                 status = "shape_cutting_in_progress"
-                message = (
-                    f"Đã có mã kế hoạch cắt phôi ({cutting_no}), chiều dài {length}mm "
-                    f"(cho phép dung sai chênh lệch gia công như BH 290)."
-                )
+                message = "Chưa đủ chiều dài"
             else:
                 status = "shape_waiting_length"
-                message = (
-                    f"Thép hình cần chiều dài tối thiểu {length}mm (SL thiếu: {con_thieu}). "
-                    f"Chưa cập nhật nhận do chờ phôi đủ chiều dài."
-                )
+                message = "Chưa đủ chiều dài"
     else:
         status = "shape_completed"
-        message = "Đã nhận đủ chi tiết (cho phép dung sai chênh lệch như BH 290)."
+        message = ""
         
     return {
         "is_shape": True,

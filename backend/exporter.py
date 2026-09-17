@@ -35,9 +35,10 @@ EXPORT_HEADERS = [
     ("SL Thiết Kế", 13, "right"),
     ("Đã Nhận", 12, "right"),
     ("Còn Thiếu", 14, "right"),
+    ("Ktra Nối", 12, "center"),
     ("Kế Hoạch Cắt (CP No)", 22, "left"),
     ("Tình Trạng BTP", 25, "left"),
-    ("Ghi Chú (Ktra Nối / Vướng Thép Hình)", 40, "left"),
+    ("Ghi Chú", 40, "left"),
 ]
 
 def _collect_export_data(project_data: Dict[str, Any], mode: str, target_sheet: Optional[str]):
@@ -168,7 +169,10 @@ def export_project_excel(
                 if con_thieu_val > 0:
                     font_thieu = font_missing
                     fill_thieu = fill_missing
-                    status_text = sa.get("message") or f"Còn thiếu {con_thieu_val}"
+                    if sa.get("has_length_issue"):
+                        status_text = "Chưa đủ chiều dài"
+                    else:
+                        status_text = f"Còn thiếu {con_thieu_val}"
                 else:
                     font_thieu = font_completed
                     fill_thieu = fill_completed
@@ -180,10 +184,8 @@ def export_project_excel(
                     notes = []
                     if p.get("ktra_noi"):
                         notes.append(f"Ktra nối: {p['ktra_noi']}")
-                    if sa.get("has_length_issue") and sa.get("message"):
-                        notes.append(f"Vướng thép hình: {sa['message']}")
-                    elif sa.get("is_shape") and p.get("con_thieu", 0) > 0 and sa.get("message"):
-                        notes.append(f"Thép hình: {sa['message']}")
+                    if sa.get("has_length_issue"):
+                        notes.append("Chưa đủ chiều dài")
                     if p.get("remark"):
                         notes.append(p["remark"])
                     ghi_chu_val = " | ".join(notes)
@@ -203,6 +205,7 @@ def export_project_excel(
                     (tqty_val, alignments["right"], font_data, None),
                     (da_nhan_val, alignments["right"], font_data, None),
                     (con_thieu_val, alignments["right"], font_thieu, fill_thieu),
+                    (p.get("ktra_noi", ""), alignments["center"], font_data, None),
                     (sa.get("cutting_no", "") or p.get("cutting_no", "") or "", alignments["left"], font_data, None),
                     (status_text, alignments["left"], font_data, None),
                     (ghi_chu_val, alignments["left"], font_data, None),
@@ -319,7 +322,7 @@ def export_project_csv(
                 con_thieu_val = p.get("con_thieu", 0)
 
                 if con_thieu_val > 0:
-                    status_text = sa.get("message") or f"Còn thiếu {con_thieu_val}"
+                    status_text = "Chưa đủ chiều dài" if sa.get("has_length_issue") else f"Còn thiếu {con_thieu_val}"
                 else:
                     status_text = "Đã nhận đủ"
 
@@ -328,10 +331,8 @@ def export_project_csv(
                     notes = []
                     if p.get("ktra_noi"):
                         notes.append(f"Ktra nối: {p['ktra_noi']}")
-                    if sa.get("has_length_issue") and sa.get("message"):
-                        notes.append(f"Vướng thép hình: {sa['message']}")
-                    elif sa.get("is_shape") and p.get("con_thieu", 0) > 0 and sa.get("message"):
-                        notes.append(f"Thép hình: {sa['message']}")
+                    if sa.get("has_length_issue"):
+                        notes.append("Chưa đủ chiều dài")
                     if p.get("remark"):
                         notes.append(p["remark"])
                     ghi_chu_val = " | ".join(notes)
@@ -351,6 +352,7 @@ def export_project_csv(
                     tqty_val,
                     da_nhan_val,
                     con_thieu_val,
+                    p.get("ktra_noi", ""),
                     sa.get("cutting_no", "") or p.get("cutting_no", "") or "",
                     status_text,
                     ghi_chu_val

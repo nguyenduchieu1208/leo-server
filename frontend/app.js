@@ -768,8 +768,9 @@ function buildPartsTableHtml(assy) {
                         <th class="py-2 px-3 text-right">Đã Nhận</th>
                         <th class="py-2 px-3 text-right">Còn Thiếu</th>
                         <th class="py-2 px-3">Tiến Độ Theo Ngày</th>
+                        <th class="py-2 px-3 text-center">Ktra Nối</th>
                         <th class="py-2 px-3">Trạng Thái</th>
-                        <th class="py-2 px-3">Ghi Chú (Ktra Nối / Vướng Thép Hình)</th>
+                        <th class="py-2 px-3">Ghi Chú</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200">
@@ -798,8 +799,8 @@ function buildPartsTableHtml(assy) {
                         let shapeNotice = '';
                         if (sa.has_length_issue) {
                             shapeNotice = `
-                                <div class="text-[11px] text-orange-900 bg-orange-50 border border-orange-200 rounded-md p-1.5 mt-1 font-medium">
-                                    <span class="font-bold text-orange-700">⚠️ Lưu ý Shape:</span> ${sa.message}
+                                <div class="text-[11px] text-orange-800 bg-orange-50 border border-orange-200 rounded px-1.5 py-0.5 mt-1 font-medium inline-flex items-center gap-1">
+                                    <span class="font-bold text-orange-600">⚠️</span> Chưa đủ chiều dài
                                 </div>
                             `;
                         }
@@ -825,6 +826,12 @@ function buildPartsTableHtml(assy) {
                                 <td class="py-2 px-3 text-right font-mono font-bold text-blue-600">${p.da_nhan}</td>
                                 <td class="py-2 px-3 text-right font-mono font-bold ${p.con_thieu > 0 ? 'text-red-600' : 'text-slate-400'}">${p.con_thieu}</td>
                                 <td class="py-2 px-3">${datesHtml}</td>
+                                <td class="py-2 px-3 text-center font-mono font-bold">
+                                    ${p.ktra_noi 
+                                        ? `<span class="inline-block px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-200 font-bold">${highlightText(p.ktra_noi, state.searchQuery)}</span>`
+                                        : '<span class="text-slate-300">-</span>'
+                                    }
+                                </td>
                                 <td class="py-2 px-3">
                                     ${isDone 
                                         ? '<span class="inline-flex items-center gap-1 text-[11px] text-emerald-700 font-bold bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">Đã đủ</span>'
