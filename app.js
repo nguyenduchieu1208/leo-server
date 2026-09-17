@@ -4368,12 +4368,12 @@ async function exportQldaToExcel() {
         
         // Hàng 1: Tiêu đề gộp nhóm phân theo công đoạn (chuẩn xác 33 cột theo form mẫu)
         const row1 = [
-            `DỰ ÁN:${projId}`, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", // 1..16: Thông tin cấu kiện
-            "Gá lắp", "", "",         // 17..19: Gá lắp
-            "Hàn", "", "",            // 20..22: Hàn
-            "Tổ hợp thử", "", "",     // 23..25: Tổ hợp thử
-            "Nghiệm thu", "", "",     // 26..28: Nghiệm thu
-            "Bàn giao", "", "", "", "" // 29..33: Bàn giao
+            `DỰ ÁN:${projId}`, "", "", "", "", "", "", "", "", "", "", // 1..11: Thông tin cấu kiện
+            "Gá lắp", "", "",         // 12..14: Gá lắp
+            "Hàn", "", "",            // 15..17: Hàn
+            "Tổ hợp thử", "", "",     // 18..20: Tổ hợp thử
+            "Nghiệm thu", "", "",     // 21..23: Nghiệm thu
+            "Bàn giao", "", "", "", "" // 24..28: Bàn giao
         ];
 
         // Hàng 2: Hàng Tổng Hợp Subtotal / Summary (theo form mẫu gốc)
@@ -4400,27 +4400,27 @@ async function exportQldaToExcel() {
             totalBgWeight += (it.ban_giao?.kl || 0);
         });
 
-        const row2 = new Array(33).fill("");
+        const row2 = new Array(28).fill("");
         row2[0] = "Information ID";
-        row2[7] = "Information Item";
-        row2[10] = totalQty;
-        row2[12] = Math.round(totalWeight * 10) / 10;
-        row2[15] = new Date().toLocaleDateString('vi-VN');
-        row2[17] = totalGaQty;
-        row2[18] = Math.round(totalGaWeight * 10) / 10;
-        row2[20] = totalHanQty;
-        row2[21] = Math.round(totalHanWeight * 10) / 10;
-        row2[23] = totalThQty;
-        row2[24] = Math.round(totalThWeight * 10) / 10;
-        row2[26] = totalNtQty;
-        row2[27] = Math.round(totalNtWeight * 10) / 10;
-        row2[29] = totalBgQty;
-        row2[30] = Math.round(totalBgWeight * 10) / 10;
-        row2[32] = `${projId}-`;
+        row2[2] = "Information Item";
+        row2[5] = totalQty;
+        row2[7] = Math.round(totalWeight * 10) / 10;
+        row2[10] = new Date().toLocaleDateString('vi-VN');
+        row2[12] = totalGaQty;
+        row2[13] = Math.round(totalGaWeight * 10) / 10;
+        row2[15] = totalHanQty;
+        row2[16] = Math.round(totalHanWeight * 10) / 10;
+        row2[18] = totalThQty;
+        row2[19] = Math.round(totalThWeight * 10) / 10;
+        row2[21] = totalNtQty;
+        row2[22] = Math.round(totalNtWeight * 10) / 10;
+        row2[24] = totalBgQty;
+        row2[25] = Math.round(totalBgWeight * 10) / 10;
+        row2[27] = `${projId}-`;
 
         // Hàng 3: Tên cột chuẩn mẫu theo file gốc (đã loại bỏ A, C, D, T..AI, AS, BB..end - đúng 33 cột)
         const row3 = [
-            "Số Dự Án", "Hạng mục", "MH", "Ngày giao hàng(WO)", "Dạng sản phẩm", "Phân loại", "Phân giao",
+            "Số Dự Án", "Hạng mục",
             "Tên bản vẽ", "Số chi tiết", "Size", "T'Qty", "U.Weight", "T.Weight", "Profile", "ID", "Note",
             "Ngày Gá", "SL Gá", "KL Gá",
             "Ngày Hàn", "SL Hàn", "KL Hàn",
@@ -4433,11 +4433,6 @@ async function exportQldaToExcel() {
         const dataRows = items.map(it => [
             it.du_an || projId,
             it.hang_muc || "",
-            it.mh || "",
-            it.ngay_giao_wo || "",
-            it.dang_sp || "",
-            it.phan_loai || "",
-            it.phan_giao || "",
             it.ten_ban_ve || "",
             it.so_chi_tiet || "",
             it.size || "",
@@ -4470,16 +4465,16 @@ async function exportQldaToExcel() {
 
         // Cấu hình gộp ô cho dòng 1
         ws['!merges'] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: 15 } },  // A1:P1 - Thông tin cấu kiện
-            { s: { r: 0, c: 16 }, e: { r: 0, c: 18 } }, // Q1:S1 - Gá lắp
-            { s: { r: 0, c: 19 }, e: { r: 0, c: 21 } }, // T1:V1 - Hàn
-            { s: { r: 0, c: 22 }, e: { r: 0, c: 24 } }, // W1:Y1 - Tổ hợp thử
-            { s: { r: 0, c: 25 }, e: { r: 0, c: 27 } }, // Z1:AB1 - Nghiệm thu
-            { s: { r: 0, c: 28 }, e: { r: 0, c: 32 } }  // AC1:AG1 - Bàn giao
+            { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },  // A1:K1 - Thông tin cấu kiện
+            { s: { r: 0, c: 11 }, e: { r: 0, c: 13 } }, // L1:N1 - Gá lắp
+            { s: { r: 0, c: 14 }, e: { r: 0, c: 16 } }, // O1:Q1 - Hàn
+            { s: { r: 0, c: 17 }, e: { r: 0, c: 19 } }, // R1:T1 - Tổ hợp thử
+            { s: { r: 0, c: 20 }, e: { r: 0, c: 22 } }, // U1:W1 - Nghiệm thu
+            { s: { r: 0, c: 23 }, e: { r: 0, c: 27 } }  // X1:AB1 - Bàn giao
         ];
 
         const endRow = 3 + dataRows.length;
-        ws['!autofilter'] = { ref: `A3:AG${endRow}` };
+        ws['!autofilter'] = { ref: `A3:AB${endRow}` };
         ws['!freeze'] = { ySplit: 3 };
 
         // Áp dụng định dạng bảng, màu sắc công đoạn, viền kẻ bảng và bộ lọc chuyên nghiệp
@@ -4498,12 +4493,12 @@ async function exportQldaToExcel() {
 
         // Hàng 1: Phân nhóm 5 công đoạn với màu sắc nhận diện chuẩn form mẫu gốc
         const groupsDef = [
-            { start: 0, end: 15, fill: '2D3748', color: 'FFFFFF' }, // Thông tin cấu kiện
-            { start: 16, end: 18, fill: 'BEE3F8', color: '2B6CB0' }, // Gá lắp
-            { start: 19, end: 21, fill: 'FEEBC8', color: 'C05621' }, // Hàn
-            { start: 22, end: 24, fill: 'E9D8FD', color: '6B46C1' }, // Tổ hợp thử
-            { start: 25, end: 27, fill: 'C6F6D5', color: '22543D' }, // Nghiệm thu
-            { start: 28, end: 32, fill: 'B2F5EA', color: '234E52' }  // Bàn giao
+            { start: 0, end: 10, fill: '2D3748', color: 'FFFFFF' }, // Thông tin cấu kiện
+            { start: 11, end: 13, fill: 'BEE3F8', color: '2B6CB0' }, // Gá lắp
+            { start: 14, end: 16, fill: 'FEEBC8', color: 'C05621' }, // Hàn
+            { start: 17, end: 19, fill: 'E9D8FD', color: '6B46C1' }, // Tổ hợp thử
+            { start: 20, end: 22, fill: 'C6F6D5', color: '22543D' }, // Nghiệm thu
+            { start: 23, end: 27, fill: 'B2F5EA', color: '234E52' }  // Bàn giao
         ];
 
         groupsDef.forEach(g => {
@@ -4520,11 +4515,11 @@ async function exportQldaToExcel() {
         });
 
         // Hàng 2: Hàng Tổng Hợp Subtotal
-        for (let c = 0; c < 33; c++) {
+        for (let c = 0; c < 28; c++) {
             const addr = XLSX.utils.encode_cell({ r: 1, c });
             if (!ws[addr]) ws[addr] = { t: 's', v: '' };
             const isNum = typeof ws[addr].v === 'number';
-            const isWeight = [12, 18, 21, 24, 27, 30].includes(c);
+            const isWeight = [7, 13, 16, 19, 22, 25].includes(c);
             ws[addr].s = {
                 fill: { fgColor: { rgb: 'EDF2F7' } },
                 font: { name: 'Arial', sz: 10, bold: true, color: { rgb: '1A202C' } },
@@ -4535,7 +4530,7 @@ async function exportQldaToExcel() {
         }
 
         // Hàng 3: Tiêu đề cột
-        for (let c = 0; c < 33; c++) {
+        for (let c = 0; c < 28; c++) {
             const addr = XLSX.utils.encode_cell({ r: 2, c });
             if (!ws[addr]) ws[addr] = { t: 's', v: '' };
             ws[addr].s = {
@@ -4552,13 +4547,13 @@ async function exportQldaToExcel() {
             const isEven = (rowIdx % 2 === 0);
             const rowBg = isEven ? 'FFFFFF' : 'F8FAFC';
 
-            for (let c = 0; c < 33; c++) {
+            for (let c = 0; c < 28; c++) {
                 const addr = XLSX.utils.encode_cell({ r, c });
                 if (!ws[addr]) ws[addr] = { t: 's', v: '' };
 
                 const isNum = typeof ws[addr].v === 'number';
-                const isWeight = [11, 12, 18, 21, 24, 27, 30].includes(c);
-                const isCenter = [0, 2, 3, 6, 14, 16, 19, 22, 25, 28].includes(c);
+                const isWeight = [6, 7, 13, 16, 19, 22, 25].includes(c);
+                const isCenter = [0, 1, 2, 9, 11, 14, 17, 20, 23].includes(c);
 
                 ws[addr].s = {
                     fill: { fgColor: { rgb: rowBg } },
@@ -4581,10 +4576,10 @@ async function exportQldaToExcel() {
             ...dataRows.map(() => ({ hpt: 20 }))
         ];
 
-        // Độ rộng 33 cột chuẩn form
+        // Độ rộng 28 cột (đã bỏ C->G: MH, Ngày giao WO, Dạng SP, Phân loại, Phân giao)
         ws['!cols'] = [
-            { wch: 12 }, { wch: 22 }, { wch: 10 }, { wch: 16 }, { wch: 16 }, { wch: 16 },
-            { wch: 12 }, { wch: 24 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 12 },
+            { wch: 12 }, { wch: 22 },
+            { wch: 24 }, { wch: 16 }, { wch: 16 }, { wch: 10 }, { wch: 12 },
             { wch: 14 }, { wch: 22 }, { wch: 10 }, { wch: 16 },
             { wch: 14 }, { wch: 10 }, { wch: 12 },
             { wch: 14 }, { wch: 10 }, { wch: 12 },
