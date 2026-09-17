@@ -1,0 +1,149 @@
+{
+  "count": 13,
+  "updated_at": "2026-09-17 10:53:39",
+  "projects": [
+    {
+      "project_id": "A290",
+      "display_name": "A290",
+      "file_name": "A290PL.xlsx",
+      "file_path": "data/A290.json",
+      "size_bytes": 9845931,
+      "total_assemblies": 2621,
+      "completed_assemblies": 2124,
+      "partial_assemblies": 302,
+      "not_received_assemblies": 195
+    },
+    {
+      "project_id": "A320",
+      "display_name": "A320",
+      "file_name": "A320PL.xlsx",
+      "file_path": "data/A320.json",
+      "size_bytes": 888221,
+      "total_assemblies": 170,
+      "completed_assemblies": 19,
+      "partial_assemblies": 46,
+      "not_received_assemblies": 105
+    },
+    {
+      "project_id": "B272",
+      "display_name": "B272",
+      "file_name": "B272PL.xlsx",
+      "file_path": "data/B272.json",
+      "size_bytes": 6323702,
+      "total_assemblies": 2408,
+      "completed_assemblies": 2237,
+      "partial_assemblies": 15,
+      "not_received_assemblies": 156
+    },
+    {
+      "project_id": "E307",
+      "display_name": "E307",
+      "file_name": "E307PL.xlsx",
+      "file_path": "data/E307.json",
+      "size_bytes": 747309,
+      "total_assemblies": 80,
+      "completed_assemblies": 76,
+      "partial_assemblies": 4,
+      "not_received_assemblies": 0
+    },
+    {
+      "project_id": "M270",
+      "display_name": "M270",
+      "file_name": "M270PL.xlsx",
+      "file_path": "data/M270.json",
+      "size_bytes": 22555,
+      "total_assemblies": 4,
+      "completed_assemblies": 0,
+      "partial_assemblies": 0,
+      "not_received_assemblies": 4
+    },
+    {
+      "project_id": "M291",
+      "display_name": "M291",
+      "file_name": "M291PL.xlsx",
+      "file_path": "data/M291.json",
+      "size_bytes": 4445418,
+      "total_assemblies": 882,
+      "completed_assemblies": 832,
+      "partial_assemblies": 37,
+      "not_received_assemblies": 13
+    },
+    {
+      "project_id": "M304",
+      "display_name": "M304",
+      "file_name": "M304PL.xlsx",
+      "file_path": "data/M304.json",
+      "size_bytes": 12220344,
+      "total_assemblies": 1384,
+      "completed_assemblies": 1081,
+      "partial_assemblies": 279,
+      "not_received_assemblies": 24
+    },
+    {
+      "project_id": "U284",
+      "display_name": "U284",
+      "file_name": "U284PL.xlsx",
+      "file_path": "data/U284.json",
+      "size_bytes": 1082664,
+      "total_assemblies": 308,
+      "completed_assemblies": 225,
+      "partial_assemblies": 61,
+      "not_received_assemblies": 22
+    },
+    {
+      "project_id": "U285",
+      "display_name": "U285",
+      "file_name": "U285PL.xlsx",
+      "file_path": "data/U285.json",
+      "size_bytes": 4671243,
+      "total_assemblies": 271,
+      "completed_assemblies": 150,
+      "partial_assemblies": 110,
+      "not_received_assemblies": 11
+    },
+    {
+      "project_id": "U298",
+      "display_name": "U298",
+      "file_name": "U298PL.xlsx",
+      "file_path": "data/U298.json",
+      "size_bytes": 583444,
+      "total_assemblies": 101,
+      "completed_assemblies": 0,
+      "partial_assemblies": 35,
+      "not_received_assemblies": 66
+    },
+    {
+      "project_id": "U302",
+      "display_name": "U302",
+      "file_name": "U302PL.xlsx",
+      "file_path": "data/U302.json",
+      "size_bytes": 2031502,
+      "total_assemblies": 332,
+      "completed_assemblies": 250,
+      "partial_assemblies": 55,
+      "not_received_assemblies": 27
+    },
+    {
+      "project_id": "U324",
+      "display_name": "U324",
+      "file_name": "U324PL.xlsx",
+      "file_path": "data/U324.json",
+      "size_bytes": 268642,
+      "total_assemblies": 67,
+      "completed_assemblies": 4,
+      "partial_assemblies": 21,
+      "not_received_assemblies": 42
+    },
+    {
+      "project_id": "V314",
+      "display_name": "V314",
+      "file_name": "V314PL.xlsx",
+      "file_path": "data/V314.json",
+      "size_bytes": 3384413,
+      "total_assemblies": 242,
+      "completed_assemblies": 8,
+      "partial_assemblies": 144,
+      "not_received_assemblies": 90
+    }
+  ]
+}
