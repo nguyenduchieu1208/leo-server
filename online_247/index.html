@@ -29,6 +29,8 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- SheetJS Client-side Export (Hỗ trợ xuất Excel trực tiếp trên trình duyệt cho bản Online 24/24) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Chart.js Thư Viện Biểu Đồ Trực Quan (Cột Tiến Độ & Tỷ Trọng %) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col font-sans antialiased">
     <!-- Header Giao Diện Sáng (Cuộn tự nhiên theo trang) -->
@@ -394,7 +396,7 @@
             </button>
             <button class="nav-tab px-4 py-2.5 font-bold text-sm text-slate-500 hover:text-slate-800 border-b-2 border-transparent flex items-center gap-2 transition" data-tab="dvg" id="btn-tab-dvg">
                 <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-600"></i>
-                <span>Phân Tích Khối Lượng DVG</span>
+                <span>Phân Tích DVG & Đơn Vị Giao</span>
                 <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-indigo-50 text-indigo-700 font-extrabold border border-indigo-200">Mới</span>
             </button>
         </div>
@@ -463,7 +465,7 @@
             </div>
         </section>
 
-        <!-- TAB 4: DASHBOARD PHÂN TÍCH KHỐI LƯỢNG & TIẾN ĐỘ DVG (MCC, KHO, PMC, WTC...) -->
+        <!-- TAB 4: DASHBOARD PHÂN TÍCH KHỐI LƯỢNG & TIẾN ĐỘ (DVG & ĐƠN VỊ GIAO) -->
         <section id="tab-dvg-content" class="tab-pane hidden space-y-5">
             <!-- Header Dashboard & Thanh Thao Tác Xuất Báo Cáo -->
             <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-800">
@@ -475,10 +477,10 @@
                             </div>
                             <div>
                                 <h2 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
-                                    Dashboard Phân Tích Tiến Độ & Khối Lượng Đơn Vị Gia Công (DVG)
+                                    Dashboard Phân Tích Tiến Độ & Khối Lượng
                                     <span id="dvg-current-filter-badge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 font-semibold font-mono">Tất cả hạng mục</span>
                                 </h2>
-                                <p class="text-xs text-slate-300 mt-0.5">Phân tích khối lượng tổng, đã nhận, còn thiếu của từng đơn vị: MCC, KHO, PMC, WTC...</p>
+                                <p id="dvg-header-subtitle" class="text-xs text-slate-300 mt-0.5">Phân tích đa chiều khối lượng tổng, đã nhận, còn thiếu của từng đơn vị gia công (MCC, PMC, FAC2, WTC...) và phân giao tổ (S1, S2, S3, S4...)</p>
                             </div>
                         </div>
                     </div>
@@ -491,18 +493,39 @@
                             <button id="btn-dvg-unit-kg" type="button" class="px-3 py-1.5 rounded-lg bg-indigo-600 text-white shadow-xs cursor-pointer" title="Hiển thị số liệu theo đơn vị Kilogram">Kg</button>
                         </div>
 
-                        <!-- Nút Xuất Báo Cáo Bảng Tổng Hợp DVG -->
-                        <button id="btn-export-dvg-summary" type="button" class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95" title="Xuất file Excel bảng số liệu tổng hợp khối lượng và số lượng từng DVG">
+                        <!-- Nút Xuất Báo Cáo Bảng Tổng Hợp -->
+                        <button id="btn-export-dvg-summary" type="button" class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95" title="Xuất file Excel bảng số liệu tổng hợp khối lượng và số lượng">
                             <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
-                            <span>Xuất Báo Cáo DVG (.xlsx)</span>
+                            <span id="btn-export-summary-text">Xuất Báo Cáo Tổng Hợp (.xlsx)</span>
                         </button>
 
                         <!-- Nút Xuất Báo Cáo Toàn Bộ Chi Tiết Vật Tư Còn Thiếu -->
-                        <button id="btn-export-dvg-all-missing" type="button" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95" title="Xuất file Excel danh sách chi tiết toàn bộ các vật tư BTP đang còn thiếu gom theo từng DVG">
+                        <button id="btn-export-dvg-all-missing" type="button" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95" title="Xuất file Excel danh sách chi tiết toàn bộ các vật tư BTP đang còn thiếu">
                             <i data-lucide="download" class="w-3.5 h-3.5"></i>
                             <span>Xuất Toàn Bộ Chi Tiết Thiếu (.xlsx)</span>
                         </button>
                     </div>
+                </div>
+            </div>
+
+            <!-- BỘ CHUYỂN ĐỔI CHẾ ĐỘ PHÂN TÍCH (DVG vs ĐƠN VỊ GIAO) -->
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-xs">
+                <div class="flex items-center flex-wrap gap-2">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wide px-1">Chế độ phân tích:</span>
+                    <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-slate-200">
+                        <button id="btn-mode-dvg" type="button" class="px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-indigo-600 text-white shadow-xs cursor-pointer">
+                            <i data-lucide="factory" class="w-4 h-4"></i>
+                            <span>Đơn Vị Gia Công (DVG)</span>
+                        </button>
+                        <button id="btn-mode-giao" type="button" class="px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 cursor-pointer">
+                            <i data-lucide="truck" class="w-4 h-4"></i>
+                            <span>Đơn Vị Giao (Phân Giao Tổ)</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="text-xs font-medium text-slate-600 px-1 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="dvg-mode-indicator-text" class="font-semibold text-slate-700">Đang phân tích theo: Đơn Vị Gia Công (DVG)</span>
                 </div>
             </div>
 
@@ -549,26 +572,51 @@
 
                 <div class="bg-white border border-indigo-200 rounded-2xl p-4 shadow-xs">
                     <div class="flex items-center justify-between">
-                        <p class="text-xs font-bold text-indigo-700 uppercase tracking-wide">Đơn Vị Gia Công (DVG)</p>
+                        <p id="kpi-dvg-units-title" class="text-xs font-bold text-indigo-700 uppercase tracking-wide">Đơn Vị Gia Công (DVG)</p>
                         <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
                             <i data-lucide="factory" class="w-4 h-4"></i>
                         </div>
                     </div>
                     <p id="kpi-dvg-units-count" class="text-2xl sm:text-3xl font-extrabold text-indigo-600 mt-2">0</p>
-                    <p id="kpi-dvg-units-desc" class="text-[11px] text-indigo-700 font-medium mt-1">MCC, PMC, KHO, WTC...</p>
+                    <p id="kpi-dvg-units-desc" class="text-[11px] text-indigo-700 font-medium mt-1">Đang tải...</p>
                 </div>
             </div>
 
-            <!-- Biểu Đồ Thanh Tiến Độ Khối Lượng & Số Lượng Trực Quan Của Các DVG -->
+            <!-- BIỂU ĐỒ 1: BIỂU ĐỒ PHÂN BỔ TỶ TRỌNG KHỐI LƯỢNG TOÀN DỰ ÁN (%) -->
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-3.5">
+                <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                        <h3 id="dvg-distrib-title" class="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wide">
+                            Biểu Đồ Phân Bổ Tỷ Trọng Khối Lượng Toàn Dự Án (%)
+                        </h3>
+                    </div>
+                    <span id="dvg-distrib-total-lbl" class="text-xs font-extrabold text-indigo-700 font-mono bg-indigo-50 px-2.5 py-1 rounded-lg border border-indigo-200">
+                        Tổng: 0 kg (100%)
+                    </span>
+                </div>
+
+                <!-- Thanh biểu đồ tỷ trọng đồ họa đa sắc màu trực quan -->
+                <div id="dvg-distribution-bar" class="w-full h-8 bg-slate-100 rounded-xl overflow-hidden flex shadow-inner border border-slate-200 p-0.5 gap-0.5">
+                    <!-- Được vẽ tự động từ JavaScript -->
+                </div>
+
+                <!-- Legend chú thích tỷ trọng từng đơn vị có % lớn rõ ràng -->
+                <div id="dvg-distribution-legend" class="flex flex-wrap items-center gap-2 pt-1">
+                    <!-- Được vẽ tự động từ JavaScript -->
+                </div>
+            </div>
+
+            <!-- BIỂU ĐỒ 2: BIỂU ĐỒ TIẾN ĐỘ KHỐI LƯỢNG & SỐ LƯỢNG TỪNG ĐƠN VỊ (CẬP NHẬT ĐẦY ĐỦ TỶ LỆ %) -->
             <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-xs space-y-4">
                 <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
                     <div class="flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
                         <div>
-                            <h3 class="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
-                                Biểu Đồ Tiến Độ Khối Lượng & Số Lượng Từng Đơn Vị (DVG)
+                            <h3 id="dvg-chart-section-title" class="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
+                                Biểu Đồ Tiến Độ Khối Lượng & Số Lượng Từng Đơn Vị
                             </h3>
-                            <p class="text-[11px] text-slate-400 mt-0.5">Thống kê so sánh khối lượng và số lượng đã nhận vs còn thiếu của từng đơn vị gia công</p>
+                            <p id="dvg-chart-section-subtitle" class="text-[11px] text-slate-400 mt-0.5">So sánh chi tiết khối lượng, số lượng và các tỷ lệ (%) đã nhận vs còn thiếu của từng đơn vị</p>
                         </div>
                     </div>
                     <div class="flex items-center flex-wrap gap-2">
@@ -579,7 +627,94 @@
                     </div>
                 </div>
 
-                <!-- Thống kê phân tích số lượng & khối lượng vật tư thiếu trực quan -->
+                <!-- KHU VỰC BIỂU ĐỒ ĐỒ HỌA TRỰC QUAN (CHART.JS: CỘT TIẾN ĐỘ & DONUT TỶ TRỌNG CÓ ĐẦY ĐỦ TỶ LỆ %) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <!-- Biểu đồ cột so sánh Đã Nhận vs Còn Thiếu kèm tỷ lệ % của từng đơn vị -->
+                    <div class="lg:col-span-2 bg-slate-50/70 p-4 rounded-2xl border border-slate-200/90 flex flex-col justify-between">
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                                <h4 id="chart-bar-heading" class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                                    <i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-600"></i>
+                                    <span>Biểu Đồ Tiến Độ Từng Đơn Vị (Đã Nhận vs Còn Thiếu & Tỷ Lệ %)</span>
+                                </h4>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[11px] text-slate-500 font-medium hidden sm:inline">Chỉ số:</span>
+                                <div class="inline-flex p-0.5 bg-slate-200/80 rounded-lg text-xs font-bold">
+                                    <button id="btn-chart-metric-weight" type="button" class="px-2.5 py-1 rounded-md bg-white text-indigo-700 shadow-2xs cursor-pointer transition">Khối Lượng</button>
+                                    <button id="btn-chart-metric-qty" type="button" class="px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 cursor-pointer transition">Số Lượng (pcs)</button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="relative w-full h-72 sm:h-80">
+                            <canvas id="chart-dvg-bar"></canvas>
+                        </div>
+                        <div class="mt-2 text-center">
+                            <span class="text-[11px] text-slate-400 italic">💡 Rê chuột vào cột để xem số liệu chi tiết & tỷ lệ % hoàn thành; Bấm vào cột để lọc danh sách chi tiết bên dưới</span>
+                        </div>
+                    </div>
+
+                    <!-- Biểu đồ Donut tỷ trọng khối lượng (%) giữa các đơn vị -->
+                    <div class="bg-slate-50/70 p-4 rounded-2xl border border-slate-200/90 flex flex-col justify-between">
+                        <div class="flex items-center gap-2 mb-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-indigo-600"></span>
+                            <h4 id="chart-doughnut-heading" class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                                <i data-lucide="pie-chart" class="w-4 h-4 text-indigo-600"></i>
+                                <span>Cơ Cấu Tỷ Trọng (%) Toàn Dự Án</span>
+                            </h4>
+                        </div>
+                        <div class="relative w-full h-64 sm:h-72 flex items-center justify-center">
+                            <canvas id="chart-dvg-doughnut"></canvas>
+                        </div>
+                        <div class="mt-2 text-center">
+                            <span class="text-[11px] text-slate-400 italic">Tỷ trọng (%) khối lượng từng đơn vị so với toàn bộ dự án</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thước đo tổng quan toàn dự án (Overall Dual Progress Gauges) -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200/80">
+                    <!-- Thước đo Khối lượng toàn dự án -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-bold text-slate-700 flex items-center gap-1.5">
+                                <i data-lucide="scale" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                <span>Tiến Độ Khối Lượng Toàn Dự Án:</span>
+                            </span>
+                            <span id="overall-gauge-weight-text" class="font-extrabold font-mono text-emerald-700">0% Đã nhận</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-3.5 overflow-hidden flex shadow-inner">
+                            <div id="overall-gauge-weight-rec-bar" class="bg-emerald-500 h-full transition-all duration-500 flex items-center justify-center text-[9px] font-extrabold text-white" style="width: 0%"></div>
+                            <div id="overall-gauge-weight-miss-bar" class="bg-rose-500 h-full transition-all duration-500 flex items-center justify-center text-[9px] font-extrabold text-white" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-[11px] text-slate-500 font-medium">
+                            <span id="overall-gauge-weight-rec-detail" class="text-emerald-700 font-semibold">Đã nhận: 0 kg (0%)</span>
+                            <span id="overall-gauge-weight-miss-detail" class="text-rose-600 font-semibold">Còn thiếu: 0 kg (0%)</span>
+                        </div>
+                    </div>
+
+                    <!-- Thước đo Số lượng chi tiết toàn dự án -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="font-bold text-slate-700 flex items-center gap-1.5">
+                                <i data-lucide="layers" class="w-3.5 h-3.5 text-blue-600"></i>
+                                <span>Tiến Độ Số Lượng Chi Tiết Toàn Dự Án:</span>
+                            </span>
+                            <span id="overall-gauge-qty-text" class="font-extrabold font-mono text-blue-700">0% Đã nhận</span>
+                        </div>
+                        <div class="w-full bg-slate-200 rounded-full h-3.5 overflow-hidden flex shadow-inner">
+                            <div id="overall-gauge-qty-rec-bar" class="bg-blue-600 h-full transition-all duration-500 flex items-center justify-center text-[9px] font-extrabold text-white" style="width: 0%"></div>
+                            <div id="overall-gauge-qty-miss-bar" class="bg-amber-500 h-full transition-all duration-500 flex items-center justify-center text-[9px] font-extrabold text-white" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-[11px] text-slate-500 font-medium">
+                            <span id="overall-gauge-qty-rec-detail" class="text-blue-700 font-semibold">Đã nhận: 0 pcs (0%)</span>
+                            <span id="overall-gauge-qty-miss-detail" class="text-amber-700 font-semibold">Còn thiếu: 0 pcs (0%)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Thống kê phân tích số lượng & khối lượng vật tư thiếu trực quan (Strip) -->
                 <div id="dvg-missing-visual-strip" class="bg-gradient-to-r from-rose-50 via-amber-50 to-rose-50 border border-rose-200/80 rounded-xl p-3 sm:p-3.5 flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
                         <div class="w-9 h-9 rounded-lg bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600">
@@ -594,38 +729,40 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
-                        <span class="text-xs text-slate-500 font-medium hidden sm:inline">Bấm vào từng thẻ DVG để lọc hoặc tải báo cáo:</span>
+                        <span class="text-xs text-slate-500 font-medium hidden sm:inline">Bấm vào từng thẻ đơn vị để lọc chi tiết hoặc xuất báo cáo:</span>
                     </div>
                 </div>
 
-                <!-- Danh sách thanh tiến độ DVG được vẽ động từ JavaScript -->
+                <!-- Danh sách thẻ tiến độ & tỷ lệ của từng đơn vị được vẽ động từ JavaScript -->
                 <div id="dvg-progress-bars-container" class="grid grid-cols-1 md:grid-cols-2 gap-3.5"></div>
             </div>
 
-            <!-- Bảng Số Liệu Tổng Hợp Khối Lượng Từng DVG -->
+            <!-- Bảng Số Liệu Tổng Hợp Khối Lượng & Số Lượng Từng Đơn Vị -->
             <div class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
                 <div class="px-4 sm:px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2">
                     <div class="flex items-center gap-2">
                         <span class="w-2 h-2 rounded-full bg-blue-600"></span>
-                        <h3 class="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wide">
-                            Bảng Tổng Hợp Khối Lượng & Số Lượng Từng DVG
+                        <h3 id="dvg-table-title" class="text-xs sm:text-sm font-bold text-slate-800 uppercase tracking-wide">
+                            Bảng Tổng Hợp Khối Lượng & Tỷ Lệ Từng Đơn Vị
                         </h3>
                     </div>
-                    <span class="text-xs text-slate-500 font-medium">Bấm "Xem Chi Tiết" ở bất kỳ DVG nào để tra cứu danh sách bên dưới</span>
+                    <span class="text-xs text-slate-500 font-medium">Bấm "Chi Tiết" ở bất kỳ đơn vị nào để tra cứu danh sách bên dưới</span>
                 </div>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs border-collapse">
                         <thead>
                             <tr class="bg-slate-100/80 border-b border-slate-200 text-slate-700 font-bold uppercase tracking-wider text-[11px]">
-                                <th class="py-3 px-3.5">Đơn Vị (DVG)</th>
+                                <th id="dvg-summary-col-unit" class="py-3 px-3.5">Đơn Vị</th>
                                 <th class="py-3 px-3 text-right">Tổng KL</th>
+                                <th class="py-3 px-3 text-center text-indigo-700">Tỷ Trọng (%)</th>
                                 <th class="py-3 px-3 text-right text-emerald-700">KL Đã Nhận</th>
                                 <th class="py-3 px-3 text-right text-rose-700">KL Còn Thiếu</th>
-                                <th class="py-3 px-3 text-center w-36">Tiến Độ KL</th>
+                                <th class="py-3 px-3 text-center w-36">Tiến Độ KL (%)</th>
                                 <th class="py-3 px-3 text-right">Tổng SL (pcs)</th>
                                 <th class="py-3 px-3 text-right text-emerald-700">SL Nhận</th>
                                 <th class="py-3 px-3 text-right text-rose-700">SL Thiếu</th>
+                                <th class="py-3 px-3 text-center">Tiến Độ SL (%)</th>
                                 <th class="py-3 px-3 text-center">Thao Tác</th>
                             </tr>
                         </thead>
@@ -635,7 +772,7 @@
                 </div>
             </div>
 
-            <!-- Bảng Danh Sách Chi Tiết Các Vật Tư Còn Thiếu Của DVG Được Chọn -->
+            <!-- Bảng Danh Sách Chi Tiết Các Vật Tư Còn Thiếu -->
             <div id="dvg-missing-parts-section" class="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden space-y-3">
                 <div class="px-4 sm:px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
                     <div>
@@ -643,16 +780,16 @@
                             <span class="w-2 h-2 rounded-full bg-rose-500"></span>
                             <h3 class="text-xs sm:text-sm font-bold text-slate-900 uppercase tracking-wide flex items-center gap-2">
                                 Chi Tiết Vật Tư Còn Thiếu:
-                                <span id="dvg-active-filter-badge" class="px-2.5 py-0.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold font-mono">Tất Cả DVG</span>
+                                <span id="dvg-active-filter-badge" class="px-2.5 py-0.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 font-bold font-mono">Tất Cả Đơn Vị</span>
                             </h3>
                         </div>
-                        <p class="text-[11px] text-slate-500 mt-0.5">Danh sách các mã chi tiết chưa đủ số lượng, sắp xếp theo khối lượng thiếu lớn nhất</p>
+                        <p class="text-[11px] text-slate-500 mt-0.5">Danh sách các mã chi tiết chưa đủ số lượng, hiển thị đồng thời cả Đơn Vị Gia Công (DVG) và Tổ Giao Nhận</p>
                     </div>
 
                     <div class="flex items-center flex-wrap gap-2">
                         <!-- Ô tìm nhanh trong bảng chi tiết -->
                         <div class="relative">
-                            <input type="text" id="dvg-missing-search" placeholder="Tìm mã BTP, cấu kiện, quy cách..." class="bg-white border border-slate-300 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
+                            <input type="text" id="dvg-missing-search" placeholder="Tìm mã BTP, cấu kiện, quy cách, DVG, tổ..." class="bg-white border border-slate-300 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium">
                             <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
                         </div>
 
@@ -668,7 +805,8 @@
                     <table class="w-full text-left text-xs border-collapse">
                         <thead>
                             <tr class="bg-slate-50 border-b border-slate-200 text-slate-700 uppercase font-bold text-[11px]">
-                                <th class="py-2.5 px-3">DVG</th>
+                                <th class="py-2.5 px-3">DVG (Gia Công)</th>
+                                <th class="py-2.5 px-3">Đơn Vị Giao (Tổ)</th>
                                 <th class="py-2.5 px-3">Cấu Kiện</th>
                                 <th class="py-2.5 px-3">Bản Vẽ</th>
                                 <th class="py-2.5 px-3">Mã BTP (Chi Tiết)</th>
@@ -676,6 +814,7 @@
                                 <th class="py-2.5 px-3 text-right">SL Thiết Kế</th>
                                 <th class="py-2.5 px-3 text-right text-emerald-700">SL Đã Nhận</th>
                                 <th class="py-2.5 px-3 text-right text-rose-700 font-extrabold">SL Còn Thiếu</th>
+                                <th class="py-2.5 px-3 text-center text-rose-700">Tỷ Lệ Thiếu (%)</th>
                                 <th class="py-2.5 px-3 text-right">Đơn Trọng</th>
                                 <th class="py-2.5 px-3 text-right text-rose-700 font-extrabold">Khối Lượng Thiếu</th>
                                 <th class="py-2.5 px-3">Kế Hoạch Cắt (CP No)</th>

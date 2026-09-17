@@ -78,7 +78,7 @@ def build_static_package():
         print(f"  [{idx}/{len(projects)}] Đang xử lý {fname} ({proj_id})...", end="", flush=True)
 
         try:
-            data = get_cached_project(fpath)
+            data = get_cached_project(fpath, force_reload=False)
             json_file_name = f"{proj_id}.json"
             json_path = os.path.join(DATA_OUTPUT_DIR, json_file_name)
             

@@ -34,9 +34,14 @@ let state = {
     activeTab: 'tree',
     scrollObserver: null,
     dvgUnit: 'kg',
+    analyticsMode: 'dvg',
     activeDvgFilter: 'all',
-    dvgSearchQuery: ''
+    dvgSearchQuery: '',
+    chartMetric: 'weight'
 };
+
+let chartDvgBarInstance = null;
+let chartDvgDoughnutInstance = null;
 
 // Cập nhật các nhãn trên thanh bộ lọc thu gọn
 function updateCompactFilterBadges() {
@@ -1236,17 +1241,39 @@ function renderShapeWarnings() {
 }
 
 // =============================================================================
-// MODULE: DASHBOARD PHÂN TÍCH TIẾN ĐỘ & KHỐI LƯỢNG DVG (MCC, KHO, PMC, WTC...)
+// MODULE: DASHBOARD PHÂN TÍCH TIẾN ĐỘ & KHỐI LƯỢNG (DVG & ĐƠN VỊ GIAO)
 // =============================================================================
 
+const UNIT_PALETTE = [
+    { bg: 'bg-blue-100 text-blue-800 border-blue-300', hex: '#2563eb' },
+    { bg: 'bg-purple-100 text-purple-800 border-purple-300', hex: '#9333ea' },
+    { bg: 'bg-indigo-100 text-indigo-800 border-indigo-300', hex: '#4f46e5' },
+    { bg: 'bg-teal-100 text-teal-800 border-teal-300', hex: '#0d9488' },
+    { bg: 'bg-emerald-100 text-emerald-800 border-emerald-300', hex: '#059669' },
+    { bg: 'bg-amber-100 text-amber-800 border-amber-300', hex: '#d97706' },
+    { bg: 'bg-cyan-100 text-cyan-800 border-cyan-300', hex: '#0891b2' },
+    { bg: 'bg-rose-100 text-rose-800 border-rose-300', hex: '#e11d48' },
+    { bg: 'bg-orange-100 text-orange-800 border-orange-300', hex: '#ea580c' },
+    { bg: 'bg-slate-100 text-slate-700 border-slate-300', hex: '#64748b' }
+];
+
+function getUnitColor(unitName, index = 0) {
+    const u = (unitName || '').toUpperCase().trim();
+    if (u === 'MCC') return { bg: 'bg-blue-100 text-blue-800 border-blue-300', hex: '#2563eb' };
+    if (u === 'PMC') return { bg: 'bg-purple-100 text-purple-800 border-purple-300', hex: '#9333ea' };
+    if (u === 'FAC2') return { bg: 'bg-indigo-100 text-indigo-800 border-indigo-300', hex: '#4f46e5' };
+    if (u === 'WTC') return { bg: 'bg-teal-100 text-teal-800 border-teal-300', hex: '#0d9488' };
+    if (u === 'KHO') return { bg: 'bg-amber-100 text-amber-800 border-amber-300', hex: '#d97706' };
+    if (u === 'S1') return { bg: 'bg-emerald-100 text-emerald-800 border-emerald-300', hex: '#059669' };
+    if (u === 'S2') return { bg: 'bg-cyan-100 text-cyan-800 border-cyan-300', hex: '#0891b2' };
+    if (u === 'S3') return { bg: 'bg-orange-100 text-orange-800 border-orange-300', hex: '#ea580c' };
+    if (u === 'S4') return { bg: 'bg-rose-100 text-rose-800 border-rose-300', hex: '#e11d48' };
+    if (u.includes('CHƯA') || u === 'KHÁC' || u === '-' || !u) return { bg: 'bg-slate-100 text-slate-700 border-slate-300', hex: '#94a3b8' };
+    return UNIT_PALETTE[Math.abs(index) % UNIT_PALETTE.length];
+}
+
 function getDvgBadgeClass(dvg) {
-    const d = (dvg || '').toUpperCase();
-    if (d === 'MCC') return 'bg-blue-100 text-blue-800 border-blue-300';
-    if (d === 'PMC') return 'bg-purple-100 text-purple-800 border-purple-300';
-    if (d === 'KHO') return 'bg-amber-100 text-amber-800 border-amber-300';
-    if (d === 'WTC') return 'bg-teal-100 text-teal-800 border-teal-300';
-    if (d === 'FAC2') return 'bg-indigo-100 text-indigo-800 border-indigo-300';
-    return 'bg-slate-100 text-slate-700 border-slate-300';
+    return getUnitColor(dvg).bg;
 }
 
 function formatWeightVal(weightKg) {
@@ -1271,26 +1298,43 @@ function computeDvgAnalyticsData() {
                 da_nhan_qty: 0,
                 con_thieu_qty: 0,
                 completion_rate_weight: 0,
-                completion_rate_qty: 0
-            }
+                missing_rate_weight: 0,
+                completion_rate_qty: 0,
+                missing_rate_qty: 0
+            },
+            mode: state.analyticsMode || 'dvg'
         };
     }
 
+    const mode = state.analyticsMode || 'dvg';
     const byDvgMap = {};
     const targetSheet = state.selectedSheet;
 
     state.projectData.assemblies.forEach(assy => {
         if (targetSheet && targetSheet !== 'all' && assy.sheet !== targetSheet) return;
 
+        const assyGiao = (assy.don_vi_giao || '').trim().toUpperCase();
+
         (assy.parts || []).forEach(p => {
-            let dvg = (p.dvg || '').trim().toUpperCase();
-            if (!dvg || dvg === '-' || dvg === '0' || dvg === 'NONE') {
-                dvg = 'KHÁC';
+            const partDvg = (p.dvg || '').trim().toUpperCase();
+            const partGiao = (p.don_vi_giao || assyGiao || '').trim().toUpperCase();
+
+            let unitKey = '';
+            if (mode === 'giao') {
+                unitKey = partGiao;
+                if (!unitKey || unitKey === '-' || unitKey === '0' || unitKey === 'NONE') {
+                    unitKey = 'CHƯA PHÂN GIAO';
+                }
+            } else {
+                unitKey = partDvg;
+                if (!unitKey || unitKey === '-' || unitKey === '0' || unitKey === 'NONE') {
+                    unitKey = 'KHÁC';
+                }
             }
 
-            if (!byDvgMap[dvg]) {
-                byDvgMap[dvg] = {
-                    dvg: dvg,
+            if (!byDvgMap[unitKey]) {
+                byDvgMap[unitKey] = {
+                    dvg: unitKey,
                     total_qty: 0,
                     da_nhan_qty: 0,
                     con_thieu_qty: 0,
@@ -1303,7 +1347,7 @@ function computeDvgAnalyticsData() {
                 };
             }
 
-            const item = byDvgMap[dvg];
+            const item = byDvgMap[unitKey];
             const tqty = Number(p.tqty) || 0;
             const daNhan = Number(p.da_nhan) || 0;
             const conThieu = p.con_thieu !== undefined ? Number(p.con_thieu) : Math.max(0, tqty - daNhan);
@@ -1322,8 +1366,10 @@ function computeDvgAnalyticsData() {
 
             if (conThieu > 0) {
                 item.missing_parts_count += 1;
+                const rateMissing = tqty > 0 ? Math.round((conThieu / tqty) * 1000) / 10 : 0;
                 item.missing_parts.push({
-                    dvg: dvg,
+                    dvg: partDvg || 'KHÁC',
+                    don_vi_giao: partGiao || 'CHƯA PHÂN GIAO',
                     sheet: assy.sheet || '',
                     assembly_no: assy.assembly_no || '',
                     dwg: assy.dwg || '',
@@ -1335,6 +1381,7 @@ function computeDvgAnalyticsData() {
                     tqty: tqty,
                     da_nhan: daNhan,
                     con_thieu: conThieu,
+                    rate_missing: rateMissing,
                     uweight: uweight,
                     con_thieu_weight: conThieuWeight,
                     cutting_no: (p.shape_analysis && p.shape_analysis.cutting_no) || p.cutting_no || '',
@@ -1346,44 +1393,350 @@ function computeDvgAnalyticsData() {
     });
 
     const byDvgList = Object.values(byDvgMap);
+    const grandTotalWeight = byDvgList.reduce((acc, x) => acc + x.total_weight, 0);
+    const grandTotalQty = byDvgList.reduce((acc, x) => acc + x.total_qty, 0);
+    const grandDaNhanWeight = byDvgList.reduce((acc, x) => acc + x.da_nhan_weight, 0);
+    const grandConThieuWeight = byDvgList.reduce((acc, x) => acc + x.con_thieu_weight, 0);
+    const grandDaNhanQty = byDvgList.reduce((acc, x) => acc + x.da_nhan_qty, 0);
+    const grandConThieuQty = byDvgList.reduce((acc, x) => acc + x.con_thieu_qty, 0);
+
     byDvgList.forEach(d => {
         d.completion_rate_qty = d.total_qty > 0 ? Math.round((d.da_nhan_qty / d.total_qty) * 1000) / 10 : 0;
+        d.missing_rate_qty = d.total_qty > 0 ? Math.round((d.con_thieu_qty / d.total_qty) * 1000) / 10 : 0;
         d.completion_rate_weight = d.total_weight > 0 ? Math.round((d.da_nhan_weight / d.total_weight) * 1000) / 10 : 0;
+        d.missing_rate_weight = d.total_weight > 0 ? Math.round((d.con_thieu_weight / d.total_weight) * 1000) / 10 : 0;
+        d.share_of_total_weight = grandTotalWeight > 0 ? Math.round((d.total_weight / grandTotalWeight) * 1000) / 10 : 0;
         d.missing_parts.sort((a, b) => b.con_thieu_weight - a.con_thieu_weight);
     });
 
-    // Sắp xếp các DVG theo tổng khối lượng giảm dần
+    // Sắp xếp các đơn vị theo tổng khối lượng giảm dần
     byDvgList.sort((a, b) => b.total_weight - a.total_weight);
 
     const totals = {
-        total_weight: byDvgList.reduce((acc, x) => acc + x.total_weight, 0),
-        da_nhan_weight: byDvgList.reduce((acc, x) => acc + x.da_nhan_weight, 0),
-        con_thieu_weight: byDvgList.reduce((acc, x) => acc + x.con_thieu_weight, 0),
-        total_qty: byDvgList.reduce((acc, x) => acc + x.total_qty, 0),
-        da_nhan_qty: byDvgList.reduce((acc, x) => acc + x.da_nhan_qty, 0),
-        con_thieu_qty: byDvgList.reduce((acc, x) => acc + x.con_thieu_qty, 0),
-        completion_rate_weight: 0,
-        completion_rate_qty: 0
+        total_weight: grandTotalWeight,
+        da_nhan_weight: grandDaNhanWeight,
+        con_thieu_weight: grandConThieuWeight,
+        total_qty: grandTotalQty,
+        da_nhan_qty: grandDaNhanQty,
+        con_thieu_qty: grandConThieuQty,
+        completion_rate_weight: grandTotalWeight > 0 ? Math.round((grandDaNhanWeight / grandTotalWeight) * 1000) / 10 : 0,
+        missing_rate_weight: grandTotalWeight > 0 ? Math.round((grandConThieuWeight / grandTotalWeight) * 1000) / 10 : 0,
+        completion_rate_qty: grandTotalQty > 0 ? Math.round((grandDaNhanQty / grandTotalQty) * 1000) / 10 : 0,
+        missing_rate_qty: grandTotalQty > 0 ? Math.round((grandConThieuQty / grandTotalQty) * 1000) / 10 : 0
     };
-    if (totals.total_weight > 0) {
-        totals.completion_rate_weight = Math.round((totals.da_nhan_weight / totals.total_weight) * 1000) / 10;
-    }
-    if (totals.total_qty > 0) {
-        totals.completion_rate_qty = Math.round((totals.da_nhan_qty / totals.total_qty) * 1000) / 10;
-    }
 
-    return { byDvg: byDvgList, totals: totals };
+    return { byDvg: byDvgList, totals: totals, mode: mode };
 }
 
-// Render Dashboard DVG
+// =============================================================================
+// BIỂU ĐỒ ĐỒ HỌA TRỰC QUAN (CHART.JS: CỘT TIẾN ĐỘ & DONUT TỶ TRỌNG KÈM TỶ LỆ %)
+// =============================================================================
+function renderDvgGraphicCharts(byDvg, totals, mode) {
+    if (typeof Chart === 'undefined') {
+        setTimeout(() => renderDvgGraphicCharts(byDvg, totals, mode), 250);
+        return;
+    }
+
+    const canvasBar = document.getElementById('chart-dvg-bar');
+    const canvasDoughnut = document.getElementById('chart-dvg-doughnut');
+    if (!canvasBar || !canvasDoughnut) return;
+
+    const isMetricWeight = (state.chartMetric || 'weight') === 'weight';
+    const isGiao = mode === 'giao';
+
+    // Cập nhật trạng thái nút Metric (Khối Lượng vs Số Lượng)
+    const btnMetricWeight = document.getElementById('btn-chart-metric-weight');
+    const btnMetricQty = document.getElementById('btn-chart-metric-qty');
+    if (btnMetricWeight && btnMetricQty) {
+        if (isMetricWeight) {
+            btnMetricWeight.className = 'px-2.5 py-1 rounded-md bg-white text-indigo-700 shadow-2xs cursor-pointer transition';
+            btnMetricQty.className = 'px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 cursor-pointer transition';
+        } else {
+            btnMetricQty.className = 'px-2.5 py-1 rounded-md bg-white text-indigo-700 shadow-2xs cursor-pointer transition';
+            btnMetricWeight.className = 'px-2.5 py-1 rounded-md text-slate-600 hover:text-slate-900 cursor-pointer transition';
+        }
+    }
+
+    // Tiêu đề biểu đồ
+    const barHeading = document.getElementById('chart-bar-heading');
+    const doughnutHeading = document.getElementById('chart-doughnut-heading');
+    if (barHeading) {
+        barHeading.innerHTML = `
+            <i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-600"></i>
+            <span>Tiến Độ ${isMetricWeight ? 'Khối Lượng' : 'Số Lượng'} Từng ${isGiao ? 'Tổ Giao' : 'Đơn Vị'} (Đã Nhận vs Còn Thiếu & Tỷ Lệ %)</span>
+        `;
+    }
+    if (doughnutHeading) {
+        doughnutHeading.innerHTML = `
+            <i data-lucide="pie-chart" class="w-4 h-4 text-indigo-600"></i>
+            <span>Cơ Cấu Tỷ Trọng ${isMetricWeight ? 'Khối Lượng' : 'Số Lượng'} (%) Toàn Dự Án</span>
+        `;
+    }
+
+    // Hủy các instance biểu đồ cũ nếu đã có
+    if (chartDvgBarInstance) {
+        chartDvgBarInstance.destroy();
+        chartDvgBarInstance = null;
+    }
+    if (chartDvgDoughnutInstance) {
+        chartDvgDoughnutInstance.destroy();
+        chartDvgDoughnutInstance = null;
+    }
+
+    if (!byDvg || byDvg.length === 0) return;
+
+    const labels = byDvg.map(d => d.dvg);
+    const unitUnit = isMetricWeight ? (state.dvgUnit === 'ton' ? 'Tấn' : 'kg') : 'pcs';
+
+    // Dữ liệu cho Bar Chart
+    const recData = byDvg.map(d => {
+        if (!isMetricWeight) return d.da_nhan_qty;
+        return state.dvgUnit === 'ton' ? Math.round(d.da_nhan_weight / 100) / 10 : Math.round(d.da_nhan_weight);
+    });
+    const missData = byDvg.map(d => {
+        if (!isMetricWeight) return d.con_thieu_qty;
+        return state.dvgUnit === 'ton' ? Math.round(d.con_thieu_weight / 100) / 10 : Math.round(d.con_thieu_weight);
+    });
+
+    // 1. VẼ BAR CHART (Stacked hoặc Grouped)
+    const ctxBar = canvasBar.getContext('2d');
+    chartDvgBarInstance = new Chart(ctxBar, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: `Đã Nhận (${unitUnit})`,
+                    data: recData,
+                    backgroundColor: 'rgba(16, 185, 129, 0.85)',
+                    borderColor: '#059669',
+                    borderWidth: 1.5,
+                    borderRadius: 6
+                },
+                {
+                    label: `Còn Thiếu (${unitUnit})`,
+                    data: missData,
+                    backgroundColor: 'rgba(244, 63, 94, 0.85)',
+                    borderColor: '#e11d48',
+                    borderWidth: 1.5,
+                    borderRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            onClick: (evt, elements) => {
+                if (elements && elements.length > 0) {
+                    const idx = elements[0].index;
+                    const clickedUnit = labels[idx];
+                    state.activeDvgFilter = (state.activeDvgFilter === clickedUnit) ? 'all' : clickedUnit;
+                    renderDvgAnalytics();
+                    const section = document.getElementById('dvg-missing-parts-section');
+                    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        boxWidth: 14,
+                        padding: 12,
+                        font: { size: 11, weight: 'bold', family: 'sans-serif' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    titleFont: { size: 13, weight: 'bold' },
+                    bodyFont: { size: 12 },
+                    padding: 10,
+                    cornerRadius: 10,
+                    callbacks: {
+                        label: function(context) {
+                            const d = byDvg[context.dataIndex];
+                            const isRec = context.datasetIndex === 0;
+                            const rate = isMetricWeight 
+                                ? (isRec ? d.completion_rate_weight : d.missing_rate_weight)
+                                : (isRec ? d.completion_rate_qty : d.missing_rate_qty);
+                            const valFormatted = isMetricWeight 
+                                ? formatWeightVal(isRec ? d.da_nhan_weight : d.con_thieu_weight)
+                                : `${(isRec ? d.da_nhan_qty : d.con_thieu_qty).toLocaleString('vi-VN')} pcs`;
+                            return `${context.dataset.label}: ${valFormatted} (${rate}%)`;
+                        },
+                        afterBody: function(contexts) {
+                            if (!contexts || contexts.length === 0) return '';
+                            const d = byDvg[contexts[0].dataIndex];
+                            return [
+                                `---------------------------------`,
+                                `Tổng: ${isMetricWeight ? formatWeightVal(d.total_weight) : d.total_qty.toLocaleString('vi-VN') + ' pcs'}`,
+                                `Tỷ trọng dự án: ${d.share_of_total_weight}%`,
+                                `Số chi tiết thiếu: ${d.missing_parts_count} BTP`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        font: { size: 11, weight: 'bold' },
+                        color: '#334155'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(226, 232, 240, 0.7)' },
+                    ticks: {
+                        font: { size: 10 },
+                        color: '#64748b'
+                    }
+                }
+            }
+        }
+    });
+
+    // 2. VẼ DOUGHNUT CHART (Cơ cấu tỷ trọng)
+    const ctxDoughnut = canvasDoughnut.getContext('2d');
+    const doughnutData = byDvg.map(d => {
+        if (!isMetricWeight) return d.total_qty;
+        return Math.round(d.total_weight);
+    });
+    const doughnutColors = byDvg.map((d, idx) => getUnitColor(d.dvg, idx).hex);
+
+    chartDvgDoughnutInstance = new Chart(ctxDoughnut, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: doughnutData,
+                backgroundColor: doughnutColors,
+                borderWidth: 2,
+                borderColor: '#ffffff',
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '58%',
+            onClick: (evt, elements) => {
+                if (elements && elements.length > 0) {
+                    const idx = elements[0].index;
+                    const clickedUnit = labels[idx];
+                    state.activeDvgFilter = (state.activeDvgFilter === clickedUnit) ? 'all' : clickedUnit;
+                    renderDvgAnalytics();
+                    const section = document.getElementById('dvg-missing-parts-section');
+                    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 8,
+                        font: { size: 10, weight: 'bold' }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                    titleFont: { size: 12, weight: 'bold' },
+                    bodyFont: { size: 12 },
+                    padding: 8,
+                    cornerRadius: 8,
+                    callbacks: {
+                        label: function(context) {
+                            const d = byDvg[context.dataIndex];
+                            const valFormatted = isMetricWeight ? formatWeightVal(d.total_weight) : `${d.total_qty.toLocaleString('vi-VN')} pcs`;
+                            return `${d.dvg}: ${valFormatted} (${d.share_of_total_weight}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    lucide.createIcons();
+}
+
+// Render Dashboard DVG & Đơn Vị Giao
 function renderDvgAnalytics() {
     if (!state.projectData) return;
-    const { byDvg, totals } = computeDvgAnalyticsData();
+    const { byDvg, totals, mode } = computeDvgAnalyticsData();
 
-    // 1. Cập nhật nhãn phạm vi lọc
+    // 1. Cập nhật nhãn phạm vi lọc & Chế độ phân tích
     const filterBadge = document.getElementById('dvg-current-filter-badge');
     if (filterBadge) {
         filterBadge.textContent = state.selectedSheet === 'all' ? 'Tất cả hạng mục' : `Hạng mục: ${state.selectedSheet}`;
+    }
+
+    // Cập nhật giao diện nút chuyển chế độ (DVG vs Đơn Vị Giao)
+    const btnModeDvg = document.getElementById('btn-mode-dvg');
+    const btnModeGiao = document.getElementById('btn-mode-giao');
+    const modeIndicator = document.getElementById('dvg-mode-indicator-text');
+    const headerSubtitle = document.getElementById('dvg-header-subtitle');
+    const chartTitle = document.getElementById('dvg-chart-section-title');
+    const chartSubtitle = document.getElementById('dvg-chart-section-subtitle');
+    const tableTitle = document.getElementById('dvg-table-title');
+    const colUnitHeader = document.getElementById('dvg-summary-col-unit');
+    const kpiUnitTitle = document.getElementById('kpi-dvg-units-title');
+    const distribTitle = document.getElementById('dvg-distrib-title');
+    const btnExportSumText = document.getElementById('btn-export-summary-text');
+
+    const isGiao = mode === 'giao';
+    if (btnModeDvg && btnModeGiao) {
+        if (isGiao) {
+            btnModeGiao.className = 'px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-indigo-600 text-white shadow-xs cursor-pointer';
+            btnModeDvg.className = 'px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 cursor-pointer';
+        } else {
+            btnModeDvg.className = 'px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-indigo-600 text-white shadow-xs cursor-pointer';
+            btnModeGiao.className = 'px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 cursor-pointer';
+        }
+    }
+
+    if (modeIndicator) {
+        modeIndicator.textContent = isGiao 
+            ? 'Đang phân tích theo: Đơn Vị Giao (Phân Giao Tổ)' 
+            : 'Đang phân tích theo: Đơn Vị Gia Công (DVG)';
+    }
+    if (headerSubtitle) {
+        headerSubtitle.textContent = isGiao
+            ? 'Phân tích chi tiết tiến độ, khối lượng và số lượng của các tổ giao nhận: S1, S2, S3, S4, KHO...'
+            : 'Phân tích chi tiết tiến độ, khối lượng và số lượng của các đơn vị gia công: MCC, PMC, FAC2, WTC, KHO...';
+    }
+    if (chartTitle) {
+        chartTitle.textContent = isGiao 
+            ? 'Biểu Đồ Tiến Độ Khối Lượng & Số Lượng Từng Tổ Giao'
+            : 'Biểu Đồ Tiến Độ Khối Lượng & Số Lượng Từng Đơn Vị Gia Công (DVG)';
+    }
+    if (chartSubtitle) {
+        chartSubtitle.textContent = isGiao
+            ? 'Thống kê so sánh khối lượng và số lượng đã nhận vs còn thiếu của từng tổ giao nhận'
+            : 'Thống kê so sánh khối lượng và số lượng đã nhận vs còn thiếu của từng đơn vị gia công';
+    }
+    if (tableTitle) {
+        tableTitle.textContent = isGiao
+            ? 'Bảng Tổng Hợp Khối Lượng & Tỷ Lệ Từng Tổ Giao'
+            : 'Bảng Tổng Hợp Khối Lượng & Tỷ Lệ Từng Đơn Vị (DVG)';
+    }
+    if (colUnitHeader) {
+        colUnitHeader.textContent = isGiao ? 'Đơn Vị Giao (Tổ)' : 'Đơn Vị Gia Công (DVG)';
+    }
+    if (kpiUnitTitle) {
+        kpiUnitTitle.textContent = isGiao ? 'Đơn Vị Giao (Tổ)' : 'Đơn Vị Gia Công (DVG)';
+    }
+    if (distribTitle) {
+        distribTitle.textContent = isGiao
+            ? 'Biểu Đồ Phân Bổ Tỷ Trọng Khối Lượng Theo Tổ Giao (%)'
+            : 'Biểu Đồ Phân Bổ Tỷ Trọng Khối Lượng Theo Đơn Vị Gia Công (DVG) (%)';
+    }
+    if (btnExportSumText) {
+        btnExportSumText.textContent = isGiao ? 'Xuất Báo Cáo Tổ Giao (.xlsx)' : 'Xuất Báo Cáo DVG (.xlsx)';
     }
 
     // 2. Cập nhật trạng thái nút đơn vị (kg / tấn)
@@ -1420,81 +1773,215 @@ function renderDvgAnalytics() {
 
     if (kpiRecW) kpiRecW.textContent = formatWeightVal(totals.da_nhan_weight);
     if (kpiRecQ) kpiRecQ.textContent = `Đã nhận ${totals.da_nhan_qty.toLocaleString('vi-VN')} pcs`;
-    if (kpiWRate) kpiWRate.textContent = `${totals.completion_rate_weight}%`;
+    if (kpiWRate) kpiWRate.textContent = `${totals.completion_rate_weight}% hoàn thành`;
 
     if (kpiMissW) kpiMissW.textContent = formatWeightVal(totals.con_thieu_weight);
     if (kpiMissQ) kpiMissQ.textContent = `Còn thiếu ${totals.con_thieu_qty.toLocaleString('vi-VN')} pcs`;
-    const missRate = totals.total_weight > 0 ? Math.round((totals.con_thieu_weight / totals.total_weight) * 1000) / 10 : 0;
-    if (kpiMissRate) kpiMissRate.textContent = `${missRate}% còn thiếu`;
+    if (kpiMissRate) kpiMissRate.textContent = `${totals.missing_rate_weight}% còn thiếu`;
 
     if (kpiUnitsCount) kpiUnitsCount.textContent = byDvg.length;
     if (kpiUnitsDesc) {
-        const topDvgs = byDvg.slice(0, 4).map(d => d.dvg).join(', ');
-        kpiUnitsDesc.textContent = topDvgs ? `${topDvgs}...` : 'Chưa có DVG';
+        const topUnits = byDvg.slice(0, 4).map(d => d.dvg).join(', ');
+        kpiUnitsDesc.textContent = topUnits ? `${topUnits}...` : (isGiao ? 'Chưa phân giao' : 'Chưa có DVG');
     }
 
-    // 4. Cập nhật Thống kê phân tích vật tư thiếu trực quan (Strip)
+    // 4. CẬP NHẬT BIỂU ĐỒ 1: BIỂU ĐỒ PHÂN BỔ TỶ TRỌNG TOÀN DỰ ÁN (%)
+    const distribBar = document.getElementById('dvg-distribution-bar');
+    const distribLegend = document.getElementById('dvg-distribution-legend');
+    const distribTotalLbl = document.getElementById('dvg-distrib-total-lbl');
+
+    if (distribTotalLbl) {
+        distribTotalLbl.textContent = `Tổng: ${formatWeightVal(totals.total_weight)} (100%)`;
+    }
+
+    if (distribBar && distribLegend) {
+        if (byDvg.length === 0 || totals.total_weight <= 0) {
+            distribBar.innerHTML = `<div class="w-full h-full bg-slate-200 text-slate-500 text-xs flex items-center justify-center font-medium">Không có khối lượng</div>`;
+            distribLegend.innerHTML = ``;
+        } else {
+            distribBar.innerHTML = byDvg.map((d, idx) => {
+                const color = getUnitColor(d.dvg, idx);
+                const pct = d.share_of_total_weight;
+                const isSelected = state.activeDvgFilter === d.dvg;
+                const opacityClass = (state.activeDvgFilter !== 'all' && !isSelected) ? 'opacity-30' : 'opacity-100';
+                const showLabel = pct >= 4.5;
+                return `
+                    <div class="h-full transition-all duration-300 relative group cursor-pointer ${opacityClass} rounded-lg flex items-center justify-center overflow-hidden hover:brightness-110 select-none" 
+                         style="width: ${Math.max(1.5, pct)}%; background-color: ${color.hex};" 
+                         data-dvg="${d.dvg}"
+                         title="${d.dvg}: ${formatWeightVal(d.total_weight)} (chiếm ${pct}% toàn dự án) - Bấm để lọc">
+                        ${showLabel ? `<span class="text-[10px] font-extrabold text-white px-1 truncate drop-shadow-xs">${d.dvg} ${pct}%</span>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            distribLegend.innerHTML = byDvg.map((d, idx) => {
+                const color = getUnitColor(d.dvg, idx);
+                const isSelected = state.activeDvgFilter === d.dvg;
+                const activeRing = isSelected ? 'ring-2 ring-indigo-500 scale-105 shadow-sm bg-indigo-50/50' : 'hover:bg-slate-50';
+                return `
+                    <button type="button" class="btn-legend-pill flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-slate-200 bg-white transition cursor-pointer text-xs font-semibold ${activeRing}" data-dvg="${d.dvg}">
+                        <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" style="background-color: ${color.hex};"></span>
+                        <span class="font-bold text-slate-800">${d.dvg}</span>
+                        <span class="font-mono text-indigo-700 font-extrabold">${d.share_of_total_weight}%</span>
+                        <span class="text-[11px] text-slate-400 font-medium">(${formatWeightVal(d.total_weight)})</span>
+                    </button>
+                `;
+            }).join('');
+
+            const filterElements = [...distribBar.querySelectorAll('[data-dvg]'), ...distribLegend.querySelectorAll('.btn-legend-pill')];
+            filterElements.forEach(el => {
+                el.addEventListener('click', function() {
+                    const unitName = this.dataset.dvg;
+                    state.activeDvgFilter = (state.activeDvgFilter === unitName) ? 'all' : unitName;
+                    renderDvgAnalytics();
+                    const section = document.getElementById('dvg-missing-parts-section');
+                    if (section) section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                });
+            });
+        }
+    }
+
+    // 5. CẬP NHẬT THƯỚC ĐO TIẾN ĐỘ TỔNG THỂ TOÀN DỰ ÁN (Dual Progress Gauges)
+    const gWeightText = document.getElementById('overall-gauge-weight-text');
+    const gWeightRecBar = document.getElementById('overall-gauge-weight-rec-bar');
+    const gWeightMissBar = document.getElementById('overall-gauge-weight-miss-bar');
+    const gWeightRecDetail = document.getElementById('overall-gauge-weight-rec-detail');
+    const gWeightMissDetail = document.getElementById('overall-gauge-weight-miss-detail');
+
+    const gQtyText = document.getElementById('overall-gauge-qty-text');
+    const gQtyRecBar = document.getElementById('overall-gauge-qty-rec-bar');
+    const gQtyMissBar = document.getElementById('overall-gauge-qty-miss-bar');
+    const gQtyRecDetail = document.getElementById('overall-gauge-qty-rec-detail');
+    const gQtyMissDetail = document.getElementById('overall-gauge-qty-miss-detail');
+
+    if (gWeightText) gWeightText.textContent = `${totals.completion_rate_weight}% Đã nhận | ${totals.missing_rate_weight}% Còn thiếu`;
+    if (gWeightRecBar) {
+        gWeightRecBar.style.width = `${totals.completion_rate_weight}%`;
+        gWeightRecBar.textContent = totals.completion_rate_weight >= 12 ? `${totals.completion_rate_weight}%` : '';
+    }
+    if (gWeightMissBar) {
+        gWeightMissBar.style.width = `${totals.missing_rate_weight}%`;
+        gWeightMissBar.textContent = totals.missing_rate_weight >= 12 ? `${totals.missing_rate_weight}%` : '';
+    }
+    if (gWeightRecDetail) gWeightRecDetail.textContent = `Đã nhận: ${formatWeightVal(totals.da_nhan_weight)} (${totals.completion_rate_weight}%)`;
+    if (gWeightMissDetail) gWeightMissDetail.textContent = `Còn thiếu: ${formatWeightVal(totals.con_thieu_weight)} (${totals.missing_rate_weight}%)`;
+
+    if (gQtyText) gQtyText.textContent = `${totals.completion_rate_qty}% Đã nhận | ${totals.missing_rate_qty}% Còn thiếu`;
+    if (gQtyRecBar) {
+        gQtyRecBar.style.width = `${totals.completion_rate_qty}%`;
+        gQtyRecBar.textContent = totals.completion_rate_qty >= 12 ? `${totals.completion_rate_qty}%` : '';
+    }
+    if (gQtyMissBar) {
+        gQtyMissBar.style.width = `${totals.missing_rate_qty}%`;
+        gQtyMissBar.textContent = totals.missing_rate_qty >= 12 ? `${totals.missing_rate_qty}%` : '';
+    }
+    if (gQtyRecDetail) gQtyRecDetail.textContent = `Đã nhận: ${totals.da_nhan_qty.toLocaleString('vi-VN')} pcs (${totals.completion_rate_qty}%)`;
+    if (gQtyMissDetail) gQtyMissDetail.textContent = `Còn thiếu: ${totals.con_thieu_qty.toLocaleString('vi-VN')} pcs (${totals.missing_rate_qty}%)`;
+
+    // 6. Cập nhật Thống kê phân tích vật tư thiếu trực quan (Strip)
     const stripSum = document.getElementById('dvg-strip-missing-summary');
     const stripTop = document.getElementById('dvg-strip-top-missing');
     if (stripSum) {
         stripSum.textContent = `${formatWeightVal(totals.con_thieu_weight)} (${totals.con_thieu_qty.toLocaleString('vi-VN')} chi tiết)`;
     }
     if (stripTop) {
-        const missingDvgs = [...byDvg].filter(d => d.con_thieu_weight > 0 || d.con_thieu_qty > 0)
-                                      .sort((a, b) => b.con_thieu_weight - a.con_thieu_weight);
-        if (missingDvgs.length > 0) {
-            const topM = missingDvgs[0];
+        const missingUnits = [...byDvg].filter(d => d.con_thieu_weight > 0 || d.con_thieu_qty > 0)
+                                       .sort((a, b) => b.con_thieu_weight - a.con_thieu_weight);
+        if (missingUnits.length > 0) {
+            const topM = missingUnits[0];
             const percentTop = totals.con_thieu_weight > 0 ? Math.round((topM.con_thieu_weight / totals.con_thieu_weight) * 1000) / 10 : 0;
-            stripTop.textContent = `⚡ Đơn vị thiếu khối lượng nhiều nhất: ${topM.dvg} (thiếu ${formatWeightVal(topM.con_thieu_weight)}, chiếm ${percentTop}% tổng KL thiếu - ${topM.con_thieu_qty.toLocaleString('vi-VN')} pcs)`;
+            stripTop.textContent = `⚡ Đơn vị thiếu khối lượng nhiều nhất: ${topM.dvg} (thiếu ${formatWeightVal(topM.con_thieu_weight)}, chiếm ${percentTop}% tổng KL thiếu toàn dự án - ${topM.con_thieu_qty.toLocaleString('vi-VN')} pcs)`;
         } else {
-            stripTop.textContent = `🎉 Toàn bộ các đơn vị gia công đã giao đủ 100% khối lượng và chi tiết!`;
+            stripTop.textContent = `🎉 Toàn bộ các đơn vị đã bàn giao đủ 100% khối lượng và số lượng chi tiết!`;
         }
     }
 
-    // 5. Render Biểu đồ thanh tiến độ từng DVG
+    // 7. CẬP NHẬT BIỂU ĐỒ ĐỒ HỌA TRỰC QUAN (CHART.JS: CỘT TIẾN ĐỘ & DONUT TỶ TRỌNG CÓ ĐẦY ĐỦ TỶ LỆ %)
+    renderDvgGraphicCharts(byDvg, totals, mode);
+
+    // 8. Render Biểu đồ thẻ tiến độ & tỷ lệ từng đơn vị (Progress Cards)
     const progressContainer = document.getElementById('dvg-progress-bars-container');
     if (progressContainer) {
         if (byDvg.length === 0) {
-            progressContainer.innerHTML = `<p class="text-xs text-slate-400 p-4 text-center">Không có dữ liệu DVG trong phạm vi lọc này.</p>`;
+            progressContainer.innerHTML = `<p class="text-xs text-slate-400 p-8 text-center col-span-2">Không có dữ liệu trong phạm vi lọc này.</p>`;
         } else {
-            progressContainer.innerHTML = byDvg.map(d => {
+            progressContainer.innerHTML = byDvg.map((d, idx) => {
+                const color = getUnitColor(d.dvg, idx);
                 const wRate = d.completion_rate_weight;
+                const wMissRate = d.missing_rate_weight;
                 const qRate = d.completion_rate_qty;
+                const qMissRate = d.missing_rate_qty;
                 const isSelected = state.activeDvgFilter === d.dvg;
-                const borderClass = isSelected ? 'border-indigo-500 ring-2 ring-indigo-300 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-slate-50/60 hover:border-slate-300';
+                const borderClass = isSelected ? 'border-indigo-500 ring-2 ring-indigo-300 bg-indigo-50/40 shadow-xs' : 'border-slate-200 bg-white hover:border-slate-300';
                 const rateColor = wRate >= 90 ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : (wRate >= 50 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-rose-700 bg-rose-50 border-rose-200');
-                const fillBarColor = wRate >= 90 ? 'bg-emerald-500' : (wRate >= 50 ? 'bg-amber-500' : 'bg-rose-500');
 
                 return `
                     <div class="dvg-progress-card p-4 rounded-2xl border ${borderClass} transition cursor-pointer hover:shadow-xs flex flex-col justify-between" data-dvg="${d.dvg}">
                         <div>
-                            <div class="flex items-center justify-between gap-2 mb-2.5">
-                                <div class="flex items-center gap-2">
-                                    <span class="px-2.5 py-1 rounded-lg text-xs font-extrabold font-mono ${getDvgBadgeClass(d.dvg)}">${d.dvg}</span>
-                                    <span class="text-xs font-bold text-slate-700">${d.parts_count} chi tiết</span>
+                            <!-- Header thẻ đơn vị -->
+                            <div class="flex items-center justify-between gap-2 mb-3">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="px-2.5 py-1 rounded-lg text-xs font-extrabold font-mono border ${color.bg}">${d.dvg}</span>
+                                    <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                        Chiếm ${d.share_of_total_weight}% KL dự án
+                                    </span>
                                 </div>
-                                <span class="text-xs font-extrabold px-2 py-0.5 rounded-md border font-mono ${rateColor}">${wRate}% hoàn thành</span>
+                                <span class="text-xs font-extrabold px-2.5 py-1 rounded-lg border font-mono ${rateColor}">
+                                    ${wRate}% KL hoàn thành
+                                </span>
                             </div>
 
-                            <!-- Tiến độ khối lượng -->
-                            <div class="space-y-1 mt-2">
-                                <div class="flex justify-between text-[11px] font-semibold">
-                                    <span class="text-slate-600">Khối lượng: <strong class="text-emerald-700">${formatWeightVal(d.da_nhan_weight)}</strong> / ${formatWeightVal(d.total_weight)}</span>
-                                    <span class="${d.con_thieu_weight > 0 ? 'text-rose-600 font-bold' : 'text-slate-400'}">Thiếu: ${formatWeightVal(d.con_thieu_weight)}</span>
+                            <!-- 1. Thanh tỷ lệ KHỐI LƯỢNG (Trực quan 2 màu Đã Nhận & Còn Thiếu) -->
+                            <div class="space-y-1.5 mt-2 bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/80">
+                                <div class="flex justify-between items-center text-xs font-bold">
+                                    <span class="text-slate-700 flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                        <span>Đã nhận: <strong class="text-emerald-700 font-mono">${formatWeightVal(d.da_nhan_weight)}</strong></span>
+                                        <span class="text-[11px] text-emerald-600 font-mono font-extrabold">(${wRate}%)</span>
+                                    </span>
+                                    <span class="${d.con_thieu_weight > 0 ? 'text-rose-700 font-bold' : 'text-slate-400'} flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full ${d.con_thieu_weight > 0 ? 'bg-rose-500' : 'bg-slate-300'}"></span>
+                                        <span>Thiếu: <strong class="font-mono">${formatWeightVal(d.con_thieu_weight)}</strong></span>
+                                        <span class="text-[11px] text-rose-600 font-mono font-extrabold">(${wMissRate}%)</span>
+                                    </span>
                                 </div>
-                                <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
-                                    <div class="${fillBarColor} h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, wRate)}%"></div>
+                                <!-- Dual Stacked Bar for Weight -->
+                                <div class="w-full bg-slate-200 rounded-full h-3 overflow-hidden flex shadow-inner">
+                                    <div class="bg-emerald-500 h-full transition-all duration-500 flex items-center justify-center text-[9px] font-extrabold text-white" style="width: ${Math.min(100, wRate)}%">
+                                        ${wRate >= 15 ? `${wRate}%` : ''}
+                                    </div>
+                                    <div class="bg-rose-500 h-full transition-all duration-500 flex items-center justify-center text-[9px] font-extrabold text-white" style="width: ${Math.max(0, 100 - wRate)}%">
+                                        ${wMissRate >= 15 ? `${wMissRate}%` : ''}
+                                    </div>
+                                </div>
+                                <div class="text-[11px] text-slate-500 font-medium text-right">
+                                    Tổng KL đơn vị: <strong class="text-slate-800 font-mono font-bold">${formatWeightVal(d.total_weight)}</strong>
                                 </div>
                             </div>
 
-                            <!-- Tiến độ số lượng -->
-                            <div class="space-y-1 mt-2.5 pt-2 border-t border-slate-200/60">
-                                <div class="flex justify-between text-[11px] font-medium text-slate-500">
-                                    <span>Số lượng: <strong class="text-slate-800">${d.da_nhan_qty.toLocaleString('vi-VN')}</strong> / ${d.total_qty.toLocaleString('vi-VN')} pcs (${qRate}%)</span>
-                                    <span class="${d.con_thieu_qty > 0 ? 'text-rose-600 font-bold' : 'text-slate-400'}">Thiếu: ${d.con_thieu_qty.toLocaleString('vi-VN')} pcs</span>
+                            <!-- 2. Thanh tỷ lệ SỐ LƯỢNG CHI TIẾT (Trực quan 2 màu Đã Nhận & Còn Thiếu) -->
+                            <div class="space-y-1.5 mt-2 bg-slate-50/80 p-2.5 rounded-xl border border-slate-200/80">
+                                <div class="flex justify-between items-center text-xs font-medium text-slate-600">
+                                    <span class="flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full bg-blue-500"></span>
+                                        <span>Đã nhận: <strong class="text-slate-900 font-mono font-bold">${d.da_nhan_qty.toLocaleString('vi-VN')}</strong> pcs</span>
+                                        <span class="text-[11px] text-blue-700 font-mono font-extrabold">(${qRate}%)</span>
+                                    </span>
+                                    <span class="${d.con_thieu_qty > 0 ? 'text-rose-600 font-bold' : 'text-slate-400'} flex items-center gap-1.5">
+                                        <span class="w-2 h-2 rounded-full ${d.con_thieu_qty > 0 ? 'bg-amber-500' : 'bg-slate-300'}"></span>
+                                        <span>Thiếu: <strong class="font-mono">${d.con_thieu_qty.toLocaleString('vi-VN')}</strong> pcs</span>
+                                        <span class="text-[11px] text-amber-700 font-mono font-extrabold">(${qMissRate}%)</span>
+                                    </span>
                                 </div>
-                                <div class="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                                    <div class="bg-blue-600 h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, qRate)}%"></div>
+                                <!-- Dual Stacked Bar for Quantity -->
+                                <div class="w-full bg-slate-200 rounded-full h-2 overflow-hidden flex shadow-inner">
+                                    <div class="bg-blue-600 h-full transition-all duration-500" style="width: ${Math.min(100, qRate)}%"></div>
+                                    <div class="bg-amber-500 h-full transition-all duration-500" style="width: ${Math.max(0, 100 - qRate)}%"></div>
+                                </div>
+                                <div class="flex justify-between items-center text-[11px] text-slate-500 font-medium">
+                                    <span>Số mã chi tiết: <strong class="text-slate-800 font-bold">${d.parts_count} mã</strong></span>
+                                    <span>Tổng SL: <strong class="text-slate-800 font-mono font-bold">${d.total_qty.toLocaleString('vi-VN')} pcs</strong></span>
                                 </div>
                             </div>
                         </div>
@@ -1502,7 +1989,7 @@ function renderDvgAnalytics() {
                         <!-- Thanh thao tác trên từng thẻ biểu đồ -->
                         <div class="mt-3 pt-2.5 border-t border-slate-200/80 flex items-center justify-between gap-2">
                             <span class="text-[11px] font-bold ${isSelected ? 'text-indigo-700' : 'text-slate-500'}">
-                                ${isSelected ? '● Đang chọn xem' : '🔍 Bấm để lọc'}
+                                ${isSelected ? '● Đang lọc chi tiết bên dưới' : '🔍 Bấm để lọc chi tiết'}
                             </span>
                             <button type="button" class="btn-card-export-missing flex items-center gap-1 px-2.5 py-1 bg-rose-50 hover:bg-rose-100 active:bg-rose-200 text-rose-700 border border-rose-200 rounded-lg text-[11px] font-bold transition shadow-2xs cursor-pointer active:scale-95" data-dvg="${d.dvg}" title="Xuất báo cáo phân tích vật tư thiếu của đơn vị ${d.dvg}">
                                 <i data-lucide="download" class="w-3 h-3"></i>
@@ -1534,11 +2021,12 @@ function renderDvgAnalytics() {
         }
     }
 
-    // 5. Render Bảng Tổng Hợp DVG (Table)
+    // 8. Render Bảng Tổng Hợp Khối Lượng & Tỷ Lệ Từng Đơn Vị (Table)
     const tbody = document.getElementById('dvg-summary-tbody');
     const tfoot = document.getElementById('dvg-summary-tfoot');
     if (tbody) {
-        tbody.innerHTML = byDvg.map(d => {
+        tbody.innerHTML = byDvg.map((d, idx) => {
+            const color = getUnitColor(d.dvg, idx);
             const isSelected = state.activeDvgFilter === d.dvg;
             const rowClass = isSelected ? 'bg-indigo-50/70 font-semibold' : 'hover:bg-slate-50';
             const rateColor = d.completion_rate_weight >= 90 ? 'text-emerald-700 bg-emerald-50 border-emerald-200' : (d.completion_rate_weight >= 50 ? 'text-amber-700 bg-amber-50 border-amber-200' : 'text-rose-700 bg-rose-50 border-rose-200');
@@ -1547,15 +2035,16 @@ function renderDvgAnalytics() {
             return `
                 <tr class="${rowClass} transition">
                     <td class="py-2.5 px-3.5">
-                        <span class="px-2 py-0.5 rounded text-xs font-mono font-bold ${getDvgBadgeClass(d.dvg)}">${d.dvg}</span>
+                        <span class="px-2.5 py-0.5 rounded text-xs font-mono font-bold border ${color.bg}">${d.dvg}</span>
                         ${isSelected ? '<span class="ml-1 text-[10px] text-indigo-600 font-bold">● Đang lọc</span>' : ''}
                     </td>
                     <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-900">${formatWeightVal(d.total_weight)}</td>
+                    <td class="py-2.5 px-3 text-center font-mono font-extrabold text-indigo-700 bg-indigo-50/40">${d.share_of_total_weight}%</td>
                     <td class="py-2.5 px-3 text-right font-mono font-bold text-emerald-600">${formatWeightVal(d.da_nhan_weight)}</td>
                     <td class="py-2.5 px-3 text-right font-mono font-bold text-rose-600">${formatWeightVal(d.con_thieu_weight)}</td>
                     <td class="py-2.5 px-3 text-center">
                         <div class="flex items-center gap-1.5 justify-center">
-                            <div class="w-16 bg-slate-200 rounded-full h-2 overflow-hidden">
+                            <div class="w-16 bg-slate-200 rounded-full h-2 overflow-hidden flex">
                                 <div class="${barFillColor} h-full rounded-full" style="width: ${Math.min(100, d.completion_rate_weight)}%"></div>
                             </div>
                             <span class="text-[11px] font-mono font-bold px-1.5 py-0.2 rounded border ${rateColor}">${d.completion_rate_weight}%</span>
@@ -1564,6 +2053,7 @@ function renderDvgAnalytics() {
                     <td class="py-2.5 px-3 text-right font-mono text-slate-700">${d.total_qty.toLocaleString('vi-VN')}</td>
                     <td class="py-2.5 px-3 text-right font-mono text-emerald-600 font-bold">${d.da_nhan_qty.toLocaleString('vi-VN')}</td>
                     <td class="py-2.5 px-3 text-right font-mono text-rose-600 font-bold">${d.con_thieu_qty.toLocaleString('vi-VN')}</td>
+                    <td class="py-2.5 px-3 text-center font-mono font-bold text-blue-700">${d.completion_rate_qty}%</td>
                     <td class="py-2.5 px-3 text-center">
                         <div class="flex items-center justify-center gap-1">
                             <button type="button" class="btn-filter-dvg-table px-2.5 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-[11px] border border-indigo-200 transition cursor-pointer" data-dvg="${d.dvg}" title="Xem chi tiết các vật tư thiếu của ${d.dvg}">
@@ -1601,16 +2091,18 @@ function renderDvgAnalytics() {
     if (tfoot) {
         tfoot.innerHTML = `
             <tr class="bg-slate-100/90 text-slate-900 border-t-2 border-slate-300">
-                <td class="py-3 px-3.5 font-bold uppercase">TỔNG CỘNG (${byDvg.length} DVG)</td>
+                <td class="py-3 px-3.5 font-bold uppercase">TỔNG CỘNG (${byDvg.length} ${isGiao ? 'TỔ' : 'ĐƠN VỊ'})</td>
                 <td class="py-3 px-3 text-right font-mono font-extrabold">${formatWeightVal(totals.total_weight)}</td>
+                <td class="py-3 px-3 text-center font-mono font-extrabold text-indigo-700">100%</td>
                 <td class="py-3 px-3 text-right font-mono font-extrabold text-emerald-700">${formatWeightVal(totals.da_nhan_weight)}</td>
                 <td class="py-3 px-3 text-right font-mono font-extrabold text-rose-700">${formatWeightVal(totals.con_thieu_weight)}</td>
                 <td class="py-3 px-3 text-center font-mono font-extrabold text-indigo-700">${totals.completion_rate_weight}% KL</td>
                 <td class="py-3 px-3 text-right font-mono font-bold">${totals.total_qty.toLocaleString('vi-VN')}</td>
                 <td class="py-3 px-3 text-right font-mono font-bold text-emerald-700">${totals.da_nhan_qty.toLocaleString('vi-VN')}</td>
                 <td class="py-3 px-3 text-right font-mono font-bold text-rose-700">${totals.con_thieu_qty.toLocaleString('vi-VN')}</td>
+                <td class="py-3 px-3 text-center font-mono font-bold text-blue-700">${totals.completion_rate_qty}% SL</td>
                 <td class="py-3 px-3 text-center">
-                    <button type="button" id="btn-tfoot-export-all" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] transition shadow-2xs cursor-pointer" title="Xuất báo cáo tổng hợp tất cả DVG">
+                    <button type="button" id="btn-tfoot-export-all" class="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] transition shadow-2xs cursor-pointer" title="Xuất báo cáo tổng hợp">
                         📥 Xuất Tổng
                     </button>
                 </td>
@@ -1622,7 +2114,7 @@ function renderDvgAnalytics() {
         }
     }
 
-    // 6. Render Danh Sách Chi Tiết Vật Tư Còn Thiếu
+    // 9. Render Danh Sách Chi Tiết Vật Tư Còn Thiếu
     renderDvgMissingPartsTable(byDvg);
     if (window.lucide) lucide.createIcons();
 }
@@ -1632,8 +2124,13 @@ function renderDvgMissingPartsTable(byDvg) {
     const tbody = document.getElementById('dvg-missing-tbody');
     if (!tbody) return;
 
+    const mode = state.analyticsMode || 'dvg';
+    const isGiao = mode === 'giao';
+
     if (badge) {
-        badge.textContent = state.activeDvgFilter === 'all' ? 'Tất Cả DVG' : `Đơn Vị: ${state.activeDvgFilter}`;
+        badge.textContent = state.activeDvgFilter === 'all' 
+            ? 'Tất Cả Đơn Vị' 
+            : `${isGiao ? 'Tổ' : 'Đơn Vị'}: ${state.activeDvgFilter}`;
     }
 
     let allMissing = [];
@@ -1650,6 +2147,8 @@ function renderDvgMissingPartsTable(byDvg) {
                    (p.assembly_no || '').toLowerCase().includes(q) ||
                    (p.dwg || '').toLowerCase().includes(q) ||
                    (p.size || '').toLowerCase().includes(q) ||
+                   (p.dvg || '').toLowerCase().includes(q) ||
+                   (p.don_vi_giao || '').toLowerCase().includes(q) ||
                    (p.cutting_no || '').toLowerCase().includes(q);
         });
     }
@@ -1657,7 +2156,7 @@ function renderDvgMissingPartsTable(byDvg) {
     if (allMissing.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="12" class="py-8 text-center text-slate-400 italic">
+                <td colspan="14" class="py-8 text-center text-slate-400 italic">
                     ${q ? 'Không tìm thấy chi tiết vật tư nào khớp với từ khóa tìm kiếm.' : 'Không có chi tiết vật tư nào còn thiếu cho lựa chọn này!'}
                 </td>
             </tr>
@@ -1672,7 +2171,10 @@ function renderDvgMissingPartsTable(byDvg) {
         return `
             <tr class="hover:bg-slate-50">
                 <td class="py-2.5 px-3">
-                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${getDvgBadgeClass(p.dvg)}">${p.dvg}</span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${getDvgBadgeClass(p.dvg)}">${p.dvg || 'KHÁC'}</span>
+                </td>
+                <td class="py-2.5 px-3">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold ${getDvgBadgeClass(p.don_vi_giao)}">${p.don_vi_giao || '-'}</span>
                 </td>
                 <td class="py-2.5 px-3 font-mono font-bold text-slate-900">${p.assembly_no}</td>
                 <td class="py-2.5 px-3 font-mono text-slate-600">${p.dwg}</td>
@@ -1681,6 +2183,7 @@ function renderDvgMissingPartsTable(byDvg) {
                 <td class="py-2.5 px-3 text-right font-mono">${p.tqty}</td>
                 <td class="py-2.5 px-3 text-right font-mono text-emerald-600 font-bold">${p.da_nhan}</td>
                 <td class="py-2.5 px-3 text-right font-mono text-rose-600 font-extrabold bg-rose-50/50">${p.con_thieu}</td>
+                <td class="py-2.5 px-3 text-center font-mono font-bold text-rose-600">${p.rate_missing}%</td>
                 <td class="py-2.5 px-3 text-right font-mono text-slate-600">${p.uweight ? p.uweight.toFixed(1) : '-'} kg</td>
                 <td class="py-2.5 px-3 text-right font-mono text-rose-700 font-extrabold">${formatWeightVal(p.con_thieu_weight)}</td>
                 <td class="py-2.5 px-3 font-mono text-slate-700">${p.cutting_no || '-'}</td>
@@ -1692,7 +2195,7 @@ function renderDvgMissingPartsTable(byDvg) {
     if (allMissing.length > 100) {
         tbody.innerHTML += `
             <tr>
-                <td colspan="12" class="py-3 text-center bg-slate-50 text-slate-500 font-medium text-xs">
+                <td colspan="14" class="py-3 text-center bg-slate-50 text-slate-500 font-medium text-xs">
                     ⚡ Đang hiển thị 100 chi tiết có khối lượng thiếu lớn nhất trong tổng số ${allMissing.length} chi tiết thiếu. Bấm "Xuất Excel Danh Sách Này" để tải trọn bộ đầy đủ.
                 </td>
             </tr>
@@ -1700,22 +2203,25 @@ function renderDvgMissingPartsTable(byDvg) {
     }
 }
 
-// Xuất file Excel Báo Cáo Tổng Hợp DVG
+// Xuất file Excel Báo Cáo Tổng Hợp DVG / Tổ Giao
 function exportDvgSummaryExcel() {
     if (!state.projectData) {
         alert("Chưa có dữ liệu dự án!");
         return;
     }
-    const { byDvg, totals } = computeDvgAnalyticsData();
+    const { byDvg, totals, mode } = computeDvgAnalyticsData();
     const projCode = state.currentProject || 'DuAn';
     const targetSheet = state.selectedSheet !== 'all' ? state.selectedSheet : 'TatCaHangMuc';
+    const isGiao = mode === 'giao';
 
     const headers = [
-        "Đơn Vị Gia Công (DVG)",
+        isGiao ? "Đơn Vị Giao (Tổ)" : "Đơn Vị Gia Công (DVG)",
         "Tổng Khối Lượng (kg)",
+        "Tỷ Trọng Dự Án (%)",
         "Khối Lượng Đã Nhận (kg)",
         "Khối Lượng Còn Thiếu (kg)",
         "Tiến Độ Khối Lượng (%)",
+        "Tỷ Lệ Còn Thiếu KL (%)",
         "Tổng Số Lượng (pcs)",
         "Số Lượng Đã Nhận (pcs)",
         "Số Lượng Còn Thiếu (pcs)",
@@ -1727,9 +2233,11 @@ function exportDvgSummaryExcel() {
     const rows = byDvg.map(d => [
         d.dvg,
         Math.round(d.total_weight * 10) / 10,
+        d.share_of_total_weight,
         Math.round(d.da_nhan_weight * 10) / 10,
         Math.round(d.con_thieu_weight * 10) / 10,
         d.completion_rate_weight,
+        d.missing_rate_weight,
         d.total_qty,
         d.da_nhan_qty,
         d.con_thieu_qty,
@@ -1741,9 +2249,11 @@ function exportDvgSummaryExcel() {
     rows.push([
         "TỔNG CỘNG TOÀN BỘ",
         Math.round(totals.total_weight * 10) / 10,
+        100,
         Math.round(totals.da_nhan_weight * 10) / 10,
         Math.round(totals.con_thieu_weight * 10) / 10,
         totals.completion_rate_weight,
+        totals.missing_rate_weight,
         totals.total_qty,
         totals.da_nhan_qty,
         totals.con_thieu_qty,
@@ -1755,22 +2265,27 @@ function exportDvgSummaryExcel() {
     if (window.XLSX) {
         const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "BaoCao_DVG");
-        XLSX.writeFile(wb, `BaoCao_DVG_TongHop_${projCode}_${targetSheet}.xlsx`);
+        const sheetName = isGiao ? "TongHop_DonViGiao" : "TongHop_DVG";
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        const fileName = isGiao 
+            ? `BaoCao_DonViGiao_TongHop_${projCode}_${targetSheet}.xlsx`
+            : `BaoCao_DVG_TongHop_${projCode}_${targetSheet}.xlsx`;
+        XLSX.writeFile(wb, fileName);
     } else {
         alert("Thư viện xuất Excel đang khởi tạo, vui lòng thử lại sau vài giây!");
     }
 }
 
-// Xuất file Excel Báo Cáo Phân Tích Toàn Diện Vật Tư Còn Thiếu Theo DVG (Bao gồm Bảng Tổng Hợp + Bảng Chi Tiết)
+// Xuất file Excel Báo Cáo Phân Tích Toàn Diện Vật Tư Còn Thiếu (Bao gồm Bảng Tổng Hợp + Bảng Chi Tiết)
 function exportDvgMissingPartsExcel(dvgFilter = 'all') {
     if (!state.projectData) {
         alert("Chưa có dữ liệu dự án!");
         return;
     }
-    const { byDvg, totals } = computeDvgAnalyticsData();
+    const { byDvg, totals, mode } = computeDvgAnalyticsData();
     const projCode = state.currentProject || 'DuAn';
     const targetSheet = state.selectedSheet !== 'all' ? state.selectedSheet : 'TatCaHangMuc';
+    const isGiao = mode === 'giao';
 
     const dvgTargetList = (dvgFilter && dvgFilter !== 'all') 
         ? byDvg.filter(d => d.dvg === dvgFilter) 
@@ -1778,16 +2293,18 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
 
     // --- SHEET 1: BẢNG TỔNG HỢP PHÂN TÍCH SỐ LƯỢNG & KHỐI LƯỢNG THIẾU ---
     const s1Headers = [
-        "Đơn Vị (DVG)",
-        "Tổng SL Thiết Kế (pcs)",
-        "SL Đã Nhận (pcs)",
-        "SL Còn Thiếu (pcs)",
-        "Tiến Độ SL (%)",
+        isGiao ? "Đơn Vị Giao (Tổ)" : "Đơn Vị Gia Công (DVG)",
+        "Tỷ Trọng Dự Án (%)",
         "Tổng Khối Lượng (kg)",
         "KL Đã Nhận (kg)",
         "KL Còn Thiếu (kg)",
         "KL Còn Thiếu (Tấn)",
         "Tiến Độ KL (%)",
+        "Tỷ Lệ Thiếu KL (%)",
+        "Tổng SL Thiết Kế (pcs)",
+        "SL Đã Nhận (pcs)",
+        "SL Còn Thiếu (pcs)",
+        "Tiến Độ SL (%)",
         "Số Chi Tiết BTP Thiếu",
         "Đánh Giá Tiến Độ"
     ];
@@ -1796,20 +2313,22 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
     dvgTargetList.forEach(d => {
         let evalText = "Đã giao đủ 100%";
         if (d.con_thieu_weight > 0) {
-            evalText = d.completion_rate_weight >= 90 ? "Sắp hoàn thành" : (d.completion_rate_weight >= 50 ? "Đang gia công" : "Cần đôn đốc gấp");
+            evalText = d.completion_rate_weight >= 90 ? "Sắp hoàn thành" : (d.completion_rate_weight >= 50 ? "Đang tiến hành" : "Cần đôn đốc gấp");
         }
 
         s1Rows.push([
             d.dvg,
-            d.total_qty,
-            d.da_nhan_qty,
-            d.con_thieu_qty,
-            d.completion_rate_qty,
+            d.share_of_total_weight,
             Math.round(d.total_weight * 10) / 10,
             Math.round(d.da_nhan_weight * 10) / 10,
             Math.round(d.con_thieu_weight * 10) / 10,
             Math.round(d.con_thieu_weight / 100) / 10,
             d.completion_rate_weight,
+            d.missing_rate_weight,
+            d.total_qty,
+            d.da_nhan_qty,
+            d.con_thieu_qty,
+            d.completion_rate_qty,
             d.missing_parts_count,
             evalText
         ]);
@@ -1826,18 +2345,21 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
 
     const subRateQ = subTotalQty > 0 ? Math.round((subDaNhanQty / subTotalQty) * 1000) / 10 : 0;
     const subRateW = subTotalWeight > 0 ? Math.round((subDaNhanWeight / subTotalWeight) * 1000) / 10 : 0;
+    const subMissRateW = subTotalWeight > 0 ? Math.round((subMissingWeight / subTotalWeight) * 1000) / 10 : 0;
 
     s1Rows.push([
         "TỔNG CỘNG",
-        subTotalQty,
-        subDaNhanQty,
-        subMissingQty,
-        subRateQ,
+        100,
         Math.round(subTotalWeight * 10) / 10,
         Math.round(subDaNhanWeight * 10) / 10,
         Math.round(subMissingWeight * 10) / 10,
         Math.round(subMissingWeight / 100) / 10,
         subRateW,
+        subMissRateW,
+        subTotalQty,
+        subDaNhanQty,
+        subMissingQty,
+        subRateQ,
         subMissingParts,
         subMissingWeight > 0 ? `Thiếu ${Math.round(subMissingWeight / 100) / 10} Tấn` : "Đã giao đủ 100%"
     ]);
@@ -1845,7 +2367,8 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
     // --- SHEET 2: CHI TIẾT CÁC VẬT TƯ BTP CÒN THIẾU ---
     const s2Headers = [
         "STT",
-        "Đơn Vị (DVG)",
+        "Đơn Vị Gia Công (DVG)",
+        "Đơn Vị Giao (Tổ)",
         "Hạng Mục (Sheet)",
         "Cấu Kiện (Assembly No)",
         "Bản Vẽ (Drawing)",
@@ -1855,6 +2378,7 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
         "SL Thiết Kế",
         "SL Đã Nhận",
         "SL Còn Thiếu",
+        "Tỷ Lệ Thiếu (%)",
         "Đơn Trọng (kg)",
         "Khối Lượng Thiếu (kg)",
         "Khối Lượng Thiếu (Tấn)",
@@ -1879,6 +2403,7 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
     const s2Rows = allMissing.map((p, idx) => [
         idx + 1,
         p.dvg,
+        p.don_vi_giao,
         p.sheet,
         p.assembly_no,
         p.dwg,
@@ -1888,6 +2413,7 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
         p.tqty,
         p.da_nhan,
         p.con_thieu,
+        p.rate_missing,
         p.uweight ? Math.round(p.uweight * 100) / 100 : "-",
         Math.round(p.con_thieu_weight * 10) / 10,
         Math.round((p.con_thieu_weight / 1000) * 1000) / 1000,
@@ -1902,12 +2428,14 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
         "-",
         "-",
         "-",
+        "-",
         `Tổng cộng ${allMissing.length} chi tiết thiếu`,
         "-",
         "-",
         subTotalQty,
         subDaNhanQty,
         subMissingQty,
+        "-",
         "-",
         Math.round(subMissingWeight * 10) / 10,
         Math.round(subMissingWeight / 100) / 10,
@@ -1922,23 +2450,23 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
         // Sheet 1: Bảng tổng hợp
         const ws1 = XLSX.utils.aoa_to_sheet([s1Headers, ...s1Rows]);
         ws1['!cols'] = [
-            { wch: 16 }, { wch: 22 }, { wch: 18 }, { wch: 18 }, { wch: 16 },
-            { wch: 20 }, { wch: 18 }, { wch: 20 }, { wch: 20 }, { wch: 16 },
-            { wch: 22 }, { wch: 20 }
+            { wch: 18 }, { wch: 18 }, { wch: 20 }, { wch: 18 }, { wch: 20 },
+            { wch: 20 }, { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 18 },
+            { wch: 18 }, { wch: 16 }, { wch: 22 }, { wch: 20 }
         ];
         XLSX.utils.book_append_sheet(wb, ws1, "TongHop_PhanTich_Thieu");
 
         // Sheet 2: Danh sách chi tiết
         const ws2 = XLSX.utils.aoa_to_sheet([s2Headers, ...s2Rows]);
         ws2['!cols'] = [
-            { wch: 6 }, { wch: 14 }, { wch: 18 }, { wch: 22 }, { wch: 22 },
-            { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 14 },
-            { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 22 }, { wch: 22 },
-            { wch: 14 }, { wch: 30 }
+            { wch: 6 }, { wch: 16 }, { wch: 16 }, { wch: 18 }, { wch: 22 },
+            { wch: 22 }, { wch: 20 }, { wch: 20 }, { wch: 14 }, { wch: 14 },
+            { wch: 14 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 20 },
+            { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 30 }
         ];
         XLSX.utils.book_append_sheet(wb, ws2, "ChiTiet_VatTuThieu");
 
-        const dvgLabel = dvgFilter === 'all' ? 'TatCaDVG' : dvgFilter;
+        const dvgLabel = dvgFilter === 'all' ? (isGiao ? 'TatCaDonViGiao' : 'TatCaDVG') : dvgFilter;
         XLSX.writeFile(wb, `BaoCao_PhanTich_VatTuThieu_${dvgLabel}_${projCode}_${targetSheet}.xlsx`);
     } else {
         alert("Thư viện xuất Excel đang khởi tạo, vui lòng thử lại sau vài giây!");
@@ -2367,6 +2895,26 @@ function setupEventListeners() {
         });
     }
 
+    // Chuyển chế độ phân tích: DVG vs Đơn Vị Giao
+    const btnModeDvg = document.getElementById('btn-mode-dvg');
+    if (btnModeDvg) {
+        btnModeDvg.addEventListener('click', () => {
+            if (state.analyticsMode === 'dvg') return;
+            state.analyticsMode = 'dvg';
+            state.activeDvgFilter = 'all';
+            renderDvgAnalytics();
+        });
+    }
+    const btnModeGiao = document.getElementById('btn-mode-giao');
+    if (btnModeGiao) {
+        btnModeGiao.addEventListener('click', () => {
+            if (state.analyticsMode === 'giao') return;
+            state.analyticsMode = 'giao';
+            state.activeDvgFilter = 'all';
+            renderDvgAnalytics();
+        });
+    }
+
     // Đổi đơn vị Kg / Tấn trên Dashboard DVG
     const btnUnitTon = document.getElementById('btn-dvg-unit-ton');
     if (btnUnitTon) {
@@ -2379,6 +2927,24 @@ function setupEventListeners() {
     if (btnUnitKg) {
         btnUnitKg.addEventListener('click', () => {
             state.dvgUnit = 'kg';
+            renderDvgAnalytics();
+        });
+    }
+
+    // Đổi chỉ số biểu đồ: Khối Lượng vs Số Lượng
+    const btnChartWeight = document.getElementById('btn-chart-metric-weight');
+    const btnChartQty = document.getElementById('btn-chart-metric-qty');
+    if (btnChartWeight) {
+        btnChartWeight.addEventListener('click', () => {
+            if (state.chartMetric === 'weight') return;
+            state.chartMetric = 'weight';
+            renderDvgAnalytics();
+        });
+    }
+    if (btnChartQty) {
+        btnChartQty.addEventListener('click', () => {
+            if (state.chartMetric === 'qty') return;
+            state.chartMetric = 'qty';
             renderDvgAnalytics();
         });
     }

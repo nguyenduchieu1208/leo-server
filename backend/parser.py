@@ -185,8 +185,10 @@ def detect_bom_columns(ws, max_scan_rows: int = 15) -> Tuple[int, Dict[str, int]
                 temp_map["uweight"] = c
             elif cell_val in ["t.weight", "tweight", "tổng trọng", "tong trong"]:
                 temp_map["tweight"] = c
-            elif cell_val in ["dvg", "dang", "dạng", "phan giao to", "phân giao tổ", "đơn vị gc", "đơn vị gia công"]:
+            elif cell_val in ["dvg", "dang", "dạng", "đơn vị gc", "đơn vị gia công"]:
                 temp_map["dvg"] = c
+            elif "phan giao" in cell_val or "phân giao" in cell_val or cell_val in ["to", "tổ", "đơn vị giao", "don vi giao", "nơi giao", "noi giao"]:
+                temp_map["don_vi_giao"] = c
             elif "remark" in cell_val or "ghi chú" in cell_val or "ghi chu" in cell_val or "note" in cell_val:
                 temp_map["remark"] = c
             elif "as symbol" in cell_val or "as symble" in cell_val or "as_symbol" in cell_val:
@@ -211,6 +213,7 @@ def detect_bom_columns(ws, max_scan_rows: int = 15) -> Tuple[int, Dict[str, int]
         "uweight": 13,
         "tweight": 14,
         "dvg": 16,
+        "don_vi_giao": 17,
         "remark": 30,
         "as_symbol": 31
     }
@@ -587,6 +590,11 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
                     _finalize_assembly_metrics(current_assy, shape_warnings_list)
                     all_assemblies.append(current_assy)
                     
+                assy_giao_val = ws_bom.cell(r, col_map.get("don_vi_giao", 17)).value
+                assy_don_vi_giao = clean_str(assy_giao_val).upper() if assy_giao_val else ""
+                if assy_don_vi_giao in ["-", "0", "NONE", "NULL"]:
+                    assy_don_vi_giao = ""
+
                 current_assy = {
                     "id": f"{b_sheet}_{assy_no_str}_{r}",
                     "sheet": b_sheet,
@@ -596,6 +604,7 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
                     "dwg": dwg_str,
                     "description": desc_str,
                     "size": size_str,
+                    "don_vi_giao": assy_don_vi_giao,
                     "parts": [],
                     "total_parts_count": 0,
                     "received_parts_count": 0,
@@ -662,7 +671,7 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
                     note_items.append(bom_remark)
                 ghi_chu = " | ".join(note_items)
                 
-                # Xác định Đơn vị gia công (DVG)
+                # 1. Xác định Đơn vị gia công (DVG)
                 dvg_candidate = ""
                 if btp_info and btp_info.get("dvg"):
                     dvg_candidate = btp_info.get("dvg")
@@ -672,6 +681,19 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
                 dvg_clean = dvg_candidate.strip().upper() if dvg_candidate else ""
                 if not dvg_clean or dvg_clean in ["-", "0", "NONE", "NULL"]:
                     dvg_clean = "KHÁC"
+
+                # 2. Xác định Đơn vị giao (Phân giao tổ)
+                giao_candidate = ""
+                if btp_info and btp_info.get("don_vi_giao"):
+                    giao_candidate = btp_info.get("don_vi_giao")
+                if not giao_candidate and "don_vi_giao" in col_map:
+                    giao_candidate = clean_str(ws_bom.cell(r, col_map["don_vi_giao"]).value)
+                if not giao_candidate and current_assy.get("don_vi_giao"):
+                    giao_candidate = current_assy.get("don_vi_giao")
+
+                giao_clean = giao_candidate.strip().upper() if giao_candidate else ""
+                if not giao_clean or giao_clean in ["-", "0", "NONE", "NULL"]:
+                    giao_clean = "CHƯA PHÂN GIAO"
 
                 # Tính toán trọng lượng
                 uweight = uweight_val if uweight_val is not None else 0.0
@@ -698,6 +720,7 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
                     "da_nhan": da_nhan,
                     "con_thieu": con_thieu,
                     "dvg": dvg_clean,
+                    "don_vi_giao": giao_clean,
                     "dates_received": dates_received,
                     "ktra_noi": ktra_noi,
                     "remark": bom_remark,
@@ -744,14 +767,18 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
     not_received_assy = sum(1 for a in all_assemblies if a["status"] == "not_received")
     total_shape_issues = sum(1 for a in all_assemblies if a["has_shape_issue"])
 
-    # Tổng hợp phân tích theo Đơn vị gia công (DVG: MCC, KHO, PMC, WTC...)
+    # Tổng hợp phân tích song song: Cả Đơn vị gia công (DVG) và Đơn vị giao (Phân giao tổ)
     dvg_summary_dict: Dict[str, Dict[str, Any]] = {}
+    giao_summary_dict: Dict[str, Dict[str, Any]] = {}
+
     for assy in all_assemblies:
         for p in assy["parts"]:
+            # 1. Nhóm theo Đơn vị gia công (DVG: MCC, KHO, PMC, WTC...)
             dvg_code = p.get("dvg") or "KHÁC"
             if dvg_code not in dvg_summary_dict:
                 dvg_summary_dict[dvg_code] = {
                     "dvg": dvg_code,
+                    "name": dvg_code,
                     "total_qty": 0,
                     "da_nhan_qty": 0,
                     "con_thieu_qty": 0,
@@ -786,7 +813,53 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
                     "uweight": p["uweight"],
                     "con_thieu_weight": p.get("con_thieu_weight", 0.0),
                     "cutting_no": p.get("shape_analysis", {}).get("cutting_no") or p.get("cutting_no", ""),
-                    "ktra_noi": p.get("ktra_noi", "")
+                    "ktra_noi": p.get("ktra_noi", ""),
+                    "don_vi_giao": p.get("don_vi_giao", "")
+                })
+
+            # 2. Nhóm theo Đơn vị giao (Tổ/Xưởng phân giao: S1, S2, S3...)
+            giao_code = p.get("don_vi_giao") or "CHƯA PHÂN GIAO"
+            if giao_code not in giao_summary_dict:
+                giao_summary_dict[giao_code] = {
+                    "don_vi_giao": giao_code,
+                    "dvg": giao_code,
+                    "name": giao_code,
+                    "total_qty": 0,
+                    "da_nhan_qty": 0,
+                    "con_thieu_qty": 0,
+                    "total_weight": 0.0,
+                    "da_nhan_weight": 0.0,
+                    "con_thieu_weight": 0.0,
+                    "parts_count": 0,
+                    "missing_parts_count": 0,
+                    "missing_parts": []
+                }
+            g = giao_summary_dict[giao_code]
+            g["total_qty"] += p["tqty"]
+            g["da_nhan_qty"] += p["da_nhan"]
+            g["con_thieu_qty"] += p["con_thieu"]
+            g["total_weight"] = round(g["total_weight"] + (p.get("tweight") or 0.0), 2)
+            g["da_nhan_weight"] = round(g["da_nhan_weight"] + (p.get("da_nhan_weight") or 0.0), 2)
+            g["con_thieu_weight"] = round(g["con_thieu_weight"] + (p.get("con_thieu_weight") or 0.0), 2)
+            g["parts_count"] += 1
+            if p["con_thieu"] > 0:
+                g["missing_parts_count"] += 1
+                g["missing_parts"].append({
+                    "assembly_no": assy["assembly_no"],
+                    "dwg": assy["dwg"],
+                    "sheet": assy["sheet"],
+                    "part_name": p["display_name"],
+                    "part_no": p["part_no"],
+                    "size": p["size"],
+                    "material": p["material"],
+                    "tqty": p["tqty"],
+                    "da_nhan": p["da_nhan"],
+                    "con_thieu": p["con_thieu"],
+                    "uweight": p["uweight"],
+                    "con_thieu_weight": p.get("con_thieu_weight", 0.0),
+                    "cutting_no": p.get("shape_analysis", {}).get("cutting_no") or p.get("cutting_no", ""),
+                    "ktra_noi": p.get("ktra_noi", ""),
+                    "dvg": p.get("dvg", "")
                 })
 
     for d in dvg_summary_dict.values():
@@ -794,7 +867,13 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
         d["completion_rate_weight"] = round(d["da_nhan_weight"] / d["total_weight"] * 100, 1) if d["total_weight"] > 0 else 0.0
         d["missing_parts"].sort(key=lambda x: x["con_thieu_weight"], reverse=True)
 
+    for g in giao_summary_dict.values():
+        g["completion_rate_qty"] = round(g["da_nhan_qty"] / g["total_qty"] * 100, 1) if g["total_qty"] > 0 else 0.0
+        g["completion_rate_weight"] = round(g["da_nhan_weight"] / g["total_weight"] * 100, 1) if g["total_weight"] > 0 else 0.0
+        g["missing_parts"].sort(key=lambda x: x["con_thieu_weight"], reverse=True)
+
     dvg_list = sorted(list(dvg_summary_dict.values()), key=lambda x: x["total_weight"], reverse=True)
+    giao_list = sorted(list(giao_summary_dict.values()), key=lambda x: x["total_weight"], reverse=True)
 
     project_dvg_totals = {
         "total_weight": round(sum(d["total_weight"] for d in dvg_list), 2),
@@ -817,6 +896,7 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
 
     dvg_analytics = {
         "by_dvg": dvg_list,
+        "by_giao": giao_list,
         "totals": project_dvg_totals
     }
 
