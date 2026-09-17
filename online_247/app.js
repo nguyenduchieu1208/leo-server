@@ -3089,6 +3089,20 @@ function setupEventListeners() {
             targetPane.classList.remove('hidden');
         }
 
+        // Ẩn thanh lọc BOM và KPI BOM khi chuyển sang tab QLDA để tránh trùng lặp bộ lọc
+        const bomFilterPanel = document.getElementById('sticky-control-panel');
+        const bomKpiCards = document.getElementById('kpi-summary-cards');
+        const bomSheetChips = document.getElementById('sheet-chips-section');
+        if (tabName === 'qlda') {
+            if (bomFilterPanel) bomFilterPanel.classList.add('hidden');
+            if (bomKpiCards) bomKpiCards.classList.add('hidden');
+            if (bomSheetChips) bomSheetChips.classList.add('hidden');
+        } else {
+            if (bomFilterPanel) bomFilterPanel.classList.remove('hidden');
+            if (bomKpiCards) bomKpiCards.classList.remove('hidden');
+            if (bomSheetChips) bomSheetChips.classList.remove('hidden');
+        }
+
         if (tabName === 'timeline') renderDailyTimeline();
         if (tabName === 'dvg') renderDvgAnalytics();
         if (tabName === 'qlda') initOrRenderQlda();
@@ -4051,11 +4065,23 @@ function formatStageCell(stageObj, tqty, colorTheme, isDone) {
     const sl = stageObj.sl || 0;
     const kl = stageObj.kl || 0;
     const dateStr = stageObj.ngay || '';
-    const textClass = isDone ? 'text-emerald-700 font-bold' : (sl > 0 ? 'text-amber-700 font-bold' : 'text-slate-500');
+    
+    let textClass = 'text-slate-700 font-bold';
+    if (colorTheme === 'blue' || colorTheme === 'sky') {
+        textClass = isDone ? 'text-sky-800 font-extrabold' : 'text-sky-700 font-bold';
+    } else if (colorTheme === 'amber') {
+        textClass = isDone ? 'text-amber-800 font-extrabold' : 'text-amber-700 font-bold';
+    } else if (colorTheme === 'purple') {
+        textClass = isDone ? 'text-purple-800 font-extrabold' : 'text-purple-700 font-bold';
+    } else if (colorTheme === 'teal') {
+        textClass = isDone ? 'text-teal-800 font-extrabold' : 'text-teal-700 font-bold';
+    } else if (colorTheme === 'emerald') {
+        textClass = isDone ? 'text-emerald-800 font-extrabold' : 'text-emerald-700 font-bold';
+    }
 
     return `
         <div class="flex flex-col items-center justify-start whitespace-nowrap min-w-[70px]">
-            <span class="h-[18px] flex items-center justify-center ${textClass} font-bold text-[11px]">${sl}/${tqty}</span>
+            <span class="h-[18px] flex items-center justify-center ${textClass} text-[11px]">${sl}/${tqty}</span>
             <span class="h-[16px] flex items-center justify-center text-[10px] text-slate-500 font-mono">${kl > 0 ? `${kl.toLocaleString()}kg` : '-'}</span>
             <span class="h-[15px] flex items-center justify-center text-[9px] text-slate-400 font-mono">${dateStr || '-'}</span>
         </div>
@@ -4090,6 +4116,31 @@ function formatHandoverCell(bgObj, tqty, isDone) {
         </div>
     `;
 }
+
+
+// Global Pagination Functions for QLDA
+window.qldaGoPrev = function(scrollToTop = false) {
+    if (qldaState.currentPage > 1) {
+        qldaState.currentPage--;
+        renderQldaTable();
+        if (scrollToTop) {
+            const tableCard = document.getElementById('qlda-matrix-card') || document.getElementById('qlda-assemblies-tbody');
+            if (tableCard) tableCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+};
+
+window.qldaGoNext = function(scrollToTop = false) {
+    const totalPages = Math.max(1, Math.ceil((qldaState.filteredItems || []).length / qldaState.pageSize));
+    if (qldaState.currentPage < totalPages) {
+        qldaState.currentPage++;
+        renderQldaTable();
+        if (scrollToTop) {
+            const tableCard = document.getElementById('qlda-matrix-card') || document.getElementById('qlda-assemblies-tbody');
+            if (tableCard) tableCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+};
 
 function renderQldaPagination() {
     const items = qldaState.filteredItems || [];
@@ -4649,7 +4700,7 @@ function setupQldaEventListeners() {
             qldaState.filterPhanGiao = 'all';
             qldaState.filterStatus = 'all';
             qldaState.searchQuery = '';
-            qldaState.sortBy = 'incomplete_first';
+            qldaState.sortBy = 'stt_asc';
             qldaState.sortCol = null;
             qldaState.sortDir = 'asc';
             
@@ -4660,7 +4711,7 @@ function setupQldaEventListeners() {
             const st = document.getElementById('select-qlda-status');
             if (st) st.value = 'all';
             const so = document.getElementById('select-qlda-sort');
-            if (so) so.value = 'incomplete_first';
+            if (so) so.value = 'stt_asc';
             const sq = document.getElementById('input-qlda-search');
             if (sq) sq.value = '';
 
