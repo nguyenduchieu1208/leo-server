@@ -339,16 +339,9 @@ async function loadProjectData(filePath, forceReload = false) {
         updateKPIs();
         updateCompactFilterBadges();
         applyFiltersAndRender(true);
-        
-        // Cập nhật số lượng cảnh báo Shape trên Badge
-        const shapeTabBadge = document.getElementById('shape-tab-badge');
-        if (shapeTabBadge) {
-            shapeTabBadge.textContent = state.projectData.total_shape_issues || 0;
-        }
 
-        // Tải nội dung tab tương ứng nếu đang mở Tab 2, 3 hoặc 4
+        // Tải nội dung tab tương ứng nếu đang mở Tab Timeline hoặc DVG
         if (state.activeTab === 'timeline') renderDailyTimeline();
-        if (state.activeTab === 'shape') renderShapeWarnings();
         if (state.activeTab === 'dvg') renderDvgAnalytics();
 
     } catch (e) {
@@ -371,12 +364,19 @@ function updateKPIs() {
     const kpiTotal = document.getElementById('kpi-total-assy');
     const kpiCompleted = document.getElementById('kpi-completed-assy');
     const kpiPartial = document.getElementById('kpi-partial-assy');
-    const kpiShape = document.getElementById('kpi-shape-issues');
+    const kpiDvgRate = document.getElementById('kpi-dvg-highlight-rate');
+    const kpiDvgSub = document.getElementById('kpi-dvg-highlight-sub');
 
-    if (kpiTotal) kpiTotal.textContent = data.total_assemblies || 0;
-    if (kpiCompleted) kpiCompleted.textContent = data.completed_assemblies || 0;
-    if (kpiPartial) kpiPartial.textContent = data.partial_assemblies || 0;
-    if (kpiShape) kpiShape.textContent = data.total_shape_issues || 0;
+    if (kpiTotal) kpiTotal.textContent = (data.total_assemblies || 0).toLocaleString('vi-VN');
+    if (kpiCompleted) kpiCompleted.textContent = (data.completed_assemblies || 0).toLocaleString('vi-VN');
+    if (kpiPartial) kpiPartial.textContent = (data.partial_assemblies || 0).toLocaleString('vi-VN');
+
+    // Cập nhật thẻ KPI 4: Tiến độ khối lượng toàn dự án (DVG)
+    if (kpiDvgRate || kpiDvgSub) {
+        const { totals } = computeDvgAnalyticsData();
+        if (kpiDvgRate) kpiDvgRate.textContent = `${totals.completion_rate_weight}%`;
+        if (kpiDvgSub) kpiDvgSub.textContent = `Đã nhận: ${formatWeightVal(totals.da_nhan_weight)}`;
+    }
 }
 
 // Hiển thị danh sách dropdown chọn Sheet
@@ -1177,66 +1177,6 @@ function renderDailyTimeline() {
         `;
         container.appendChild(card);
     });
-    lucide.createIcons();
-}
-
-// 10. Hiển thị Danh Sách Cảnh Báo Thép Hình (Tab 3)
-function renderShapeWarnings() {
-    const container = document.getElementById('shape-warnings-container');
-    if (!state.projectData || !container) return;
-
-    const warnings = state.projectData.shape_warnings || [];
-    if (warnings.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-12 bg-white border border-slate-200 rounded-2xl text-slate-500 shadow-xs">
-                <i data-lucide="check-circle-2" class="w-10 h-10 mx-auto mb-2 text-emerald-500"></i>
-                <p class="font-medium text-slate-700">Tuyệt vời! Không có cảnh báo vướng mắc chiều dài phôi cắt Thép hình (Shape).</p>
-            </div>
-        `;
-        lucide.createIcons();
-        return;
-    }
-
-    container.innerHTML = `
-        <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
-            <div class="p-4 bg-orange-50/80 border-b border-orange-200 flex items-center justify-between">
-                <div class="flex items-center gap-2 text-orange-950 font-bold text-sm">
-                    <i data-lucide="alert-triangle" class="w-4 h-4 text-orange-600"></i>
-                    <span>Danh Sách Chi Tiết Thép Hình Chưa Nhận Do Chiều Dài Cắt (${warnings.length} chi tiết)</span>
-                </div>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs border-collapse">
-                    <thead>
-                        <tr class="bg-slate-100 text-slate-700 border-b border-slate-200 font-bold uppercase text-[11px]">
-                            <th class="py-2.5 px-3">Cấu Kiện</th>
-                            <th class="py-2.5 px-3">Mã BTP (Chi tiết)</th>
-                            <th class="py-2.5 px-3">Quy Cách (Size)</th>
-                            <th class="py-2.5 px-3 text-right">Dài TK (mm)</th>
-                            <th class="py-2.5 px-3 text-right">SL Cần</th>
-                            <th class="py-2.5 px-3">Mã Phôi Cắt (Cutting No)</th>
-                            <th class="py-2.5 px-3 text-right">SL Phôi</th>
-                            <th class="py-2.5 px-3">Nguyên Nhân / Cảnh Báo</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-200">
-                        ${warnings.map(w => `
-                            <tr class="hover:bg-orange-50/40">
-                                <td class="py-2.5 px-3 font-mono font-bold text-slate-900">${w.assembly_no}</td>
-                                <td class="py-2.5 px-3 font-mono font-bold text-blue-700">${w.part_name}</td>
-                                <td class="py-2.5 px-3 font-mono">${w.size}</td>
-                                <td class="py-2.5 px-3 text-right font-mono font-bold text-orange-700">${w.design_length || '-'}</td>
-                                <td class="py-2.5 px-3 text-right font-mono font-bold">${w.tqty}</td>
-                                <td class="py-2.5 px-3 font-mono font-bold text-slate-700">${w.cutting_no || '-'}</td>
-                                <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-700">${w.qty_cutting || '-'}</td>
-                                <td class="py-2.5 px-3 text-orange-900 font-medium">${w.message}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    `;
     lucide.createIcons();
 }
 
@@ -2864,7 +2804,6 @@ function setupEventListeners() {
         }
 
         if (tabName === 'timeline') renderDailyTimeline();
-        if (tabName === 'shape') renderShapeWarnings();
         if (tabName === 'dvg') renderDvgAnalytics();
     };
 
@@ -2889,6 +2828,16 @@ function setupEventListeners() {
     const btnCompactSwitchDvg = document.getElementById('btn-compact-switch-to-dvg');
     if (btnCompactSwitchDvg) {
         btnCompactSwitchDvg.addEventListener('click', () => {
+            window.switchTab('dvg');
+            const targetPane = document.getElementById('tab-dvg-content');
+            if (targetPane) targetPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+
+    // Thẻ KPI Tiến Độ Khối Lượng DVG trên trang chủ (Bấm mở Dashboard DVG)
+    const kpiCardDvg = document.getElementById('kpi-card-dvg-link');
+    if (kpiCardDvg) {
+        kpiCardDvg.addEventListener('click', () => {
             window.switchTab('dvg');
             const targetPane = document.getElementById('tab-dvg-content');
             if (targetPane) targetPane.scrollIntoView({ behavior: 'smooth', block: 'start' });

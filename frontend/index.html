@@ -351,14 +351,17 @@
                 </div>
             </div>
 
-            <div class="bg-white border border-orange-200 rounded-2xl p-4 flex items-center justify-between shadow-xs">
+            <div id="kpi-card-dvg-link" class="bg-white border border-indigo-200 hover:border-indigo-400 rounded-2xl p-4 flex items-center justify-between shadow-xs transition cursor-pointer group" title="Bấm để mở trang Phân Tích DVG & Đơn Vị Giao">
                 <div class="space-y-0.5">
-                    <p class="text-xs font-bold text-orange-700 uppercase">Cảnh Báo Thép Hình (Shape)</p>
-                    <p id="kpi-shape-issues" class="text-2xl sm:text-3xl font-extrabold text-orange-600">0</p>
-                    <p class="text-[11px] text-orange-700 font-medium">Vướng độ dài phôi cắt</p>
+                    <p class="text-xs font-bold text-indigo-700 uppercase flex items-center gap-1.5">
+                        <span>Tiến Độ Khối Lượng (DVG)</span>
+                        <i data-lucide="arrow-right" class="w-3.5 h-3.5 transition group-hover:translate-x-1"></i>
+                    </p>
+                    <p id="kpi-dvg-highlight-rate" class="text-2xl sm:text-3xl font-extrabold text-indigo-600">0%</p>
+                    <p id="kpi-dvg-highlight-sub" class="text-[11px] text-indigo-700 font-medium">Bấm xem chi tiết DVG</p>
                 </div>
-                <div class="w-12 h-12 rounded-xl bg-orange-50 border border-orange-100 flex items-center justify-center text-orange-600">
-                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                <div class="w-12 h-12 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white transition shadow-2xs">
+                    <i data-lucide="bar-chart-3" class="w-6 h-6"></i>
                 </div>
             </div>
         </section>
@@ -388,11 +391,6 @@
             <button class="nav-tab px-4 py-2.5 font-bold text-sm text-slate-500 hover:text-slate-800 border-b-2 border-transparent flex items-center gap-2 transition" data-tab="timeline">
                 <i data-lucide="calendar-range" class="w-4 h-4"></i>
                 Bảng Nhận Hàng Theo Ngày (Ngày/Tháng/Năm)
-            </button>
-            <button class="nav-tab px-4 py-2.5 font-bold text-sm text-slate-500 hover:text-slate-800 border-b-2 border-transparent flex items-center gap-2 transition" data-tab="shape">
-                <i data-lucide="alert-octagon" class="w-4 h-4"></i>
-                Chi Tiết Cảnh Báo Thép Hình (Shape)
-                <span id="shape-tab-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-orange-100 text-orange-800 font-bold border border-orange-200">0</span>
             </button>
             <button class="nav-tab px-4 py-2.5 font-bold text-sm text-slate-500 hover:text-slate-800 border-b-2 border-transparent flex items-center gap-2 transition" data-tab="dvg" id="btn-tab-dvg">
                 <i data-lucide="bar-chart-3" class="w-4 h-4 text-indigo-600"></i>
@@ -430,42 +428,7 @@
             <div id="daily-matrix-container" class="space-y-4"></div>
         </section>
 
-        <!-- TAB 3: CẢNH BÁO THÉP HÌNH SHAPE -->
-        <section id="tab-shape-content" class="tab-pane hidden space-y-4">
-            <div class="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-xs">
-                <div class="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-xl p-4 text-orange-900 text-sm">
-                    <i data-lucide="info" class="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5"></i>
-                    <div>
-                        <h3 class="font-bold text-orange-900">Lưu ý quản lý vật tư chủng loại Thép Hình (Shape):</h3>
-                        <p class="mt-1 text-xs text-orange-800 leading-relaxed font-medium">
-                            Thép hình (H, I, U, V, Pipe) thường mua theo cây tiêu chuẩn và cắt theo bản vẽ xả phôi (Cutting No).
-                            Nếu chi tiết chưa đạt đủ độ dài tối thiểu theo thiết kế hoặc chưa xả phôi xong, số lượng nhận trên sheet BTP có thể chưa cập nhật.
-                            Danh sách dưới đây liệt kê toàn bộ các chi tiết cần lưu ý để anh em xưởng chủ động kiểm tra phôi thực tế.
-                        </p>
-                    </div>
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-xs border-collapse">
-                        <thead>
-                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-700 uppercase font-bold">
-                                <th class="py-3 px-3">Cấu Kiện (Assembly)</th>
-                                <th class="py-3 px-3">Bản Vẽ</th>
-                                <th class="py-3 px-3">Mã BTP (Chi Tiết)</th>
-                                <th class="py-3 px-3">Quy Cách (Size)</th>
-                                <th class="py-3 px-3 text-right">Chiều Dài (mm)</th>
-                                <th class="py-3 px-3 text-right">SL Còn Thiếu</th>
-                                <th class="py-3 px-3">Kế Hoạch Cắt (CP No)</th>
-                                <th class="py-3 px-3">Tình Trạng & Gợi Ý Xử Lý</th>
-                            </tr>
-                        </thead>
-                        <tbody id="shape-warnings-tbody" class="divide-y divide-slate-200"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB 4: DASHBOARD PHÂN TÍCH KHỐI LƯỢNG & TIẾN ĐỘ (DVG & ĐƠN VỊ GIAO) -->
+        <!-- TAB 3: DASHBOARD PHÂN TÍCH KHỐI LƯỢNG & TIẾN ĐỘ (DVG & ĐƠN VỊ GIAO) -->
         <section id="tab-dvg-content" class="tab-pane hidden space-y-5">
             <!-- Header Dashboard & Thanh Thao Tác Xuất Báo Cáo -->
             <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-4 sm:p-5 shadow-sm border border-slate-800">
