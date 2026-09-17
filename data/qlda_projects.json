@@ -1,0 +1,1029 @@
+{
+  "count": 21,
+  "updated_at": "2026-09-17 14:22:45",
+  "projects": [
+    {
+      "project_id": "A286",
+      "file_name": "A286.xlsx",
+      "data_path": "data_qlda/A286.json",
+      "total_items": 3006,
+      "total_qty": 3006,
+      "total_weight": 927203.76,
+      "total_tons": 927.2,
+      "kpis": {
+        "ga_lap": {
+          "sl": 3006.0,
+          "kl": 927203.8,
+          "rate": 100.0
+        },
+        "han": {
+          "sl": 3006.0,
+          "kl": 927203.8,
+          "rate": 100.0
+        },
+        "to_hop_thu": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        },
+        "nghiem_thu": {
+          "sl": 3006.0,
+          "kl": 927203.8,
+          "rate": 100.0
+        },
+        "ban_giao": {
+          "sl": 3006.0,
+          "kl": 927203.8,
+          "rate": 100.0
+        }
+      },
+      "hang_mucs": [
+        "181-PAR-011 Main",
+        "181-PAR-012 Main",
+        "A06-PAR-001 Main",
+        "A39-PAR-004 Main",
+        "A39-PAR-005 Main"
+      ],
+      "phan_giaos": [
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5"
+      ],
+      "updated_at": "16/07/2026 01:46"
+    },
+    {
+      "project_id": "A290",
+      "file_name": "A290.xlsx",
+      "data_path": "data_qlda/A290.json",
+      "total_items": 4125,
+      "total_qty": 4125,
+      "total_weight": 2418082.54,
+      "total_tons": 2418.08,
+      "kpis": {
+        "ga_lap": {
+          "sl": 3469.0,
+          "kl": 2182030.5,
+          "rate": 90.2
+        },
+        "han": {
+          "sl": 3237.0,
+          "kl": 2114620.1,
+          "rate": 87.5
+        },
+        "to_hop_thu": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        },
+        "nghiem_thu": {
+          "sl": 2954.0,
+          "kl": 1963652.4,
+          "rate": 81.2
+        },
+        "ban_giao": {
+          "sl": 2824.0,
+          "kl": 1919761.6,
+          "rate": 79.4
+        }
+      },
+      "hang_mucs": [
+        "Elevator AA",
+        "Elevator CC",
+        "Tier 1 Phase 1 AA",
+        "Tier 1 Phase 1 CC",
+        "Tier 1 Phase 2 AA",
+        "Tier 1 Phase 3 AA",
+        "Tier 1 Phase 3 CC",
+        "Tier 2 Phase 1 AA",
+        "Tier 2 Phase 2 AA",
+        "Tier 2 Phase 2 CC",
+        "Tier 3 Phase 1 AA",
+        "Tier 3 Phase 1 CC",
+        "Tier 3 Phase 2 AA",
+        "Tier 3 Phase 3 AA",
+        "Tier 3 Phase 3 CC",
+        "Tier 4 Phase 1 AA",
+        "Tier 4 Phase 2 AA",
+        "Tier 4 Phase 2 CC",
+        "Tier 4 Phase 3 AA",
+        "Tier 5 Phase 1 AA",
+        "Tier 5 Phase 1 CC",
+        "Tier 5 Phase 2 AA",
+        "Tier 5 Phase 3 AA",
+        "Tier 5 Phase 3 CC"
+      ],
+      "phan_giaos": [
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5"
+      ],
+      "updated_at": "17/09/2026 04:04"
+    },
+    {
+      "project_id": "A320",
+      "file_name": "A320.xlsx",
+      "data_path": "data_qlda/A320.json",
+      "total_items": 186,
+      "total_qty": 1340,
+      "total_weight": 201783.31,
+      "total_tons": 201.78,
+      "kpis": {
+        "ga_lap": {
+          "sl": 18.0,
+          "kl": 51008.6,
+          "rate": 25.3
+        },
+        "han": {
+          "sl": 18.0,
+          "kl": 51008.6,
+          "rate": 25.3
+        },
+        "to_hop_thu": {
+          "sl": 3.0,
+          "kl": 15815.6,
+          "rate": 7.8
+        },
+        "nghiem_thu": {
+          "sl": 5.0,
+          "kl": 20582.0,
+          "rate": 10.2
+        },
+        "ban_giao": {
+          "sl": 3.0,
+          "kl": 15815.6,
+          "rate": 7.8
+        }
+      },
+      "hang_mucs": [
+        "SDM-M4130-M4131-L1-ST11",
+        "SDM-M4130-M4131-L2-ST13",
+        "SDM-M4130-M4131-L3-ST15",
+        "SDM-M4130-M4131-L4-ST18"
+      ],
+      "phan_giaos": [
+        "S1",
+        "S2",
+        "S4"
+      ],
+      "updated_at": "17/09/2026 03:59"
+    },
+    {
+      "project_id": "B272",
+      "file_name": "B272.xlsx",
+      "data_path": "data_qlda/B272.json",
+      "total_items": 552,
+      "total_qty": 2431,
+      "total_weight": 123148.85,
+      "total_tons": 123.15,
+      "kpis": {
+        "ga_lap": {
+          "sl": 2162.0,
+          "kl": 121393.5,
+          "rate": 98.6
+        },
+        "han": {
+          "sl": 2162.0,
+          "kl": 121393.5,
+          "rate": 98.6
+        },
+        "to_hop_thu": {
+          "sl": 865.0,
+          "kl": 114478.3,
+          "rate": 93.0
+        },
+        "nghiem_thu": {
+          "sl": 2100.0,
+          "kl": 120651.5,
+          "rate": 98.0
+        },
+        "ban_giao": {
+          "sl": 2028.0,
+          "kl": 119830.2,
+          "rate": 97.3
+        }
+      },
+      "hang_mucs": [
+        "400",
+        "400 Template",
+        "CHƯA PHÂN HẠNG MỤC"
+      ],
+      "phan_giaos": [
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "updated_at": "17/09/2026 01:12"
+    },
+    {
+      "project_id": "E275",
+      "file_name": "E275.xlsx",
+      "data_path": "data_qlda/E275.json",
+      "total_items": 94,
+      "total_qty": 195,
+      "total_weight": 26612.1,
+      "total_tons": 26.61,
+      "kpis": {
+        "ga_lap": {
+          "sl": 195.0,
+          "kl": 26612.1,
+          "rate": 100.0
+        },
+        "han": {
+          "sl": 195.0,
+          "kl": 26612.1,
+          "rate": 100.0
+        },
+        "to_hop_thu": {
+          "sl": 195.0,
+          "kl": 26612.1,
+          "rate": 100.0
+        },
+        "nghiem_thu": {
+          "sl": 195.0,
+          "kl": 26612.1,
+          "rate": 100.0
+        },
+        "ban_giao": {
+          "sl": 195.0,
+          "kl": 26612.1,
+          "rate": 100.0
+        }
+      },
+      "hang_mucs": [
+        "Convection"
+      ],
+      "phan_giaos": [
+        "S5"
+      ],
+      "updated_at": "16/07/2026 01:48"
+    },
+    {
+      "project_id": "E307",
+      "file_name": "E307.xlsx",
+      "data_path": "data_qlda/E307.json",
+      "total_items": 80,
+      "total_qty": 175,
+      "total_weight": 17475.9,
+      "total_tons": 17.48,
+      "kpis": {
+        "ga_lap": {
+          "sl": 107.0,
+          "kl": 15665.5,
+          "rate": 89.6
+        },
+        "han": {
+          "sl": 107.0,
+          "kl": 15665.5,
+          "rate": 89.6
+        },
+        "to_hop_thu": {
+          "sl": 79.0,
+          "kl": 14791.4,
+          "rate": 84.6
+        },
+        "nghiem_thu": {
+          "sl": 79.0,
+          "kl": 14791.4,
+          "rate": 84.6
+        },
+        "ban_giao": {
+          "sl": 6.0,
+          "kl": 1303.6,
+          "rate": 7.5
+        }
+      },
+      "hang_mucs": [
+        "Convection"
+      ],
+      "phan_giaos": [
+        "S3"
+      ],
+      "updated_at": "17/09/2026 01:23"
+    },
+    {
+      "project_id": "M270",
+      "file_name": "M270.xlsx",
+      "data_path": "data_qlda/M270.json",
+      "total_items": 90,
+      "total_qty": 709,
+      "total_weight": 50435.72,
+      "total_tons": 50.44,
+      "kpis": {
+        "ga_lap": {
+          "sl": 708.0,
+          "kl": 40376.9,
+          "rate": 80.1
+        },
+        "han": {
+          "sl": 706.0,
+          "kl": 14753.0,
+          "rate": 29.3
+        },
+        "to_hop_thu": {
+          "sl": 10.0,
+          "kl": 12448.5,
+          "rate": 24.7
+        },
+        "nghiem_thu": {
+          "sl": 706.0,
+          "kl": 14753.0,
+          "rate": 29.3
+        },
+        "ban_giao": {
+          "sl": 706.0,
+          "kl": 14753.0,
+          "rate": 29.3
+        }
+      },
+      "hang_mucs": [
+        "Lot 1",
+        "Lot 2"
+      ],
+      "phan_giaos": [
+        "S1"
+      ],
+      "updated_at": "10/08/2026 02:06"
+    },
+    {
+      "project_id": "M291",
+      "file_name": "M291.xlsx",
+      "data_path": "data_qlda/M291.json",
+      "total_items": 1231,
+      "total_qty": 1422,
+      "total_weight": 732875.53,
+      "total_tons": 732.88,
+      "kpis": {
+        "ga_lap": {
+          "sl": 1367.0,
+          "kl": 732486.5,
+          "rate": 99.9
+        },
+        "han": {
+          "sl": 1367.0,
+          "kl": 732486.5,
+          "rate": 99.9
+        },
+        "to_hop_thu": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        },
+        "nghiem_thu": {
+          "sl": 1367.0,
+          "kl": 732486.5,
+          "rate": 99.9
+        },
+        "ban_giao": {
+          "sl": 1367.0,
+          "kl": 732486.5,
+          "rate": 99.9
+        }
+      },
+      "hang_mucs": [
+        "Casing U1",
+        "Casing U2",
+        "Casing U3",
+        "Casing U4",
+        "Steel Structure U3"
+      ],
+      "phan_giaos": [
+        "S1",
+        "S2",
+        "S3",
+        "S4",
+        "S5"
+      ],
+      "updated_at": "20/08/2026 10:08"
+    },
+    {
+      "project_id": "M296",
+      "file_name": "M296.xlsx",
+      "data_path": "data_qlda/M296.json",
+      "total_items": 221,
+      "total_qty": 221,
+      "total_weight": 143162.64,
+      "total_tons": 143.16,
+      "kpis": {
+        "ga_lap": {
+          "sl": 221.0,
+          "kl": 143162.6,
+          "rate": 100.0
+        },
+        "han": {
+          "sl": 221.0,
+          "kl": 143162.6,
+          "rate": 100.0
+        },
+        "to_hop_thu": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        },
+        "nghiem_thu": {
+          "sl": 221.0,
+          "kl": 143162.6,
+          "rate": 100.0
+        },
+        "ban_giao": {
+          "sl": 221.0,
+          "kl": 143162.6,
+          "rate": 100.0
+        }
+      },
+      "hang_mucs": [
+        "PAR-550-22 Main"
+      ],
+      "phan_giaos": [
+        "S2",
+        "S5"
+      ],
+      "updated_at": "31/07/2026 01:52"
+    },
+    {
+      "project_id": "M304",
+      "file_name": "M304.xlsx",
+      "data_path": "data_qlda/M304.json",
+      "total_items": 2327,
+      "total_qty": 2683,
+      "total_weight": 1407024.48,
+      "total_tons": 1407.02,
+      "kpis": {
+        "ga_lap": {
+          "sl": 1082.0,
+          "kl": 925177.7,
+          "rate": 65.8
+        },
+        "han": {
+          "sl": 1007.0,
+          "kl": 910096.0,
+          "rate": 64.7
+        },
+        "to_hop_thu": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        },
+        "nghiem_thu": {
+          "sl": 999.0,
+          "kl": 884613.0,
+          "rate": 62.9
+        },
+        "ban_giao": {
+          "sl": 972.0,
+          "kl": 874937.7,
+          "rate": 62.2
+        }
+      },
+      "hang_mucs": [
+        "Casing U1",
+        "Casing U2",
+        "Casing U3",
+        "Casing U4",
+        "Casing U5",
+        "Casing U6",
+        "Main Stack U1",
+        "Main Stack U2",
+        "Main Stack U3",
+        "Main Stack U4",
+        "Main Stack U5",
+        "Main Stack U6",
+        "Steel Structure U1",
+        "Steel Structure U2",
+        "Steel Structure U3",
+        "Steel Structure U4",
+        "Steel Structure U5"
+      ],
+      "phan_giaos": [
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "updated_at": "17/09/2026 04:03"
+    },
+    {
+      "project_id": "M313",
+      "file_name": "M313.xlsx",
+      "data_path": "data_qlda/M313.json",
+      "total_items": 17,
+      "total_qty": 72,
+      "total_weight": 8885.2,
+      "total_tons": 8.89,
+      "kpis": {
+        "ga_lap": {
+          "sl": 72.0,
+          "kl": 8885.2,
+          "rate": 100.0
+        },
+        "han": {
+          "sl": 72.0,
+          "kl": 8885.2,
+          "rate": 100.0
+        },
+        "to_hop_thu": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        },
+        "nghiem_thu": {
+          "sl": 72.0,
+          "kl": 8885.2,
+          "rate": 100.0
+        },
+        "ban_giao": {
+          "sl": 72.0,
+          "kl": 8885.2,
+          "rate": 100.0
+        }
+      },
+      "hang_mucs": [
+        "V451",
+        "V452",
+        "V453"
+      ],
+      "phan_giaos": [
+        "S3"
+      ],
+      "updated_at": "10/08/2026 03:39"
+    },
+    {
+      "project_id": "S200",
+      "file_name": "S200.xlsx",
+      "data_path": "data_qlda/S200.json",
+      "total_items": 88,
+      "total_qty": 1440,
+      "total_weight": 182688.37,
+      "total_tons": 182.69,
+      "kpis": {
+        "ga_lap": {
+          "sl": 1080.0,
+          "kl": 162438.5,
+          "rate": 88.9
+        },
+        "han": {
+          "sl": 1080.0,
+          "kl": 162438.5,
+          "rate": 88.9
+        },
+        "to_hop_thu": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        },
+        "nghiem_thu": {
+          "sl": 1080.0,
+          "kl": 162438.5,
+          "rate": 88.9
+        },
+        "ban_giao": {
+          "sl": 1080.0,
+          "kl": 162438.5,
+          "rate": 88.9
+        }
+      },
+      "hang_mucs": [
+        "Crane A7",
+        "Hệ thống công cụ dụng cụ biện pháp thi công",
+        "Hệ thống giá",
+        "Hệ thống nhà xưởng"
+      ],
+      "phan_giaos": [
+        "NOT ISSUE WO",
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "updated_at": "16/07/2026 01:52"
+    },
+    {
+      "project_id": "U276",
+      "file_name": "U276.xlsx",
+      "data_path": "data_qlda/U276.json",
+      "total_items": 54,
+      "total_qty": 262,
+      "total_weight": 91901.5,
+      "total_tons": 91.9,
+      "kpis": {
+        "ga_lap": {
+          "sl": 244.0,
+          "kl": 91899.5,
+          "rate": 100.0
+        },
+        "han": {
+          "sl": 244.0,
+          "kl": 91899.5,
+          "rate": 100.0
+        },
+        "to_hop_thu": {
+          "sl": 16.0,
+          "kl": 90965.8,
+          "rate": 99.0
+        },
+        "nghiem_thu": {
+          "sl": 244.0,
+          "kl": 91899.5,
+          "rate": 100.0
+        },
+        "ban_giao": {
+          "sl": 244.0,
+          "kl": 91899.5,
+          "rate": 100.0
+        }
+      },
+      "hang_mucs": [
+        "CO-SCR Duct U1"
+      ],
+      "phan_giaos": [
+        "CHƯA PHÂN GIAO",
+        "S1"
+      ],
+      "updated_at": "16/07/2026 01:53"
+    },
+    {
+      "project_id": "U278",
+      "file_name": "U278.xlsx",
+      "data_path": "data_qlda/U278.json",
+      "total_items": 1389,
+      "total_qty": 1440,
+      "total_weight": 146753.14,
+      "total_tons": 146.75,
+      "kpis": {
+        "ga_lap": {
+          "sl": 1436.0,
+          "kl": 143613.7,
+          "rate": 97.9
+        },
+        "han": {
+          "sl": 1436.0,
+          "kl": 143613.7,
+          "rate": 97.9
+        },
+        "to_hop_thu": {
+          "sl": 1350.0,
+          "kl": 143085.1,
+          "rate": 97.5
+        },
+        "nghiem_thu": {
+          "sl": 1402.0,
+          "kl": 143142.9,
+          "rate": 97.5
+        },
+        "ban_giao": {
+          "sl": 1402.0,
+          "kl": 143142.9,
+          "rate": 97.5
+        }
+      },
+      "hang_mucs": [
+        "Conveyor BC-6",
+        "Conveyor BC-7",
+        "Conveyor BC-8",
+        "Tower TT-1",
+        "Tower TT-3",
+        "Tower TT-6",
+        "Tower TT-7"
+      ],
+      "phan_giaos": [
+        "CHƯA PHÂN GIAO",
+        "HOÀNG ANH",
+        "MR CHÍ",
+        "MR QUYỀN",
+        "S2",
+        "S3",
+        "S4",
+        "S5"
+      ],
+      "updated_at": "16/07/2026 01:54"
+    },
+    {
+      "project_id": "U284",
+      "file_name": "U284.xlsx",
+      "data_path": "data_qlda/U284.json",
+      "total_items": 314,
+      "total_qty": 3391,
+      "total_weight": 279030.3,
+      "total_tons": 279.03,
+      "kpis": {
+        "ga_lap": {
+          "sl": 154.0,
+          "kl": 181678.6,
+          "rate": 65.1
+        },
+        "han": {
+          "sl": 151.0,
+          "kl": 166508.5,
+          "rate": 59.7
+        },
+        "to_hop_thu": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        },
+        "nghiem_thu": {
+          "sl": 4.0,
+          "kl": 1947.6,
+          "rate": 0.7
+        },
+        "ban_giao": {
+          "sl": 4.0,
+          "kl": 1947.6,
+          "rate": 0.7
+        }
+      },
+      "hang_mucs": [
+        "CO-SCR Duct",
+        "Outlet Stack"
+      ],
+      "phan_giaos": [
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "updated_at": "17/09/2026 04:08"
+    },
+    {
+      "project_id": "U285",
+      "file_name": "U285.xlsx",
+      "data_path": "data_qlda/U285.json",
+      "total_items": 708,
+      "total_qty": 1883,
+      "total_weight": 341355.16,
+      "total_tons": 341.36,
+      "kpis": {
+        "ga_lap": {
+          "sl": 27.0,
+          "kl": 130612.8,
+          "rate": 38.3
+        },
+        "han": {
+          "sl": 20.0,
+          "kl": 109813.2,
+          "rate": 32.2
+        },
+        "to_hop_thu": {
+          "sl": 6.0,
+          "kl": 30569.9,
+          "rate": 9.0
+        },
+        "nghiem_thu": {
+          "sl": 6.0,
+          "kl": 30569.9,
+          "rate": 9.0
+        },
+        "ban_giao": {
+          "sl": 6.0,
+          "kl": 30569.9,
+          "rate": 9.0
+        }
+      },
+      "hang_mucs": [
+        "B-10124 Fired Proces Heater"
+      ],
+      "phan_giaos": [
+        "S1",
+        "S2",
+        "S4"
+      ],
+      "updated_at": "17/09/2026 03:59"
+    },
+    {
+      "project_id": "U302",
+      "file_name": "U302.xlsx",
+      "data_path": "data_qlda/U302.json",
+      "total_items": 1690,
+      "total_qty": 2024,
+      "total_weight": 320246.9,
+      "total_tons": 320.25,
+      "kpis": {
+        "ga_lap": {
+          "sl": 1015.0,
+          "kl": 188839.2,
+          "rate": 59.0
+        },
+        "han": {
+          "sl": 1012.0,
+          "kl": 160123.5,
+          "rate": 50.0
+        },
+        "to_hop_thu": {
+          "sl": 25.0,
+          "kl": 105188.1,
+          "rate": 32.8
+        },
+        "nghiem_thu": {
+          "sl": 1012.0,
+          "kl": 160123.5,
+          "rate": 50.0
+        },
+        "ban_giao": {
+          "sl": 1012.0,
+          "kl": 160123.5,
+          "rate": 50.0
+        }
+      },
+      "hang_mucs": [
+        "CC Works U1",
+        "CC Works U2",
+        "CO-SCR Duct U1",
+        "CO-SCR Duct U2"
+      ],
+      "phan_giaos": [
+        "S1",
+        "S2",
+        "S3",
+        "S4"
+      ],
+      "updated_at": "17/09/2026 01:44"
+    },
+    {
+      "project_id": "U310",
+      "file_name": "U310.xlsx",
+      "data_path": "data_qlda/U310.json",
+      "total_items": 27,
+      "total_qty": 1014,
+      "total_weight": 12607.0,
+      "total_tons": 12.61,
+      "kpis": {
+        "ga_lap": {
+          "sl": 1014.0,
+          "kl": 12607.0,
+          "rate": 100.0
+        },
+        "han": {
+          "sl": 1014.0,
+          "kl": 12607.0,
+          "rate": 100.0
+        },
+        "to_hop_thu": {
+          "sl": 1014.0,
+          "kl": 12607.0,
+          "rate": 100.0
+        },
+        "nghiem_thu": {
+          "sl": 1014.0,
+          "kl": 12607.0,
+          "rate": 100.0
+        },
+        "ban_giao": {
+          "sl": 1014.0,
+          "kl": 12607.0,
+          "rate": 100.0
+        }
+      },
+      "hang_mucs": [
+        "CO Catalyst Frame"
+      ],
+      "phan_giaos": [
+        "S3"
+      ],
+      "updated_at": "12/08/2026 01:22"
+    },
+    {
+      "project_id": "U311",
+      "file_name": "U311.xlsx",
+      "data_path": "data_qlda/U311.json",
+      "total_items": 27,
+      "total_qty": 360,
+      "total_weight": 19050.7,
+      "total_tons": 19.05,
+      "kpis": {
+        "ga_lap": {
+          "sl": 360.0,
+          "kl": 19050.7,
+          "rate": 100.0
+        },
+        "han": {
+          "sl": 360.0,
+          "kl": 19050.7,
+          "rate": 100.0
+        },
+        "to_hop_thu": {
+          "sl": 4.0,
+          "kl": 17933.8,
+          "rate": 94.1
+        },
+        "nghiem_thu": {
+          "sl": 360.0,
+          "kl": 19050.7,
+          "rate": 100.0
+        },
+        "ban_giao": {
+          "sl": 360.0,
+          "kl": 19050.7,
+          "rate": 100.0
+        }
+      },
+      "hang_mucs": [
+        "SCR Frame"
+      ],
+      "phan_giaos": [
+        "S1"
+      ],
+      "updated_at": "12/08/2026 01:21"
+    },
+    {
+      "project_id": "V261",
+      "file_name": "V261.xlsx",
+      "data_path": "data_qlda/V261.json",
+      "total_items": 502,
+      "total_qty": 743,
+      "total_weight": 232501.21,
+      "total_tons": 232.5,
+      "kpis": {
+        "ga_lap": {
+          "sl": 735.0,
+          "kl": 232209.2,
+          "rate": 99.9
+        },
+        "han": {
+          "sl": 735.0,
+          "kl": 232209.2,
+          "rate": 99.9
+        },
+        "to_hop_thu": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        },
+        "nghiem_thu": {
+          "sl": 735.0,
+          "kl": 232209.2,
+          "rate": 99.9
+        },
+        "ban_giao": {
+          "sl": 735.0,
+          "kl": 232209.2,
+          "rate": 99.9
+        }
+      },
+      "hang_mucs": [
+        "AQC Structure",
+        "Cooler AQC-CANOPY",
+        "Pipe Rack",
+        "Roof Structure",
+        "SP AQC Support-Cyclone-Cover",
+        "SP Boiler",
+        "SP Structure"
+      ],
+      "phan_giaos": [
+        "S1",
+        "S2",
+        "S3",
+        "S5"
+      ],
+      "updated_at": "16/07/2026 01:57"
+    },
+    {
+      "project_id": "V314",
+      "file_name": "V314.xlsx",
+      "data_path": "data_qlda/V314.json",
+      "total_items": 69,
+      "total_qty": 69,
+      "total_weight": 489671.33,
+      "total_tons": 489.67,
+      "kpis": {
+        "ga_lap": {
+          "sl": 22.0,
+          "kl": 189764.4,
+          "rate": 38.8
+        },
+        "han": {
+          "sl": 22.0,
+          "kl": 189764.4,
+          "rate": 38.8
+        },
+        "to_hop_thu": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        },
+        "nghiem_thu": {
+          "sl": 6.0,
+          "kl": 64842.2,
+          "rate": 13.2
+        },
+        "ban_giao": {
+          "sl": 6.0,
+          "kl": 64842.2,
+          "rate": 13.2
+        }
+      },
+      "hang_mucs": [
+        "Casing U1",
+        "Casing U2"
+      ],
+      "phan_giaos": [
+        "S1",
+        "S2",
+        "S3"
+      ],
+      "updated_at": "10/09/2026 15:03"
+    }
+  ]
+}
