@@ -256,7 +256,7 @@ async function loadProjectsList(preferredFilePath = null) {
 
         // Nếu ở chế độ Static hoặc API không phản hồi -> Đọc file data/projects.json
         if (!data) {
-            const res = await fetch('data/projects.json');
+            const res = await fetch(`data/projects.json?t=${Date.now()}`, { cache: 'no-store' });
             if (res.ok) {
                 data = await res.json();
                 renderStaticModeUI();
@@ -343,11 +343,12 @@ async function loadProjectData(filePath, forceReload = false) {
             let pObj = state.projects.find(p => p.file_path === filePath || p.project_id === filePath || p.file_name === filePath);
             let projCode = pObj ? pObj.project_id : filePath.split('/').pop().split('\\').pop().replace('PL.xlsx', '').replace('.xlsx', '').replace('.json', '');
             
+            const timestamp = Date.now();
             let jsonUrl = `data/${projCode}.json`;
-            let res = await fetch(jsonUrl);
+            let res = await fetch(`${jsonUrl}?t=${timestamp}`, { cache: 'no-store' });
             if (!res.ok) {
                 jsonUrl = `data/${projCode}PL.json`;
-                res = await fetch(jsonUrl);
+                res = await fetch(`${jsonUrl}?t=${timestamp}`, { cache: 'no-store' });
             }
             if (res.ok) {
                 projData = await res.json();
@@ -441,8 +442,8 @@ function renderSheetSelector() {
 
 // 5. Quản lý Lịch chọn ngày trực quan & Dropdown chọn ngày
 let calendarState = {
-    currentYear: 2026,
-    currentMonth: 8 // 1-indexed (1..12)
+    currentYear: new Date().getFullYear() || 2026,
+    currentMonth: new Date().getMonth() + 1 // Tự động lấy tháng hiện tại thay vì gán cứng
 };
 
 function selectDeliveryDate(dStr) {
@@ -617,14 +618,16 @@ function renderDateSelector() {
     if (!select || !state.projectData) return;
     
     const rawDates = state.projectData.all_delivery_dates || [];
-    const sortedDates = [...rawDates].sort((a, b) => parseDateSortKey(a) - parseDateSortKey(b));
+    // Sắp xếp giảm dần: Ngày mới nhất (vd: 17/09) lên đầu tiên để người dùng dễ chọn ngay lập tức
+    const sortedDates = [...rawDates].sort((a, b) => parseDateSortKey(b) - parseDateSortKey(a));
     
     select.innerHTML = `<option value="all">📅 Tất cả ngày nhận (Toàn bộ ${sortedDates.length} ngày)</option>`;
 
-    sortedDates.forEach(d => {
+    sortedDates.forEach((d, idx) => {
         const opt = document.createElement('option');
         opt.value = d;
-        opt.textContent = `📅 Ngày ${formatDateDisplay(d)}`;
+        const latestTag = idx === 0 ? ' (Mới nhất)' : '';
+        opt.textContent = `📅 Ngày ${formatDateDisplay(d)}${latestTag}`;
         select.appendChild(opt);
     });
 
@@ -3551,7 +3554,7 @@ async function loadQldaProjectsList() {
     try {
         let projects = [];
         if (state.isStaticMode) {
-            const resp = await fetch('data/qlda_projects.json');
+            const resp = await fetch(`data/qlda_projects.json?t=${Date.now()}`, { cache: 'no-store' });
             if (resp.ok) {
                 const catalog = await resp.json();
                 projects = catalog.projects || [];
@@ -3567,7 +3570,7 @@ async function loadQldaProjectsList() {
                 console.warn("API QLDA server không phản hồi, thử nạp data/qlda_projects.json");
             }
             if (!projects || projects.length === 0) {
-                const resp = await fetch('data/qlda_projects.json');
+                const resp = await fetch(`data/qlda_projects.json?t=${Date.now()}`, { cache: 'no-store' });
                 if (resp.ok) {
                     const catalog = await resp.json();
                     projects = catalog.projects || [];
@@ -3647,7 +3650,7 @@ async function loadQldaProject(projectId) {
         let data = _qldaDataCache[projectId];
         if (!data) {
             if (state.isStaticMode) {
-                const resp = await fetch(`data_qlda/${projectId}.json`);
+                const resp = await fetch(`data_qlda/${projectId}.json?t=${Date.now()}`, { cache: 'no-store' });
                 if (!resp.ok) throw new Error(`Không tải được file data_qlda/${projectId}.json`);
                 data = await resp.json();
             } else {
@@ -3660,7 +3663,7 @@ async function loadQldaProject(projectId) {
                     console.warn("API server không khả dụng, đọc từ data_qlda");
                 }
                 if (!data) {
-                    const resp = await fetch(`data_qlda/${projectId}.json`);
+                    const resp = await fetch(`data_qlda/${projectId}.json?t=${Date.now()}`, { cache: 'no-store' });
                     if (!resp.ok) throw new Error(`Không tải được dữ liệu cho dự án ${projectId}`);
                     data = await resp.json();
                 }
