@@ -11,6 +11,7 @@ import sys
 import json
 import shutil
 import time
+import re
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
@@ -174,7 +175,7 @@ def build_static_package():
         json.dump(qlda_catalog, jf, ensure_ascii=False, indent=2)
 
     # Sao chép announcements.json sang thư mục web tĩnh
-    ann_src = os.path.join(BASE_DIR, "data", "announcements.json")
+    ann_src = os.path.join(DATA_DIR, "announcements.json")
     if os.path.exists(ann_src):
         shutil.copyfile(ann_src, os.path.join(DATA_OUTPUT_DIR, "announcements.json"))
         print("  -> Đã đồng bộ thông báo: announcements.json")

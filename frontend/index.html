@@ -327,6 +327,96 @@
     <!-- Main Content -->
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-5">
 
+        <!-- BẢNG THÔNG BÁO TIẾN ĐỘ CÔNG ĐOẠN & CẬP NHẬT TRANG WEB (CÓ THỂ CHỈNH SỬA) -->
+        <div id="qlda-announcement-card" class="bg-gradient-to-r from-amber-500/10 via-amber-50/70 to-emerald-50/60 border border-amber-300/80 rounded-2xl p-4 sm:p-5 shadow-xs border-l-4 border-l-amber-500 space-y-3.5 transition-all">
+            <!-- Tiêu đề thông báo & Nút điều khiển -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-amber-200/70">
+                <div class="flex items-center gap-2.5 flex-wrap">
+                    <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
+                        <i data-lucide="megaphone" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 id="announcement-title" class="text-sm sm:text-base font-extrabold text-slate-800 tracking-tight">
+                                Kế Hoạch Cập Nhật Tiến Độ Công Đoạn & Bản Tin Trang Web
+                            </h3>
+                            <span id="announcement-badge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500 text-white shadow-2xs">
+                                Thông Báo Quan Trọng
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
+                            <i data-lucide="clock" class="w-3 h-3 text-slate-400"></i>
+                            <span>Thời gian áp dụng: </span>
+                            <span id="announcement-updated-time" class="font-semibold text-slate-700 font-mono">18/09/2026</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 self-end sm:self-auto">
+                    <!-- Nút Chỉnh Sửa Thông Báo (Chỉ hiển thị cho Host Admin trên Local Server) -->
+                    <button id="btn-edit-announcement" type="button" 
+                        class="hidden items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer active:scale-95" 
+                        title="Chỉnh sửa nội dung thông báo & đăng bản tin mới (Dành cho Quản trị viên)">
+                        <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                        <span>Sửa Thông Báo</span>
+                    </button>
+                    <button id="btn-toggle-announcement" type="button" 
+                        class="p-1.5 rounded-xl bg-white/80 hover:bg-white text-slate-600 hover:text-slate-900 border border-amber-200 transition shadow-2xs cursor-pointer" 
+                        title="Thu gọn / Mở rộng thông báo">
+                        <i id="icon-toggle-announcement" data-lucide="chevron-up" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Thân Thông Báo: Kế Hoạch & Người Liên Hệ -->
+            <div id="announcement-body-content" class="space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <!-- Khối Kế Hoạch 1 Tuần 1 Lần -->
+                    <div class="bg-white/95 border border-amber-200 rounded-xl p-3.5 shadow-2xs flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+                            <i data-lucide="calendar-clock" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <span class="text-[10px] uppercase tracking-wider font-extrabold text-amber-600 block">Chu Kỳ Cập Nhật Tiến Độ</span>
+                            <p id="announcement-frequency" class="text-xs sm:text-sm font-bold text-slate-800 leading-snug mt-0.5">
+                                Kế hoạch tiến độ công đoạn sẽ cập nhật 1 tuần 1 lần
+                            </p>
+                            <p class="text-[11px] text-slate-500 mt-1">Dữ liệu tiến độ 5 công đoạn (Gá lắp, Hàn, Tổ hợp thử, Nghiệm thu, Bàn giao) được cập nhật định kỳ mỗi tuần một lần.</p>
+                        </div>
+                    </div>
+
+                    <!-- Khối Liên Hệ Hằng Ngày: Anh Cường (AMC2) -->
+                    <div class="bg-white/95 border border-emerald-200 rounded-xl p-3.5 shadow-2xs flex items-start gap-3">
+                        <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
+                            <i data-lucide="phone-call" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <span class="text-[10px] uppercase tracking-wider font-extrabold text-emerald-600 block">Số Liệu Chi Tiết Hằng Ngày</span>
+                            <p class="text-xs sm:text-sm font-bold text-slate-800 leading-snug mt-0.5">
+                                Xin vui lòng liên hệ: <span id="announcement-contact-person" class="text-emerald-700 font-extrabold">Anh Cường (AMC2)</span>
+                            </p>
+                            <p id="announcement-contact-note" class="text-[11px] text-slate-500 mt-1">
+                                Số liệu hằng ngày xin liên hệ anh Cường (AMC2) để được hỗ trợ kịp thời.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Danh sách các cập nhật mới của trang web (Web Changelog / Updates) -->
+                <div id="announcement-web-updates-box" class="pt-1">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
+                            Các Cập Nhật Mới Của Trang Web
+                        </span>
+                    </div>
+                    <div id="announcement-web-updates-list" class="space-y-2">
+                        <!-- Render tự động từ app.js -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- KPI Summary Cards Sáng Đẹp -->
         <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div class="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-xs">
@@ -914,96 +1004,6 @@
                             <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5"></i>
                             <span>Xuất Excel Công Đoạn (.xlsx)</span>
                         </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- BẢNG THÔNG BÁO TIẾN ĐỘ CÔNG ĐOẠN & CẬP NHẬT TRANG WEB (CÓ THỂ CHỈNH SỬA) -->
-            <div id="qlda-announcement-card" class="bg-gradient-to-r from-amber-500/10 via-amber-50/70 to-emerald-50/60 border border-amber-300/80 rounded-2xl p-4 sm:p-5 shadow-xs border-l-4 border-l-amber-500 space-y-3.5 transition-all">
-                <!-- Tiêu đề thông báo & Nút điều khiển -->
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-amber-200/70">
-                    <div class="flex items-center gap-2.5 flex-wrap">
-                        <div class="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs shrink-0">
-                            <i data-lucide="megaphone" class="w-4 h-4"></i>
-                        </div>
-                        <div>
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <h3 id="announcement-title" class="text-sm sm:text-base font-extrabold text-slate-800 tracking-tight">
-                                    Kế Hoạch Cập Nhật Tiến Độ Công Đoạn & Bản Tin Trang Web
-                                </h3>
-                                <span id="announcement-badge" class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-500 text-white shadow-2xs">
-                                    Thông Báo Quan Trọng
-                                </span>
-                            </div>
-                            <p class="text-[11px] text-slate-500 mt-0.5 flex items-center gap-1.5">
-                                <i data-lucide="clock" class="w-3 h-3 text-slate-400"></i>
-                                <span>Thời gian áp dụng: </span>
-                                <span id="announcement-updated-time" class="font-semibold text-slate-700 font-mono">18/09/2026</span>
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-2 self-end sm:self-auto">
-                        <!-- Nút Chỉnh Sửa Thông Báo (Chỉ hiển thị cho Host Admin trên Local Server) -->
-                        <button id="btn-edit-announcement" type="button" 
-                            class="hidden items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer active:scale-95" 
-                            title="Chỉnh sửa nội dung thông báo & đăng bản tin mới (Dành cho Quản trị viên)">
-                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                            <span>Sửa Thông Báo</span>
-                        </button>
-                        <button id="btn-toggle-announcement" type="button" 
-                            class="p-1.5 rounded-xl bg-white/80 hover:bg-white text-slate-600 hover:text-slate-900 border border-amber-200 transition shadow-2xs cursor-pointer" 
-                            title="Thu gọn / Mở rộng thông báo">
-                            <i id="icon-toggle-announcement" data-lucide="chevron-up" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Thân Thông Báo: Kế Hoạch & Người Liên Hệ -->
-                <div id="announcement-body-content" class="space-y-3">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <!-- Khối Kế Hoạch 1 Tuần 1 Lần -->
-                        <div class="bg-white/95 border border-amber-200 rounded-xl p-3.5 shadow-2xs flex items-start gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
-                                <i data-lucide="calendar-clock" class="w-5 h-5"></i>
-                            </div>
-                            <div>
-                                <span class="text-[10px] uppercase tracking-wider font-extrabold text-amber-600 block">Chu Kỳ Cập Nhật Tiến Độ</span>
-                                <p id="announcement-frequency" class="text-xs sm:text-sm font-bold text-slate-800 leading-snug mt-0.5">
-                                    Kế hoạch tiến độ công đoạn sẽ cập nhật 1 tuần 1 lần
-                                </p>
-                                <p class="text-[11px] text-slate-500 mt-1">Dữ liệu tiến độ 5 công đoạn (Gá lắp, Hàn, Tổ hợp thử, Nghiệm thu, Bàn giao) được cập nhật định kỳ mỗi tuần một lần.</p>
-                            </div>
-                        </div>
-
-                        <!-- Khối Liên Hệ Hằng Ngày: Anh Cường (AMC2) -->
-                        <div class="bg-white/95 border border-emerald-200 rounded-xl p-3.5 shadow-2xs flex items-start gap-3">
-                            <div class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 mt-0.5">
-                                <i data-lucide="phone-call" class="w-5 h-5"></i>
-                            </div>
-                            <div>
-                                <span class="text-[10px] uppercase tracking-wider font-extrabold text-emerald-600 block">Số Liệu Chi Tiết Hằng Ngày</span>
-                                <p class="text-xs sm:text-sm font-bold text-slate-800 leading-snug mt-0.5">
-                                    Xin vui lòng liên hệ: <span id="announcement-contact-person" class="text-emerald-700 font-extrabold">Anh Cường (AMC2)</span>
-                                </p>
-                                <p id="announcement-contact-note" class="text-[11px] text-slate-500 mt-1">
-                                    Số liệu hằng ngày xin liên hệ anh Cường (AMC2) để được hỗ trợ kịp thời.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Danh sách các cập nhật mới của trang web (Web Changelog / Updates) -->
-                    <div id="announcement-web-updates-box" class="pt-1">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                                <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-500"></i>
-                                Các Cập Nhật Mới Của Trang Web
-                            </span>
-                        </div>
-                        <div id="announcement-web-updates-list" class="space-y-2">
-                            <!-- Render tự động từ app.js -->
-                        </div>
                     </div>
                 </div>
             </div>
