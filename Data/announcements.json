@@ -10,11 +10,11 @@
   },
   "web_updates": [
     {
-      "id": "upd-1789742034751-5vcd",
+      "id": "upd-1789742303912-ieqi",
       "date": "18/09/2026",
       "tag": "Cập nhật hệ thống",
       "title": "Tối ưu hóa hệ thống & Đồng bộ ngày nhận hàng mới nhất",
-      "content": "Tự động đưa ngày nhận mới nhất lên đầu danh sách, nâng cấp cơ chế chống lưu cache trình duyệt và gia cố bảo mật máy chủ."
+      "content": ", tự động đưa ngày nhận mới nhất lên đầu danh sách, nâng cấp cơ chế chống lưu cache trình duyệt và gia cố bảo mật máy chủ."
     }
   ]
 }
