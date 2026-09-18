@@ -3071,6 +3071,13 @@ function setupEventListeners() {
 
     // Hàm chuyển Tab linh hoạt từ bất kỳ nút nào
     window.switchTab = function(tabName) {
+        if (tabName === 'dashboard') {
+            window.switchTab('qlda');
+            if (typeof window.switchQldaSubtab === 'function') {
+                window.switchQldaSubtab('charts');
+            }
+            return;
+        }
         document.querySelectorAll('.nav-tab').forEach(t => {
             t.classList.remove('active', 'text-blue-600', 'border-blue-600');
             t.classList.add('text-slate-500', 'border-transparent');
@@ -3107,6 +3114,54 @@ function setupEventListeners() {
         if (tabName === 'dvg') renderDvgAnalytics();
         if (tabName === 'qlda') initOrRenderQlda();
         if (tabName === 'dashboard') initOrRenderDashboard();
+    };
+
+    // Hàm chuyển đổi Sub-tab trong Tiến Độ Công Đoạn: Ma Trận vs Biểu Đồ
+    window.switchQldaSubtab = function(subtabName) {
+        const btnMatrix = document.getElementById('btn-qlda-subtab-matrix');
+        const btnCharts = document.getElementById('btn-qlda-subtab-charts');
+        const paneMatrix = document.getElementById('qlda-pane-matrix');
+        const paneCharts = document.getElementById('qlda-pane-charts');
+
+        if (!paneMatrix || !paneCharts) return;
+
+        if (subtabName === 'charts') {
+            qldaState.activeSubtab = 'charts';
+            paneMatrix.classList.add('hidden');
+            paneCharts.classList.remove('hidden');
+
+            if (btnCharts) {
+                btnCharts.className = 'qlda-subtab-btn active flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs cursor-pointer bg-white text-purple-800';
+            }
+            if (btnMatrix) {
+                btnMatrix.className = 'qlda-subtab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer text-slate-600 hover:text-slate-900 hover:bg-white/60';
+            }
+
+            // Đồng bộ dữ liệu QLDA sang dashboardState nếu cần
+            if (!dashboardState.currentProjectData && qldaState.currentProjectData) {
+                dashboardState.currentProjectId = qldaState.currentProjectId;
+                dashboardState.currentProjectData = qldaState.currentProjectData;
+            }
+            if (!dashboardState.isInitialized) {
+                setupDashboardEventListeners();
+                dashboardState.isInitialized = true;
+            }
+
+            const items = qldaState.filteredItems || (qldaState.currentProjectData ? qldaState.currentProjectData.items : []);
+            renderDashboardAll(items);
+        } else {
+            qldaState.activeSubtab = 'matrix';
+            paneCharts.classList.add('hidden');
+            paneMatrix.classList.remove('hidden');
+
+            if (btnMatrix) {
+                btnMatrix.className = 'qlda-subtab-btn active flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs cursor-pointer bg-white text-emerald-800';
+            }
+            if (btnCharts) {
+                btnCharts.className = 'qlda-subtab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer text-slate-600 hover:text-slate-900 hover:bg-white/60';
+            }
+        }
+        if (window.lucide) lucide.createIcons();
     };
 
     // Chuyển Tab (Tải lười theo yêu cầu)
@@ -3589,6 +3644,15 @@ async function loadQldaProject(projectId) {
         const sInput = document.getElementById('input-qlda-search');
         if (sInput) sInput.value = '';
 
+        // Đồng bộ với Dashboard Tiến Độ Công Đoạn
+        dashboardState.currentProjectId = projectId;
+        dashboardState.currentProjectData = data;
+        if (!dashboardState.isInitialized) {
+            setupDashboardEventListeners();
+            dashboardState.isInitialized = true;
+        }
+        populateDashboardMonths(data.items || []);
+
         renderQldaDashboard();
         filterQldaItems();
     } catch (err) {
@@ -3910,9 +3974,21 @@ function filterQldaItems() {
         }
     }
 
+    // Cập nhật số lượng hiển thị trên Sub-tab và Nhãn phạm vi đang lọc
+    const badgeSub = document.getElementById('qlda-badge-subview-count');
+    if (badgeSub) badgeSub.textContent = `${filtered.length.toLocaleString()} CK`;
+    const scopeLabel = document.getElementById('qlda-current-scope-label');
+    if (scopeLabel) {
+        let label = hm === 'all' ? 'Tất cả hạng mục' : hm;
+        if (pg !== 'all') label += ` • Tổ ${pg}`;
+        if (st !== 'all') label += ` • ${st}`;
+        scopeLabel.textContent = label;
+    }
+
     renderQldaActiveFilterTags();
     renderQldaDashboard(filtered); // Đồng bộ 7 thẻ KPI nhảy tự động theo danh sách cấu kiện đã lọc
     renderQldaTable();
+    renderDashboardAll(filtered); // Đồng bộ toàn bộ biểu đồ Line, BTP, Gantt nhảy tự động theo hạng mục & bộ lọc
 }
 
 // Render các thẻ lọc (Filter Tags) đang kích hoạt
@@ -4923,6 +4999,16 @@ function setupQldaEventListeners() {
             closeQldaAssemblyDetail();
         }
     });
+
+    // 14. Sự kiện chuyển Sub-tab giữa Ma Trận Tiến Độ Chi Tiết và Biểu Đồ Tiến Độ Công Đoạn
+    const btnSubMatrix = document.getElementById('btn-qlda-subtab-matrix');
+    if (btnSubMatrix) {
+        btnSubMatrix.addEventListener('click', () => window.switchQldaSubtab('matrix'));
+    }
+    const btnSubCharts = document.getElementById('btn-qlda-subtab-charts');
+    if (btnSubCharts) {
+        btnSubCharts.addEventListener('click', () => window.switchQldaSubtab('charts'));
+    }
 }
 
 // =========================================================================
@@ -5080,16 +5166,14 @@ async function loadDashboardProject(projectId) {
     }
 }
 
-// Nạp các Dropdown Tháng, Hạng Mục, Tổ
-function populateDashboardDropdowns() {
-    const data = dashboardState.currentProjectData;
-    if (!data) return;
+// Nạp danh sách các Tháng có sản lượng vào bộ lọc biểu đồ Line
+function populateDashboardMonths(items) {
+    const monthSelect = document.getElementById('dash-select-month');
+    if (!monthSelect) return;
 
-    const items = data.items || [];
-
-    // 1. Quét tất cả các Tháng/Năm có dữ liệu sản lượng gá, hàn hoặc hạn giao hàng WO
+    const list = items || (dashboardState.currentProjectData ? dashboardState.currentProjectData.items : []) || [];
     const monthSet = new Set();
-    items.forEach(it => {
+    list.forEach(it => {
         ['ga_lap', 'han', 'to_hop_thu', 'nghiem_thu', 'ban_giao'].forEach(stg => {
             const dStr = it[stg]?.ngay;
             if (dStr) {
@@ -5109,96 +5193,51 @@ function populateDashboardDropdowns() {
         return (yA * 100 + mA) - (yB * 100 + mB);
     });
 
-    const monthSelect = document.getElementById('dash-select-month');
-    if (monthSelect) {
-        monthSelect.innerHTML = '';
-        if (sortedMonths.length > 1) {
-            const optAll = document.createElement('option');
-            optAll.value = 'all';
-            optAll.textContent = '📅 Toàn bộ các tháng dự án';
-            monthSelect.appendChild(optAll);
-        }
+    monthSelect.innerHTML = '';
+    const optAll = document.createElement('option');
+    optAll.value = 'all';
+    optAll.textContent = '📅 Toàn bộ các tháng dự án';
+    monthSelect.appendChild(optAll);
 
-        sortedMonths.forEach(m => {
-            const opt = document.createElement('option');
-            opt.value = m;
-            opt.textContent = `📅 Tháng ${m}`;
-            monthSelect.appendChild(opt);
-        });
+    sortedMonths.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = `📅 Tháng ${m}`;
+        monthSelect.appendChild(opt);
+    });
 
-        // Mặc định chọn tháng có sản lượng gần nhất hoặc tháng đầu tiên
-        if (sortedMonths.length > 0) {
-            // Tìm tháng có nhiều cấu kiện gá/hàn nhất
-            let bestMonth = sortedMonths[sortedMonths.length - 1];
-            for (let m of sortedMonths) {
-                const count = items.filter(it => (it.ga_lap?.ngay || '').includes(m) || (it.han?.ngay || '').includes(m)).length;
-                if (count > 0) {
-                    bestMonth = m;
-                    break;
-                }
-            }
-            dashboardState.selectedMonth = bestMonth;
-            monthSelect.value = bestMonth;
-        } else {
-            dashboardState.selectedMonth = 'all';
-        }
-    }
-
-    // 2. Hạng Mục
-    const hmSelect = document.getElementById('dash-select-hangmuc');
-    if (hmSelect) {
-        hmSelect.innerHTML = '<option value="all">📂 Tất cả hạng mục</option>';
-        (data.hang_mucs || []).forEach(hm => {
-            const opt = document.createElement('option');
-            opt.value = hm;
-            opt.textContent = hm;
-            hmSelect.appendChild(opt);
-        });
-        hmSelect.value = 'all';
-        dashboardState.selectedHangMuc = 'all';
-    }
-
-    // 3. Tổ Phân Giao
-    const pgSelect = document.getElementById('dash-select-phangiao');
-    if (pgSelect) {
-        pgSelect.innerHTML = '<option value="all">👥 Tất cả tổ phân giao</option>';
-        (data.phan_giaos || []).forEach(pg => {
-            const opt = document.createElement('option');
-            opt.value = pg;
-            opt.textContent = `Tổ ${pg}`;
-            pgSelect.appendChild(opt);
-        });
-        pgSelect.value = 'all';
-        dashboardState.selectedPhanGiao = 'all';
+    if (dashboardState.selectedMonth && (dashboardState.selectedMonth === 'all' || sortedMonths.includes(dashboardState.selectedMonth))) {
+        monthSelect.value = dashboardState.selectedMonth;
+    } else if (sortedMonths.length > 0) {
+        dashboardState.selectedMonth = sortedMonths[sortedMonths.length - 1];
+        monthSelect.value = dashboardState.selectedMonth;
+    } else {
+        dashboardState.selectedMonth = 'all';
+        monthSelect.value = 'all';
     }
 }
+function populateDashboardDropdowns() {
+    populateDashboardMonths(dashboardState.currentProjectData?.items || []);
+}
 
-// Vẽ toàn bộ các thành phần của Dashboard
-function renderDashboardAll() {
-    const data = dashboardState.currentProjectData;
+// Vẽ toàn bộ các thành phần của Dashboard (Nhảy tự động theo hạng mục & danh sách cấu kiện đã lọc)
+function renderDashboardAll(customItems = null) {
+    const data = qldaState.currentProjectData || dashboardState.currentProjectData;
     if (!data) return;
 
-    renderDashboardKPIsAndLineChart();
-    renderDashboardBtpSection();
-    renderDashboardGantt();
+    const items = customItems !== null ? customItems : (qldaState.filteredItems || data.items || []);
+    renderDashboardKPIsAndLineChart(items);
+    renderDashboardBtpSection(items);
+    renderDashboardGantt(items);
 }
 
 // PHẦN 1: TÍNH TOÁN KPI & VẼ BIỂU ĐỒ LINE SO SÁNH THỰC TẾ / KẾ HOẠCH GÁ & HÀN THEO NGÀY
-function renderDashboardKPIsAndLineChart() {
-    const data = dashboardState.currentProjectData;
+function renderDashboardKPIsAndLineChart(customItems = null) {
+    const data = qldaState.currentProjectData || dashboardState.currentProjectData;
     if (!data) return;
 
-    const raw = data.items || [];
-    const selHm = dashboardState.selectedHangMuc;
-    const selPg = dashboardState.selectedPhanGiao;
-    const selMonth = dashboardState.selectedMonth;
-
-    // 1. Lọc theo Hạng mục và Tổ
-    let items = raw.filter(it => {
-        if (selHm !== 'all' && it.hang_muc !== selHm) return false;
-        if (selPg !== 'all' && it.phan_giao !== selPg) return false;
-        return true;
-    });
+    let items = customItems !== null ? customItems : (qldaState.filteredItems || data.items || []);
+    const selMonth = dashboardState.selectedMonth || 'all';
 
     // Cập nhật tiêu đề tháng trên biểu đồ
     const monthTitleEl = document.getElementById('dash-chart-month-title');
@@ -5229,7 +5268,11 @@ function renderDashboardKPIsAndLineChart() {
                 if (it[stg]?.ngay) allDates.add(it[stg].ngay.substring(0, 5));
             });
         });
-        dayLabels = Array.from(allDates).sort();
+        dayLabels = Array.from(allDates).sort((a, b) => {
+            const [dA, mA] = a.split('/').map(Number);
+            const [dB, mB] = b.split('/').map(Number);
+            return (mA * 100 + dA) - (mB * 100 + dB);
+        });
         if (dayLabels.length === 0) {
             dayLabels = ['01', '05', '10', '15', '20', '25', '30'];
         }
@@ -5383,7 +5426,8 @@ function renderDashboardKPIsAndLineChart() {
     const elWoDate = document.getElementById('dash-kpi-wo-date');
     if (elWoDate) elWoDate.textContent = nearestWo;
 
-    const bgRateTotal = data.kpis?.ban_giao?.rate || 0;
+    const totalFilteredWeightKg = items.reduce((sum, it) => sum + (it.tweight || 0), 0);
+    const bgRateTotal = totalFilteredWeightKg > 0 ? Math.round((totalMonthBgTons * 1000 / totalFilteredWeightKg) * 100) : (data.kpis?.ban_giao?.rate || 0);
     const elBgRate = document.getElementById('dash-kpi-bg-rate');
     if (elBgRate) elBgRate.textContent = `${bgRateTotal}% Bàn Giao`;
     const elBgBar = document.getElementById('dash-kpi-bg-bar');
@@ -5601,11 +5645,11 @@ function renderDashboardDayTable(labels, gaActual, cumGa, hanActual, cumHan, pla
 }
 
 // PHẦN 2: TÌNH TRẠNG NHẬN BÁN THÀNH PHẨM (BTP)
-function renderDashboardBtpSection() {
-    const data = dashboardState.currentProjectData;
+function renderDashboardBtpSection(customItems = null) {
+    const data = qldaState.currentProjectData || dashboardState.currentProjectData;
     if (!data) return;
 
-    const items = data.items || [];
+    const items = customItems !== null ? customItems : (qldaState.filteredItems || data.items || []);
     let countReady = 0;
     let countMissing = 0;
     let countZero = 0;
@@ -5788,18 +5832,18 @@ function renderDashboardBtpSection() {
     }
 
     // 3. Đổ Danh Sách BTP
-    renderDashboardBtpTable();
+    renderDashboardBtpTable(items);
 }
 
 // Bảng chi tiết tình trạng nhận BTP của cấu kiện
-function renderDashboardBtpTable() {
-    const data = dashboardState.currentProjectData;
+function renderDashboardBtpTable(customItems = null) {
+    const data = qldaState.currentProjectData || dashboardState.currentProjectData;
     if (!data) return;
 
     const tbody = document.getElementById('dash-btp-table-tbody');
     if (!tbody) return;
 
-    const raw = data.items || [];
+    const raw = customItems !== null ? customItems : (qldaState.filteredItems || data.items || []);
     const q = (dashboardState.btpSearchQuery || '').toLowerCase().trim();
 
     let items = raw;
@@ -5864,21 +5908,17 @@ function renderDashboardBtpTable() {
 }
 
 // PHẦN 3: BIỂU ĐỒ GRANT TIẾN ĐỘ (GANTT TIMELINE CHART)
-function renderDashboardGantt() {
-    const data = dashboardState.currentProjectData;
+function renderDashboardGantt(customItems = null) {
+    const data = qldaState.currentProjectData || dashboardState.currentProjectData;
     const container = document.getElementById('dash-gantt-container');
     if (!data || !container) return;
 
-    const raw = data.items || [];
+    const raw = customItems !== null ? customItems : (qldaState.filteredItems || data.items || []);
     const q = (dashboardState.ganttSearchQuery || '').toLowerCase().trim();
     const stageFilter = dashboardState.ganttFilterStage;
-    const selHm = dashboardState.selectedHangMuc;
-    const selPg = dashboardState.selectedPhanGiao;
 
     // 1. Lọc cấu kiện
     let items = raw.filter(it => {
-        if (selHm !== 'all' && it.hang_muc !== selHm) return false;
-        if (selPg !== 'all' && it.phan_giao !== selPg) return false;
         if (stageFilter === 'ga' && (!it.ga_lap?.sl)) return false;
         if (stageFilter === 'han' && (!it.han?.sl)) return false;
         if (stageFilter === 'th' && (!it.to_hop_thu?.sl)) return false;
@@ -6111,25 +6151,7 @@ function setupDashboardEventListeners() {
     if (monthSelect) {
         monthSelect.addEventListener('change', (e) => {
             dashboardState.selectedMonth = e.target.value;
-            renderDashboardKPIsAndLineChart();
-        });
-    }
-
-    // 3. Thay đổi Hạng mục
-    const hmSelect = document.getElementById('dash-select-hangmuc');
-    if (hmSelect) {
-        hmSelect.addEventListener('change', (e) => {
-            dashboardState.selectedHangMuc = e.target.value;
-            renderDashboardAll();
-        });
-    }
-
-    // 4. Thay đổi Tổ phân giao
-    const pgSelect = document.getElementById('dash-select-phangiao');
-    if (pgSelect) {
-        pgSelect.addEventListener('change', (e) => {
-            dashboardState.selectedPhanGiao = e.target.value;
-            renderDashboardAll();
+            renderDashboardKPIsAndLineChart(qldaState.filteredItems || qldaState.rawItems);
         });
     }
 
@@ -6141,14 +6163,14 @@ function setupDashboardEventListeners() {
             dashboardState.chartMode = 'scurve';
             btnScurve.className = 'flex-1 py-1 rounded-lg text-xs font-bold transition cursor-pointer text-center bg-purple-600 text-white shadow-2xs';
             btnDaily.className = 'flex-1 py-1 rounded-lg text-xs font-bold transition cursor-pointer text-center text-slate-300 hover:text-white';
-            renderDashboardKPIsAndLineChart();
+            renderDashboardKPIsAndLineChart(qldaState.filteredItems || qldaState.rawItems);
         });
 
         btnDaily.addEventListener('click', () => {
             dashboardState.chartMode = 'daily';
             btnDaily.className = 'flex-1 py-1 rounded-lg text-xs font-bold transition cursor-pointer text-center bg-purple-600 text-white shadow-2xs';
             btnScurve.className = 'flex-1 py-1 rounded-lg text-xs font-bold transition cursor-pointer text-center text-slate-300 hover:text-white';
-            renderDashboardKPIsAndLineChart();
+            renderDashboardKPIsAndLineChart(qldaState.filteredItems || qldaState.rawItems);
         });
     }
 
@@ -6159,13 +6181,13 @@ function setupDashboardEventListeners() {
         btnApplyTarget.addEventListener('click', () => {
             const val = parseFloat(inputTarget.value) || 50;
             dashboardState.targetTons = val;
-            renderDashboardKPIsAndLineChart();
+            renderDashboardKPIsAndLineChart(qldaState.filteredItems || qldaState.rawItems);
         });
         inputTarget.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') {
                 const val = parseFloat(inputTarget.value) || 50;
                 dashboardState.targetTons = val;
-                renderDashboardKPIsAndLineChart();
+                renderDashboardKPIsAndLineChart(qldaState.filteredItems || qldaState.rawItems);
             }
         });
     }
@@ -6196,7 +6218,7 @@ function setupDashboardEventListeners() {
             const val = e.target.value;
             btpTimeout = setTimeout(() => {
                 dashboardState.btpSearchQuery = val;
-                renderDashboardBtpTable();
+                renderDashboardBtpTable(qldaState.filteredItems || qldaState.rawItems);
             }, 200);
         });
     }
@@ -6210,7 +6232,7 @@ function setupDashboardEventListeners() {
             const val = e.target.value;
             ganttTimeout = setTimeout(() => {
                 dashboardState.ganttSearchQuery = val;
-                renderDashboardGantt();
+                renderDashboardGantt(qldaState.filteredItems || qldaState.rawItems);
             }, 200);
         });
     }
@@ -6219,7 +6241,7 @@ function setupDashboardEventListeners() {
     if (selectGanttStage) {
         selectGanttStage.addEventListener('change', (e) => {
             dashboardState.ganttFilterStage = e.target.value;
-            renderDashboardGantt();
+            renderDashboardGantt(qldaState.filteredItems || qldaState.rawItems);
         });
     }
 
