@@ -3217,18 +3217,25 @@ function setupEventListeners() {
                 btnMatrix.className = 'qlda-subtab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer text-slate-600 hover:text-slate-900 hover:bg-white/60';
             }
 
-            // Đồng bộ dữ liệu QLDA sang dashboardState nếu cần
-            if (!dashboardState.currentProjectData && qldaState.currentProjectData) {
-                dashboardState.currentProjectId = qldaState.currentProjectId;
-                dashboardState.currentProjectData = qldaState.currentProjectData;
+            // Luôn đồng bộ dữ liệu QLDA sang dashboardState
+            dashboardState.currentProjectId = qldaState.currentProjectId;
+            dashboardState.currentProjectData = qldaState.currentProjectData;
+
+            const dashBadge = document.getElementById('dash-project-badge');
+            if (dashBadge && qldaState.currentProjectId) {
+                dashBadge.textContent = `Dự Án: ${qldaState.currentProjectId}`;
             }
+
             if (!dashboardState.isInitialized) {
                 setupDashboardEventListeners();
                 dashboardState.isInitialized = true;
             }
 
-            const items = qldaState.filteredItems || (qldaState.currentProjectData ? qldaState.currentProjectData.items : []);
-            renderDashboardAll(items);
+            // Chờ DOM unhide hoàn tất để canvas có kích thước thực tế trước khi Chart.js tính toán và vẽ
+            requestAnimationFrame(() => {
+                const items = qldaState.filteredItems || (qldaState.currentProjectData ? qldaState.currentProjectData.items : []);
+                renderDashboardAll(items);
+            });
         } else {
             qldaState.activeSubtab = 'matrix';
             paneCharts.classList.add('hidden');
@@ -3737,14 +3744,52 @@ async function loadQldaProject(projectId) {
         // Đồng bộ với Dashboard Tiến Độ Công Đoạn
         dashboardState.currentProjectId = projectId;
         dashboardState.currentProjectData = data;
+
+        // Cập nhật ngay huy hiệu dự án trên thanh Dashboard Biểu Đồ
+        const dashBadge = document.getElementById('dash-project-badge');
+        if (dashBadge) dashBadge.textContent = `Dự Án: ${projectId}`;
+
+        const dashScopeBadge = document.getElementById('dash-scope-badge');
+        if (dashScopeBadge) dashScopeBadge.textContent = 'Hạng mục: Tất cả';
+
         if (!dashboardState.isInitialized) {
             setupDashboardEventListeners();
             dashboardState.isInitialized = true;
         }
         populateDashboardMonths(data.items || []);
 
+        // Tải thêm dữ liệu BOM tương ứng bất đồng bộ cho bảng BTP nếu có
+        (async () => {
+            try {
+                const bomNames = [`${projectId}PL.json`, `${projectId}.json`];
+                let bom = null;
+                for (let bName of bomNames) {
+                    const resp = await fetch(`data/${bName}?t=${Date.now()}`);
+                    if (resp.ok) {
+                        bom = await resp.json();
+                        break;
+                    }
+                }
+                if (!bom && !state.isStaticMode) {
+                    const resp = await fetch(`/api/project-data?project_id=${encodeURIComponent(projectId)}`);
+                    if (resp.ok) bom = await resp.json();
+                }
+                dashboardState.bomData = bom;
+                if (qldaState.activeSubtab === 'charts') {
+                    renderDashboardBtpSection(qldaState.filteredItems || data.items || []);
+                }
+            } catch (e) {}
+        })();
+
         renderQldaDashboard();
         filterQldaItems();
+
+        // Nếu người dùng đang mở tab Biểu Đồ, vẽ lại biểu đồ ngay lập tức!
+        if (qldaState.activeSubtab === 'charts') {
+            requestAnimationFrame(() => {
+                renderDashboardAll(qldaState.filteredItems || data.items || []);
+            });
+        }
     } catch (err) {
         console.error(`Lỗi tải dự án QLDA ${projectId}:`, err);
         if (tbody) {
@@ -4073,6 +4118,14 @@ function filterQldaItems() {
         if (pg !== 'all') label += ` • Tổ ${pg}`;
         if (st !== 'all') label += ` • ${st}`;
         scopeLabel.textContent = label;
+    }
+
+    // Đồng bộ nhãn phạm vi trên khung Biểu Đồ Dashboard
+    const dashScopeBadge = document.getElementById('dash-scope-badge');
+    if (dashScopeBadge) {
+        let label = hm === 'all' ? 'Hạng mục: Tất cả' : `Hạng mục: ${hm}`;
+        if (pg !== 'all') label += ` • Tổ ${pg}`;
+        dashScopeBadge.textContent = label;
     }
 
     renderQldaActiveFilterTags();
@@ -5329,6 +5382,13 @@ function renderDashboardKPIsAndLineChart(customItems = null) {
     let items = customItems !== null ? customItems : (qldaState.filteredItems || data.items || []);
     const selMonth = dashboardState.selectedMonth || 'all';
 
+    // Cập nhật nhãn dự án trên khung Biểu Đồ
+    const curPid = qldaState.currentProjectId || dashboardState.currentProjectId;
+    if (curPid) {
+        const dashBadge = document.getElementById('dash-project-badge');
+        if (dashBadge) dashBadge.textContent = `Dự Án: ${curPid}`;
+    }
+
     // Cập nhật tiêu đề tháng trên biểu đồ
     const monthTitleEl = document.getElementById('dash-chart-month-title');
     if (monthTitleEl) {
@@ -6339,9 +6399,10 @@ function setupDashboardEventListeners() {
     const btnRefresh = document.getElementById('btn-dash-refresh');
     if (btnRefresh) {
         btnRefresh.addEventListener('click', () => {
-            if (dashboardState.currentProjectId) {
-                delete _qldaDataCache[dashboardState.currentProjectId];
-                loadDashboardProject(dashboardState.currentProjectId);
+            const targetPid = dashboardState.currentProjectId || qldaState.currentProjectId;
+            if (targetPid) {
+                delete _qldaDataCache[targetPid];
+                loadQldaProject(targetPid);
             }
         });
     }

@@ -25,7 +25,7 @@
         }
     </script>
     <link rel="icon" type="image/png" href="logo.png?v=3.5.0">
-    <link rel="stylesheet" href="style.css?v=1789721542">
+    <link rel="stylesheet" href="style.css?v=1789740069">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- xlsx-js-style Thư Viện Xuất Excel Chuyên Nghiệp (Có Màu Sắc, Viền Kẻ Bảng, In Đậm và Bộ Lọc Tự Động) -->
@@ -89,6 +89,12 @@
                     <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
                     <span>Làm mới máy chủ</span>
                 </button>
+
+                <!-- Nút Vào Trang Quản Trị /admin -->
+                <a href="/admin" class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-800 rounded-lg transition shadow-xs cursor-pointer" title="Trang quản lý tải lên Excel và cập nhật thông báo">
+                    <i data-lucide="shield" class="w-3.5 h-3.5 text-indigo-600"></i>
+                    <span>Trang Quản Trị</span>
+                </a>
             </div>
         </div>
     </header>
@@ -1354,7 +1360,7 @@
                         <div>
                             <div class="flex items-center gap-2 flex-wrap">
                                 <h3 class="text-base sm:text-lg font-bold tracking-tight">Biểu Đồ Tiến Độ Công Đoạn Chế Tạo</h3>
-                                <span id="dash-project-badge" class="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-200 border border-purple-400/30 font-semibold font-mono">Dự Án: A320</span>
+                                <span id="dash-project-badge" class="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-200 border border-purple-400/30 font-semibold font-mono">Dự Án: --</span>
                                 <span id="dash-scope-badge" class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30 font-semibold font-mono">Hạng mục: Tất cả</span>
                             </div>
                             <p class="text-xs text-slate-300 mt-0.5">Biểu đồ so sánh Kế hoạch / Thực tế Gá & Hàn theo ngày • Tình trạng Bán Thành Phẩm (BTP) • Biểu đồ Grant tiến độ</p>
@@ -2129,6 +2135,6 @@
         <i data-lucide="arrow-up" class="w-5 h-5"></i>
     </button>
 
-    <script src="app.js?v=1789721542"></script>
+    <script src="app.js?v=1789740069"></script>
 </body>
 </html>
