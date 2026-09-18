@@ -4,17 +4,17 @@
   "title": "Kế Hoạch Cập Nhật Tiến Độ Công Đoạn & Bản Tin Trang Web",
   "schedule_notice": {
     "frequency": "Kế hoạch tiến độ công đoạn sẽ cập nhật 1 tuần 1 lần",
-    "contact_person": "",
-    "contact_note": "",
+    "contact_person": "Anh Cường (AMC2)",
+    "contact_note": "Số liệu hằng ngày xin liên hệ anh Cường (AMC2) để được hỗ trợ kịp thời.",
     "hotline": ""
   },
   "web_updates": [
     {
-      "id": "upd-1",
+      "id": "upd-1789742034751-5vcd",
       "date": "18/09/2026",
       "tag": "Cập nhật hệ thống",
       "title": "Tối ưu hóa hệ thống & Đồng bộ ngày nhận hàng mới nhất",
-      "content": "Hoàn tất quét dữ liệu ngày nhận 17/09/2026 cho dự án A290, tự động đưa ngày nhận mới nhất lên đầu danh sách, nâng cấp cơ chế chống lưu cache trình duyệt và gia cố bảo mật máy chủ."
+      "content": "Tự động đưa ngày nhận mới nhất lên đầu danh sách, nâng cấp cơ chế chống lưu cache trình duyệt và gia cố bảo mật máy chủ."
     }
   ]
 }
