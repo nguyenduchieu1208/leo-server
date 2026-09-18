@@ -6357,8 +6357,8 @@ const DEFAULT_ANNOUNCEMENTS = {
     title: "Kế Hoạch Cập Nhật Tiến Độ Công Đoạn & Bản Tin Trang Web",
     schedule_notice: {
         frequency: "Kế hoạch tiến độ công đoạn sẽ cập nhật 1 tuần 1 lần",
-        contact_person: "Anh Cường (AMC2)",
-        contact_note: "Số liệu hằng ngày xin liên hệ anh Cường (AMC2) để được hỗ trợ kịp thời.",
+        contact_person: "",
+        contact_note: "",
         hotline: ""
     },
     web_updates: [
