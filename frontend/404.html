@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đang chuyển hướng... - AMECC2</title>
+    <script>
+        (function() {
+            var path = window.location.pathname;
+            var search = window.location.search;
+            var hash = window.location.hash;
+            
+            // Xác định base của repository trên GitHub Pages (hoặc root domain)
+            var repoBase = path.indexOf('/leo-server') !== -1 ? '/leo-server/' : '/';
+
+            // Nếu người dùng truy cập /admin, //admin, /admin/ v.v.
+            if (path.indexOf('admin') !== -1) {
+                window.location.replace(repoBase + 'admin.html' + search + hash);
+            } else {
+                window.location.replace(repoBase + search + hash);
+            }
+        })();
+    </script>
+    <style>
+        body {
+            background-color: #020617;
+            color: #94a3b8;
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            text-align: center;
+            padding: 20px;
+        }
+        .card {
+            background-color: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+        }
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #334155;
+            border-top-color: #6366f1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        h2 { color: #fff; margin: 0 0 8px; font-size: 18px; }
+        p { margin: 0 0 16px; font-size: 13px; }
+        a {
+            display: inline-block;
+            background: #4f46e5;
+            color: #fff;
+            text-decoration: none;
+            padding: 8px 18px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="spinner"></div>
+        <h2>Đang chuyển hướng...</h2>
+        <p>Hệ thống đang định tuyến đến trang bạn yêu cầu.</p>
+        <a href="./">Về Trang Chủ Ngay</a>
+    </div>
+</body>
+</html>

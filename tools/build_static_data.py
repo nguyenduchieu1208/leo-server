@@ -51,7 +51,7 @@ def build_static_package():
 
     # 2. Sao chép các file frontend sang online_247
     print("[1/4] Đóng gói giao diện Frontend...")
-    for filename in ["index.html", "style.css", "app.js", "logo.png"]:
+    for filename in ["index.html", "style.css", "app.js", "logo.png", "admin.html", "404.html"]:
         src = os.path.join(FRONTEND_DIR, filename)
         dst = os.path.join(OUTPUT_DIR, filename)
         if os.path.exists(src):
@@ -70,6 +70,19 @@ def build_static_package():
             else:
                 shutil.copyfile(src, dst)
             print(f"  -> Đã đóng gói: {filename}")
+
+    # Tạo thư mục online_247/admin/ và sao chép admin/index.html để hỗ trợ cả URL có slash (/admin/) và không slash (/admin)
+    admin_dir = os.path.join(OUTPUT_DIR, "admin")
+    os.makedirs(admin_dir, exist_ok=True)
+    admin_src = os.path.join(FRONTEND_DIR, "admin.html")
+    if os.path.exists(admin_src):
+        shutil.copyfile(admin_src, os.path.join(admin_dir, "index.html"))
+        print("  -> Đã tạo đường dẫn: admin/index.html (hỗ trợ /admin/ trực tiếp trên GitHub Pages)")
+
+    # Tạo file .nojekyll để GitHub Pages phục vụ mọi file
+    nojekyll_path = os.path.join(OUTPUT_DIR, ".nojekyll")
+    with open(nojekyll_path, "w", encoding="utf-8") as f:
+        f.write("")
 
     # 3. Quét danh sách file Excel trong Data/
     print("\n[2/4] Quét và trích xuất dữ liệu các dự án từ thư mục Data/...")
