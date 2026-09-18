@@ -1521,6 +1521,7 @@ function renderDvgGraphicCharts(byDvg, totals, mode) {
                     const clickedUnit = labels[idx];
                     state.activeDvgFilter = (state.activeDvgFilter === clickedUnit) ? 'all' : clickedUnit;
                     renderDvgAnalytics();
+                    if (typeof window.switchDvgSubtab === 'function') window.switchDvgSubtab('table');
                     const section = document.getElementById('dvg-missing-parts-section');
                     if (section) section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
@@ -1615,6 +1616,7 @@ function renderDvgGraphicCharts(byDvg, totals, mode) {
                     const clickedUnit = labels[idx];
                     state.activeDvgFilter = (state.activeDvgFilter === clickedUnit) ? 'all' : clickedUnit;
                     renderDvgAnalytics();
+                    if (typeof window.switchDvgSubtab === 'function') window.switchDvgSubtab('table');
                     const section = document.getElementById('dvg-missing-parts-section');
                     if (section) section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 }
@@ -1682,6 +1684,15 @@ function renderDvgAnalytics() {
             btnModeDvg.className = 'px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-indigo-600 text-white shadow-xs cursor-pointer';
             btnModeGiao.className = 'px-3.5 py-2 rounded-lg text-xs font-bold transition flex items-center gap-2 text-slate-600 hover:text-slate-900 cursor-pointer';
         }
+    }
+
+    const dvgModeLabel = document.getElementById('dvg-current-mode-label');
+    if (dvgModeLabel) {
+        dvgModeLabel.textContent = isGiao ? 'Đơn Vị Giao (Tổ Phân Giao)' : 'Đơn Vị Gia Công (DVG)';
+    }
+    const dvgBadgeCount = document.getElementById('dvg-badge-subview-count');
+    if (dvgBadgeCount) {
+        dvgBadgeCount.textContent = `${byDvg.length} Đơn Vị`;
     }
 
     if (modeIndicator) {
@@ -1820,6 +1831,7 @@ function renderDvgAnalytics() {
                     const unitName = this.dataset.dvg;
                     state.activeDvgFilter = (state.activeDvgFilter === unitName) ? 'all' : unitName;
                     renderDvgAnalytics();
+                    if (typeof window.switchDvgSubtab === 'function') window.switchDvgSubtab('table');
                     const section = document.getElementById('dvg-missing-parts-section');
                     if (section) section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 });
@@ -1991,6 +2003,7 @@ function renderDvgAnalytics() {
                     const dvgName = this.dataset.dvg;
                     state.activeDvgFilter = (state.activeDvgFilter === dvgName) ? 'all' : dvgName;
                     renderDvgAnalytics();
+                    if (typeof window.switchDvgSubtab === 'function') window.switchDvgSubtab('table');
                     const section = document.getElementById('dvg-missing-parts-section');
                     if (section) section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 });
@@ -3116,6 +3129,47 @@ function setupEventListeners() {
         if (tabName === 'dashboard') initOrRenderDashboard();
     };
 
+    // Hàm chuyển đổi Sub-tab trong Phân Tích DVG & Đơn Vị Giao: Bảng vs Biểu Đồ
+    window.switchDvgSubtab = function(subtabName) {
+        const btnTable = document.getElementById('btn-dvg-subtab-table');
+        const btnCharts = document.getElementById('btn-dvg-subtab-charts');
+        const paneTable = document.getElementById('dvg-pane-table');
+        const paneCharts = document.getElementById('dvg-pane-charts');
+
+        if (!paneTable || !paneCharts) return;
+
+        if (subtabName === 'charts') {
+            state.activeDvgSubtab = 'charts';
+            paneTable.classList.add('hidden');
+            paneCharts.classList.remove('hidden');
+
+            if (btnCharts) {
+                btnCharts.className = 'dvg-subtab-btn active flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs cursor-pointer bg-white text-blue-800';
+            }
+            if (btnTable) {
+                btnTable.className = 'dvg-subtab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer text-slate-600 hover:text-slate-900 hover:bg-white/60';
+            }
+
+            // Render lại biểu đồ DVG để Chart.js tính toán chính xác kích thước canvas
+            if (state.projectData) {
+                const { byDvg, totals } = computeDvgAnalyticsData();
+                renderDvgGraphicCharts(byDvg, totals, state.analyticsMode || 'dvg');
+            }
+        } else {
+            state.activeDvgSubtab = 'table';
+            paneCharts.classList.add('hidden');
+            paneTable.classList.remove('hidden');
+
+            if (btnTable) {
+                btnTable.className = 'dvg-subtab-btn active flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition shadow-xs cursor-pointer bg-white text-indigo-800';
+            }
+            if (btnCharts) {
+                btnCharts.className = 'dvg-subtab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition cursor-pointer text-slate-600 hover:text-slate-900 hover:bg-white/60';
+            }
+        }
+        if (window.lucide) lucide.createIcons();
+    };
+
     // Hàm chuyển đổi Sub-tab trong Tiến Độ Công Đoạn: Ma Trận vs Biểu Đồ
     window.switchQldaSubtab = function(subtabName) {
         const btnMatrix = document.getElementById('btn-qlda-subtab-matrix');
@@ -3237,6 +3291,16 @@ function setupEventListeners() {
             const targetPane = document.getElementById('tab-dvg-content');
             if (targetPane) targetPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
+    }
+
+    // Sự kiện chuyển Sub-tab giữa Bảng và Biểu Đồ trong Phân Tích DVG
+    const btnDvgSubTable = document.getElementById('btn-dvg-subtab-table');
+    if (btnDvgSubTable) {
+        btnDvgSubTable.addEventListener('click', () => window.switchDvgSubtab('table'));
+    }
+    const btnDvgSubCharts = document.getElementById('btn-dvg-subtab-charts');
+    if (btnDvgSubCharts) {
+        btnDvgSubCharts.addEventListener('click', () => window.switchDvgSubtab('charts'));
     }
 
     // Chuyển chế độ phân tích: DVG vs Đơn Vị Giao
