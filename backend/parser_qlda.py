@@ -153,6 +153,12 @@ def parse_qlda_file(file_path):
         item_id = str(row[17]).strip() if len(row) > 17 and row[17] is not None else ""
         note = str(row[18]).strip() if len(row) > 18 and row[18] is not None else ""
 
+        # Kế hoạch & Nhận phôi
+        ke_hoach_thang = str(row[32]).strip() if len(row) > 32 and row[32] is not None else ""
+        nhan_phoi_val = row[33] if len(row) > 33 else None
+        nhan_phoi_rate = round(to_num(nhan_phoi_val, 0.0) * 100, 1) if nhan_phoi_val is not None and to_num(nhan_phoi_val, 0.0) <= 1.0 and to_num(nhan_phoi_val, 0.0) > 0 else to_num(nhan_phoi_val, 0.0)
+        nhan_phoi_kl = to_num(row[34] if len(row) > 34 else 0, 0.0)
+
         # 5 Công đoạn
         # 1. Gá lắp: AJ (col 35), AK (col 36), AL (col 37)
         ga_ngay = format_date_str(row[35]) if len(row) > 35 else None
@@ -200,6 +206,11 @@ def parse_qlda_file(file_path):
             "profile": profile,
             "id": item_id,
             "note": note,
+            "ke_hoach_thang": ke_hoach_thang,
+            "nhan_phoi": {
+                "rate": nhan_phoi_rate,
+                "kl": round(nhan_phoi_kl, 2)
+            },
             "ga_lap": {"ngay": ga_ngay, "sl": ga_sl, "kl": ga_kl},
             "han": {"ngay": han_ngay, "sl": han_sl, "kl": han_kl},
             "to_hop_thu": {"ngay": th_ngay, "sl": th_sl, "kl": th_kl},
@@ -307,7 +318,52 @@ def parse_qlda_file(file_path):
         pg["th_weight"] = round(pg["th_weight"], 1)
         pg["nt_weight"] = round(pg["nt_weight"], 1)
         pg["bg_weight"] = round(pg["bg_weight"], 1)
-        pg["rate_bg"] = round((pg["bg_weight"] / pg["total_weight"] * 100), 1) if pg["total_weight"] > 0 else 0.0
+    # Tổng hợp sản lượng theo từng ngày ghi nhận (dành cho biểu đồ tiến độ)
+    daily_prod = {}
+    for it in items:
+        # Gá lắp
+        d_ga = it.get("ga_lap", {}).get("ngay")
+        if d_ga:
+            if d_ga not in daily_prod:
+                daily_prod[d_ga] = {"ga_sl": 0, "ga_kl": 0.0, "han_sl": 0, "han_kl": 0.0, "th_sl": 0, "th_kl": 0.0, "nt_sl": 0, "nt_kl": 0.0, "bg_sl": 0, "bg_kl": 0.0}
+            daily_prod[d_ga]["ga_sl"] += it["ga_lap"]["sl"]
+            daily_prod[d_ga]["ga_kl"] += it["ga_lap"]["kl"]
+        # Hàn
+        d_han = it.get("han", {}).get("ngay")
+        if d_han:
+            if d_han not in daily_prod:
+                daily_prod[d_han] = {"ga_sl": 0, "ga_kl": 0.0, "han_sl": 0, "han_kl": 0.0, "th_sl": 0, "th_kl": 0.0, "nt_sl": 0, "nt_kl": 0.0, "bg_sl": 0, "bg_kl": 0.0}
+            daily_prod[d_han]["han_sl"] += it["han"]["sl"]
+            daily_prod[d_han]["han_kl"] += it["han"]["kl"]
+        # Tổ hợp thử
+        d_th = it.get("to_hop_thu", {}).get("ngay")
+        if d_th:
+            if d_th not in daily_prod:
+                daily_prod[d_th] = {"ga_sl": 0, "ga_kl": 0.0, "han_sl": 0, "han_kl": 0.0, "th_sl": 0, "th_kl": 0.0, "nt_sl": 0, "nt_kl": 0.0, "bg_sl": 0, "bg_kl": 0.0}
+            daily_prod[d_th]["th_sl"] += it["to_hop_thu"]["sl"]
+            daily_prod[d_th]["th_kl"] += it["to_hop_thu"]["kl"]
+        # Nghiệm thu
+        d_nt = it.get("nghiem_thu", {}).get("ngay")
+        if d_nt:
+            if d_nt not in daily_prod:
+                daily_prod[d_nt] = {"ga_sl": 0, "ga_kl": 0.0, "han_sl": 0, "han_kl": 0.0, "th_sl": 0, "th_kl": 0.0, "nt_sl": 0, "nt_kl": 0.0, "bg_sl": 0, "bg_kl": 0.0}
+            daily_prod[d_nt]["nt_sl"] += it["nghiem_thu"]["sl"]
+            daily_prod[d_nt]["nt_kl"] += it["nghiem_thu"]["kl"]
+        # Bàn giao
+        d_bg = it.get("ban_giao", {}).get("ngay")
+        if d_bg:
+            if d_bg not in daily_prod:
+                daily_prod[d_bg] = {"ga_sl": 0, "ga_kl": 0.0, "han_sl": 0, "han_kl": 0.0, "th_sl": 0, "th_kl": 0.0, "nt_sl": 0, "nt_kl": 0.0, "bg_sl": 0, "bg_kl": 0.0}
+            daily_prod[d_bg]["bg_sl"] += it["ban_giao"]["sl"]
+            daily_prod[d_bg]["bg_kl"] += it["ban_giao"]["kl"]
+
+    # Làm tròn số liệu khối lượng theo ngày
+    for d, p in daily_prod.items():
+        p["ga_kl"] = round(p["ga_kl"], 2)
+        p["han_kl"] = round(p["han_kl"], 2)
+        p["th_kl"] = round(p["th_kl"], 2)
+        p["nt_kl"] = round(p["nt_kl"], 2)
+        p["bg_kl"] = round(p["bg_kl"], 2)
 
     return {
         "project_id": proj_code,
@@ -327,6 +383,7 @@ def parse_qlda_file(file_path):
         "phan_giaos": sorted(list(phan_giao_set)),
         "summary_by_hang_muc": hang_muc_list,
         "summary_by_phan_giao": phan_giao_list,
+        "daily_production": daily_prod,
         "items": items
     }
 

@@ -3089,11 +3089,11 @@ function setupEventListeners() {
             targetPane.classList.remove('hidden');
         }
 
-        // Ẩn thanh lọc BOM và KPI BOM khi chuyển sang tab QLDA để tránh trùng lặp bộ lọc
+        // Ẩn thanh lọc BOM và KPI BOM khi chuyển sang tab QLDA hoặc DASHBOARD để tránh trùng lặp bộ lọc
         const bomFilterPanel = document.getElementById('sticky-control-panel');
         const bomKpiCards = document.getElementById('kpi-summary-cards');
         const bomSheetChips = document.getElementById('sheet-chips-section');
-        if (tabName === 'qlda') {
+        if (tabName === 'qlda' || tabName === 'dashboard') {
             if (bomFilterPanel) bomFilterPanel.classList.add('hidden');
             if (bomKpiCards) bomKpiCards.classList.add('hidden');
             if (bomSheetChips) bomSheetChips.classList.add('hidden');
@@ -3106,6 +3106,7 @@ function setupEventListeners() {
         if (tabName === 'timeline') renderDailyTimeline();
         if (tabName === 'dvg') renderDvgAnalytics();
         if (tabName === 'qlda') initOrRenderQlda();
+        if (tabName === 'dashboard') initOrRenderDashboard();
     };
 
     // Chuyển Tab (Tải lười theo yêu cầu)
@@ -3150,6 +3151,25 @@ function setupEventListeners() {
         btnCompactSwitchQlda.addEventListener('click', () => {
             window.switchTab('qlda');
             const targetPane = document.getElementById('tab-qlda-content');
+            if (targetPane) targetPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+
+    // Nút chuyển nhanh sang Dashboard từ thanh tiêu đề & thanh thu gọn
+    const btnSwitchDash = document.getElementById('btn-switch-to-dashboard');
+    if (btnSwitchDash) {
+        btnSwitchDash.addEventListener('click', () => {
+            window.switchTab('dashboard');
+            const targetPane = document.getElementById('tab-dashboard-content');
+            if (targetPane) targetPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
+
+    const btnCompactSwitchDash = document.getElementById('btn-compact-switch-to-dashboard');
+    if (btnCompactSwitchDash) {
+        btnCompactSwitchDash.addEventListener('click', () => {
+            window.switchTab('dashboard');
+            const targetPane = document.getElementById('tab-dashboard-content');
             if (targetPane) targetPane.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     }
@@ -3589,30 +3609,111 @@ async function loadQldaProject(projectId) {
     }
 }
 
-// Vẽ Dashboard KPI và 5 thanh tiến độ công đoạn
-function renderQldaDashboard() {
+// Vẽ Dashboard KPI và 5 thanh tiến độ công đoạn (tự động tính động khi lọc)
+function renderQldaDashboard(customItems = null) {
     const data = qldaState.currentProjectData;
     if (!data) return;
 
+    const raw = qldaState.rawItems || data.items || [];
+    const items = customItems !== null ? customItems : (qldaState.filteredItems || raw);
+    const isFiltered = items.length !== raw.length;
+
+    let totalItems = items.length;
+    let totalQty = 0;
+    let totalWeight = 0.0;
+    let sumGaQty = 0, sumGaKl = 0.0;
+    let sumHanQty = 0, sumHanKl = 0.0;
+    let sumThQty = 0, sumThKl = 0.0;
+    let sumNtQty = 0, sumNtKl = 0.0;
+    let sumBgQty = 0, sumBgKl = 0.0;
+
+    for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        totalQty += (it.tqty || 0);
+        totalWeight += (it.tweight || 0);
+
+        if (it.ga_lap) {
+            sumGaQty += (it.ga_lap.sl || 0);
+            sumGaKl += (it.ga_lap.kl || 0);
+        }
+        if (it.han) {
+            sumHanQty += (it.han.sl || 0);
+            sumHanKl += (it.han.kl || 0);
+        }
+        if (it.to_hop_thu) {
+            sumThQty += (it.to_hop_thu.sl || 0);
+            sumThKl += (it.to_hop_thu.kl || 0);
+        }
+        if (it.nghiem_thu) {
+            sumNtQty += (it.nghiem_thu.sl || 0);
+            sumNtKl += (it.nghiem_thu.kl || 0);
+        }
+        if (it.ban_giao) {
+            sumBgQty += (it.ban_giao.sl || 0);
+            sumBgKl += (it.ban_giao.kl || 0);
+        }
+    }
+
+    const totalTons = Math.round(totalWeight / 100) / 10;
+    const rawTotalWeight = data.total_weight || 1;
+    const itemPct = raw.length > 0 ? Math.round(totalItems / raw.length * 100) : 100;
+    const weightPct = rawTotalWeight > 0 ? Math.round(totalWeight / rawTotalWeight * 100) : 100;
+
+    const rateGa = totalWeight > 0 ? Math.round((sumGaKl / totalWeight) * 1000) / 10 : 0.0;
+    const rateHan = totalWeight > 0 ? Math.round((sumHanKl / totalWeight) * 1000) / 10 : 0.0;
+    const rateTh = totalWeight > 0 ? Math.round((sumThKl / totalWeight) * 1000) / 10 : 0.0;
+    const rateNt = totalWeight > 0 ? Math.round((sumNtKl / totalWeight) * 1000) / 10 : 0.0;
+    const rateBg = totalWeight > 0 ? Math.round((sumBgKl / totalWeight) * 1000) / 10 : 0.0;
+
     const elTotalItems = document.getElementById('qlda-kpi-total-items');
-    if (elTotalItems) elTotalItems.textContent = (data.total_items || 0).toLocaleString();
+    if (elTotalItems) elTotalItems.textContent = totalItems.toLocaleString();
 
     const elTotalQty = document.getElementById('qlda-kpi-total-qty');
-    if (elTotalQty) elTotalQty.textContent = `${(data.total_qty || 0).toLocaleString()} chi tiết (pcs)`;
+    if (elTotalQty) {
+        elTotalQty.textContent = `${totalQty.toLocaleString()} chi tiết (pcs)${isFiltered ? ` / ${raw.length} CK` : ''}`;
+    }
 
     const elTotalTons = document.getElementById('qlda-kpi-total-tons');
-    if (elTotalTons) elTotalTons.textContent = `${(data.total_tons || 0).toLocaleString()} Tấn`;
+    if (elTotalTons) elTotalTons.textContent = `${totalTons.toLocaleString()} Tấn`;
 
     const elTotalKg = document.getElementById('qlda-kpi-total-weight-kg');
-    if (elTotalKg) elTotalKg.textContent = `${(data.total_weight || 0).toLocaleString()} kg`;
+    if (elTotalKg) elTotalKg.textContent = `${Math.round(totalWeight).toLocaleString()} kg`;
 
-    const kpis = data.kpis || {};
+    const badgeItem = document.getElementById('qlda-badge-items-rate');
+    if (badgeItem) {
+        badgeItem.textContent = `${itemPct}%`;
+        if (isFiltered) {
+            badgeItem.className = 'text-xs font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded whitespace-nowrap';
+        } else {
+            badgeItem.className = 'text-xs font-bold text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded whitespace-nowrap';
+        }
+    }
 
-    setKpiStage('ga', kpis.ga_lap || { sl: 0, kl: 0, rate: 0 });
-    setKpiStage('han', kpis.han || { sl: 0, kl: 0, rate: 0 });
-    setKpiStage('th', kpis.to_hop_thu || { sl: 0, kl: 0, rate: 0 });
-    setKpiStage('nt', kpis.nghiem_thu || { sl: 0, kl: 0, rate: 0 });
-    setKpiStage('bg', kpis.ban_giao || { sl: 0, kl: 0, rate: 0 });
+    const barItems = document.getElementById('qlda-bar-items');
+    if (barItems) {
+        barItems.style.width = `${Math.min(100, Math.max(0, itemPct))}%`;
+    }
+
+    const badgeWeight = document.getElementById('qlda-badge-weight-rate');
+    if (badgeWeight) {
+        badgeWeight.textContent = `${weightPct}%`;
+        if (isFiltered) {
+            badgeWeight.className = 'text-xs font-bold text-indigo-700 bg-indigo-100 px-1.5 py-0.5 rounded whitespace-nowrap';
+        } else {
+            badgeWeight.className = 'text-xs font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded whitespace-nowrap';
+        }
+    }
+
+    const barWeight = document.getElementById('qlda-bar-weight');
+    if (barWeight) {
+        barWeight.style.width = `${Math.min(100, Math.max(0, weightPct))}%`;
+    }
+
+    setKpiStage('ga', { sl: sumGaQty, kl: sumGaKl, rate: rateGa });
+    setKpiStage('han', { sl: sumHanQty, kl: sumHanKl, rate: rateHan });
+    setKpiStage('th', { sl: sumThQty, kl: sumThKl, rate: rateTh });
+    setKpiStage('nt', { sl: sumNtQty, kl: sumNtKl, rate: rateNt });
+    setKpiStage('bg', { sl: sumBgQty, kl: sumBgKl, rate: rateBg });
 }
 
 function setKpiStage(prefix, stageData) {
@@ -3810,6 +3911,7 @@ function filterQldaItems() {
     }
 
     renderQldaActiveFilterTags();
+    renderQldaDashboard(filtered); // Đồng bộ 7 thẻ KPI nhảy tự động theo danh sách cấu kiện đã lọc
     renderQldaTable();
 }
 
@@ -4821,5 +4923,1315 @@ function setupQldaEventListeners() {
             closeQldaAssemblyDetail();
         }
     });
+}
+
+// =========================================================================
+// TAB 5: DASHBOARD PHÂN TÍCH TIẾN ĐỘ CHẾ TẠO (LINE CHART, BTP, GANTT)
+// =========================================================================
+
+const dashboardState = {
+    isInitialized: false,
+    isLoading: false,
+    projects: [],
+    currentProjectId: null,
+    currentProjectData: null,
+    bomData: null,
+    selectedMonth: 'all',
+    selectedHangMuc: 'all',
+    selectedPhanGiao: 'all',
+    chartMode: 'scurve', // 'scurve' | 'daily'
+    targetTons: 50,
+    lineChartInstance: null,
+    btpDoughnutInstance: null,
+    btpBarInstance: null,
+    isDayTableOpen: false,
+    ganttSearchQuery: '',
+    ganttFilterStage: 'all',
+    btpSearchQuery: ''
+};
+
+// Khởi tạo hoặc vẽ lại Dashboard
+async function initOrRenderDashboard() {
+    if (!dashboardState.isInitialized) {
+        setupDashboardEventListeners();
+        dashboardState.isInitialized = true;
+    }
+
+    const projSelect = document.getElementById('dash-select-project');
+    if (projSelect && projSelect.options.length === 0) {
+        await populateDashboardProjectCatalog();
+    }
+
+    let targetProj = dashboardState.currentProjectId || qldaState.currentProjectId || state.currentProject || 'A320';
+    if (projSelect && projSelect.options.length > 0) {
+        let found = false;
+        for (let opt of projSelect.options) {
+            if (opt.value === targetProj) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) targetProj = projSelect.options[0].value;
+        projSelect.value = targetProj;
+    }
+
+    if (targetProj && targetProj !== dashboardState.currentProjectId) {
+        await loadDashboardProject(targetProj);
+    } else if (dashboardState.currentProjectData) {
+        renderDashboardAll();
+    }
+}
+
+// Nạp danh mục dự án QLDA cho Dashboard
+async function populateDashboardProjectCatalog() {
+    const projSelect = document.getElementById('dash-select-project');
+    if (!projSelect) return;
+
+    try {
+        let list = [];
+        if (state.isStaticMode) {
+            const resp = await fetch('data/qlda_projects.json');
+            if (resp.ok) {
+                const catalog = await resp.json();
+                list = catalog.projects || [];
+            }
+        } else {
+            try {
+                const resp = await fetch('/api/qlda/projects');
+                if (resp.ok) {
+                    const catalog = await resp.json();
+                    list = catalog.projects || [];
+                }
+            } catch (e) {}
+            if (list.length === 0) {
+                const resp = await fetch('data/qlda_projects.json');
+                if (resp.ok) {
+                    const catalog = await resp.json();
+                    list = catalog.projects || [];
+                }
+            }
+        }
+
+        dashboardState.projects = list;
+        projSelect.innerHTML = '';
+        list.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.project_id;
+            opt.textContent = `${p.project_id} (${p.total_tons || 0} tấn - ${p.total_items || 0} CK)`;
+            projSelect.appendChild(opt);
+        });
+    } catch (err) {
+        console.error("Lỗi nạp danh mục dự án cho Dashboard:", err);
+    }
+}
+
+// Tải dữ liệu dự án cho Dashboard
+async function loadDashboardProject(projectId) {
+    if (!projectId) return;
+    dashboardState.isLoading = true;
+    dashboardState.currentProjectId = projectId;
+
+    const badge = document.getElementById('dash-project-badge');
+    if (badge) badge.textContent = `Dự Án: ${projectId}`;
+
+    try {
+        // 1. Nạp dữ liệu QLDA (ưu tiên từ bộ nhớ cache)
+        let data = _qldaDataCache[projectId];
+        if (!data) {
+            if (state.isStaticMode) {
+                const resp = await fetch(`data_qlda/${projectId}.json`);
+                if (!resp.ok) throw new Error(`Không tìm thấy data_qlda/${projectId}.json`);
+                data = await resp.json();
+            } else {
+                try {
+                    const resp = await fetch(`/api/qlda/project-data?project_id=${encodeURIComponent(projectId)}`);
+                    if (resp.ok) data = await resp.json();
+                } catch (e) {}
+                if (!data) {
+                    const resp = await fetch(`data_qlda/${projectId}.json`);
+                    if (resp.ok) data = await resp.json();
+                }
+            }
+            if (data) _qldaDataCache[projectId] = data;
+        }
+
+        dashboardState.currentProjectData = data;
+
+        // 2. Nạp thêm dữ liệu BOM tương ứng nếu có để đối chiếu BTP
+        let bom = null;
+        try {
+            const bomNames = [`${projectId}PL.json`, `${projectId}.json`];
+            for (let bName of bomNames) {
+                const resp = await fetch(`data/${bName}`);
+                if (resp.ok) {
+                    bom = await resp.json();
+                    break;
+                }
+            }
+        } catch (e) {}
+        dashboardState.bomData = bom;
+
+        populateDashboardDropdowns();
+        renderDashboardAll();
+    } catch (err) {
+        console.error(`Lỗi tải dữ liệu Dashboard cho dự án ${projectId}:`, err);
+    } finally {
+        dashboardState.isLoading = false;
+    }
+}
+
+// Nạp các Dropdown Tháng, Hạng Mục, Tổ
+function populateDashboardDropdowns() {
+    const data = dashboardState.currentProjectData;
+    if (!data) return;
+
+    const items = data.items || [];
+
+    // 1. Quét tất cả các Tháng/Năm có dữ liệu sản lượng gá, hàn hoặc hạn giao hàng WO
+    const monthSet = new Set();
+    items.forEach(it => {
+        ['ga_lap', 'han', 'to_hop_thu', 'nghiem_thu', 'ban_giao'].forEach(stg => {
+            const dStr = it[stg]?.ngay;
+            if (dStr) {
+                const parts = dStr.split('/');
+                if (parts.length === 3) monthSet.add(`${parts[1]}/${parts[2]}`);
+            }
+        });
+        if (it.ngay_giao_wo) {
+            const parts = it.ngay_giao_wo.split('/');
+            if (parts.length === 3) monthSet.add(`${parts[1]}/${parts[2]}`);
+        }
+    });
+
+    const sortedMonths = Array.from(monthSet).sort((a, b) => {
+        const [mA, yA] = a.split('/').map(Number);
+        const [mB, yB] = b.split('/').map(Number);
+        return (yA * 100 + mA) - (yB * 100 + mB);
+    });
+
+    const monthSelect = document.getElementById('dash-select-month');
+    if (monthSelect) {
+        monthSelect.innerHTML = '';
+        if (sortedMonths.length > 1) {
+            const optAll = document.createElement('option');
+            optAll.value = 'all';
+            optAll.textContent = '📅 Toàn bộ các tháng dự án';
+            monthSelect.appendChild(optAll);
+        }
+
+        sortedMonths.forEach(m => {
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.textContent = `📅 Tháng ${m}`;
+            monthSelect.appendChild(opt);
+        });
+
+        // Mặc định chọn tháng có sản lượng gần nhất hoặc tháng đầu tiên
+        if (sortedMonths.length > 0) {
+            // Tìm tháng có nhiều cấu kiện gá/hàn nhất
+            let bestMonth = sortedMonths[sortedMonths.length - 1];
+            for (let m of sortedMonths) {
+                const count = items.filter(it => (it.ga_lap?.ngay || '').includes(m) || (it.han?.ngay || '').includes(m)).length;
+                if (count > 0) {
+                    bestMonth = m;
+                    break;
+                }
+            }
+            dashboardState.selectedMonth = bestMonth;
+            monthSelect.value = bestMonth;
+        } else {
+            dashboardState.selectedMonth = 'all';
+        }
+    }
+
+    // 2. Hạng Mục
+    const hmSelect = document.getElementById('dash-select-hangmuc');
+    if (hmSelect) {
+        hmSelect.innerHTML = '<option value="all">📂 Tất cả hạng mục</option>';
+        (data.hang_mucs || []).forEach(hm => {
+            const opt = document.createElement('option');
+            opt.value = hm;
+            opt.textContent = hm;
+            hmSelect.appendChild(opt);
+        });
+        hmSelect.value = 'all';
+        dashboardState.selectedHangMuc = 'all';
+    }
+
+    // 3. Tổ Phân Giao
+    const pgSelect = document.getElementById('dash-select-phangiao');
+    if (pgSelect) {
+        pgSelect.innerHTML = '<option value="all">👥 Tất cả tổ phân giao</option>';
+        (data.phan_giaos || []).forEach(pg => {
+            const opt = document.createElement('option');
+            opt.value = pg;
+            opt.textContent = `Tổ ${pg}`;
+            pgSelect.appendChild(opt);
+        });
+        pgSelect.value = 'all';
+        dashboardState.selectedPhanGiao = 'all';
+    }
+}
+
+// Vẽ toàn bộ các thành phần của Dashboard
+function renderDashboardAll() {
+    const data = dashboardState.currentProjectData;
+    if (!data) return;
+
+    renderDashboardKPIsAndLineChart();
+    renderDashboardBtpSection();
+    renderDashboardGantt();
+}
+
+// PHẦN 1: TÍNH TOÁN KPI & VẼ BIỂU ĐỒ LINE SO SÁNH THỰC TẾ / KẾ HOẠCH GÁ & HÀN THEO NGÀY
+function renderDashboardKPIsAndLineChart() {
+    const data = dashboardState.currentProjectData;
+    if (!data) return;
+
+    const raw = data.items || [];
+    const selHm = dashboardState.selectedHangMuc;
+    const selPg = dashboardState.selectedPhanGiao;
+    const selMonth = dashboardState.selectedMonth;
+
+    // 1. Lọc theo Hạng mục và Tổ
+    let items = raw.filter(it => {
+        if (selHm !== 'all' && it.hang_muc !== selHm) return false;
+        if (selPg !== 'all' && it.phan_giao !== selPg) return false;
+        return true;
+    });
+
+    // Cập nhật tiêu đề tháng trên biểu đồ
+    const monthTitleEl = document.getElementById('dash-chart-month-title');
+    if (monthTitleEl) {
+        monthTitleEl.textContent = selMonth === 'all' ? 'Toàn Dự Án' : `Tháng ${selMonth}`;
+    }
+
+    // 2. Xác định các ngày trong tháng (hoặc tất cả các ngày ghi nhận nếu chọn 'all')
+    let dayLabels = [];
+    let daysCount = 31;
+    let targetMonthNum = 0;
+    let targetYearNum = 0;
+
+    if (selMonth !== 'all' && selMonth.includes('/')) {
+        const [mStr, yStr] = selMonth.split('/');
+        targetMonthNum = parseInt(mStr, 10);
+        targetYearNum = parseInt(yStr, 10);
+        daysCount = new Date(targetYearNum, targetMonthNum, 0).getDate();
+        for (let d = 1; d <= daysCount; d++) {
+            const dStr = d < 10 ? `0${d}` : `${d}`;
+            dayLabels.push(`${dStr}/${mStr}`);
+        }
+    } else {
+        // Lấy tất cả các ngày phát sinh trong dự án
+        const allDates = new Set();
+        items.forEach(it => {
+            ['ga_lap', 'han', 'nghiem_thu', 'ban_giao'].forEach(stg => {
+                if (it[stg]?.ngay) allDates.add(it[stg].ngay.substring(0, 5));
+            });
+        });
+        dayLabels = Array.from(allDates).sort();
+        if (dayLabels.length === 0) {
+            dayLabels = ['01', '05', '10', '15', '20', '25', '30'];
+        }
+    }
+
+    // 3. Gom sản lượng thực tế Gá và Hàn theo từng ngày
+    const dailyGaActual = new Array(dayLabels.length).fill(0);
+    const dailyHanActual = new Array(dayLabels.length).fill(0);
+    const dailyNtActual = new Array(dayLabels.length).fill(0);
+    const dailyBgActual = new Array(dayLabels.length).fill(0);
+
+    let totalMonthGaTons = 0;
+    let totalMonthHanTons = 0;
+    let totalMonthNtTons = 0;
+    let totalMonthBgTons = 0;
+    let totalMonthGaPcs = 0;
+    let totalMonthHanPcs = 0;
+
+    items.forEach(it => {
+        // Gá lắp
+        if (it.ga_lap?.ngay) {
+            const matchMonth = selMonth === 'all' || it.ga_lap.ngay.includes(selMonth);
+            if (matchMonth) {
+                const dayTag = it.ga_lap.ngay.substring(0, 5);
+                const idx = dayLabels.indexOf(dayTag);
+                const tons = (it.ga_lap.kl || 0) / 1000;
+                if (idx >= 0) dailyGaActual[idx] += tons;
+                totalMonthGaTons += tons;
+                totalMonthGaPcs += (it.ga_lap.sl || 0);
+            }
+        }
+        // Hàn
+        if (it.han?.ngay) {
+            const matchMonth = selMonth === 'all' || it.han.ngay.includes(selMonth);
+            if (matchMonth) {
+                const dayTag = it.han.ngay.substring(0, 5);
+                const idx = dayLabels.indexOf(dayTag);
+                const tons = (it.han.kl || 0) / 1000;
+                if (idx >= 0) dailyHanActual[idx] += tons;
+                totalMonthHanTons += tons;
+                totalMonthHanPcs += (it.han.sl || 0);
+            }
+        }
+        // Nghiệm thu
+        if (it.nghiem_thu?.ngay) {
+            const matchMonth = selMonth === 'all' || it.nghiem_thu.ngay.includes(selMonth);
+            if (matchMonth) {
+                const dayTag = it.nghiem_thu.ngay.substring(0, 5);
+                const idx = dayLabels.indexOf(dayTag);
+                const tons = (it.nghiem_thu.kl || 0) / 1000;
+                if (idx >= 0) dailyNtActual[idx] += tons;
+                totalMonthNtTons += tons;
+            }
+        }
+        // Bàn giao
+        if (it.ban_giao?.ngay) {
+            const matchMonth = selMonth === 'all' || it.ban_giao.ngay.includes(selMonth);
+            if (matchMonth) {
+                const dayTag = it.ban_giao.ngay.substring(0, 5);
+                const idx = dayLabels.indexOf(dayTag);
+                const tons = (it.ban_giao.kl || 0) / 1000;
+                if (idx >= 0) dailyBgActual[idx] += tons;
+                totalMonthBgTons += tons;
+            }
+        }
+    });
+
+    totalMonthGaTons = Math.round(totalMonthGaTons * 100) / 100;
+    totalMonthHanTons = Math.round(totalMonthHanTons * 100) / 100;
+    totalMonthNtTons = Math.round(totalMonthNtTons * 100) / 100;
+    totalMonthBgTons = Math.round(totalMonthBgTons * 100) / 100;
+
+    // 4. Tính toán Kế Hoạch Phân Bổ (Plan Target)
+    // Nếu người dùng không nhập mục tiêu riêng, tự động lấy mục tiêu = Max(Sản lượng thực tế, 50 tấn)
+    let planTargetTons = dashboardState.targetTons || 50;
+    if (planTargetTons <= 0) planTargetTons = Math.max(totalMonthGaTons, totalMonthHanTons, 30);
+
+    const inputTarget = document.getElementById('dash-input-target-tons');
+    if (inputTarget && !document.activeElement.isSameNode(inputTarget)) {
+        inputTarget.value = Math.round(planTargetTons);
+    }
+
+    const workingDays = Math.max(1, Math.min(26, dayLabels.length));
+    const dailyPlanRate = planTargetTons / workingDays;
+
+    // Tính đường kế hoạch và lũy kế
+    let cumGaActual = [];
+    let cumHanActual = [];
+    let cumPlanGa = [];
+    let cumPlanHan = [];
+    let dailyPlanGa = [];
+    let dailyPlanHan = [];
+
+    let runGa = 0, runHan = 0, runPlan = 0;
+
+    for (let i = 0; i < dayLabels.length; i++) {
+        runGa += dailyGaActual[i];
+        runHan += dailyHanActual[i];
+
+        cumGaActual.push(Math.round(runGa * 100) / 100);
+        cumHanActual.push(Math.round(runHan * 100) / 100);
+
+        // Kế hoạch phân bổ (Dạng S-curve hoặc tuyến tính dốc theo ngày)
+        const progressFrac = (i + 1) / dayLabels.length;
+        // Đường cong S-Curve mượt mà: f(x) = x^1.3
+        const sFactor = Math.pow(progressFrac, 1.25);
+        const planVal = Math.round(planTargetTons * sFactor * 100) / 100;
+
+        cumPlanGa.push(planVal);
+        cumPlanHan.push(Math.round(planVal * 0.95 * 100) / 100); // Hàn sau gá khoảng 5%
+
+        dailyPlanGa.push(Math.round(dailyPlanRate * 100) / 100);
+        dailyPlanHan.push(Math.round(dailyPlanRate * 100) / 100);
+    }
+
+    // 5. Cập Nhật 4 Thẻ KPI Trên Cùng
+    const gaRate = planTargetTons > 0 ? Math.round((totalMonthGaTons / planTargetTons) * 100) : 0;
+    const hanRate = planTargetTons > 0 ? Math.round((totalMonthHanTons / planTargetTons) * 100) : 0;
+
+    const elGaActual = document.getElementById('dash-kpi-ga-actual');
+    if (elGaActual) elGaActual.textContent = totalMonthGaTons.toLocaleString();
+    const elGaPlan = document.getElementById('dash-kpi-ga-plan');
+    if (elGaPlan) elGaPlan.textContent = `${planTargetTons} Tấn`;
+    const elGaPcs = document.getElementById('dash-kpi-ga-pcs');
+    if (elGaPcs) elGaPcs.textContent = `${totalMonthGaPcs} pcs`;
+    const elGaRate = document.getElementById('dash-kpi-ga-rate');
+    if (elGaRate) elGaRate.textContent = `${gaRate}% KH`;
+    const elGaBar = document.getElementById('dash-kpi-ga-bar');
+    if (elGaBar) elGaBar.style.width = `${Math.min(100, gaRate)}%`;
+
+    const elHanActual = document.getElementById('dash-kpi-han-actual');
+    if (elHanActual) elHanActual.textContent = totalMonthHanTons.toLocaleString();
+    const elHanPlan = document.getElementById('dash-kpi-han-plan');
+    if (elHanPlan) elHanPlan.textContent = `${planTargetTons} Tấn`;
+    const elHanPcs = document.getElementById('dash-kpi-han-pcs');
+    if (elHanPcs) elHanPcs.textContent = `${totalMonthHanPcs} pcs`;
+    const elHanRate = document.getElementById('dash-kpi-han-rate');
+    if (elHanRate) elHanRate.textContent = `${hanRate}% KH`;
+    const elHanBar = document.getElementById('dash-kpi-han-bar');
+    if (elHanBar) elHanBar.style.width = `${Math.min(100, hanRate)}%`;
+
+    const elBgActual = document.getElementById('dash-kpi-bg-actual');
+    if (elBgActual) elBgActual.textContent = totalMonthBgTons.toLocaleString();
+    const elNtTons = document.getElementById('dash-kpi-nt-tons');
+    if (elNtTons) elNtTons.textContent = `${totalMonthNtTons} Tấn`;
+
+    // Tìm hạn giao hàng WO gần nhất
+    let nearestWo = '--/--/----';
+    const woDates = items.map(it => it.ngay_giao_wo).filter(Boolean);
+    if (woDates.length > 0) nearestWo = woDates[0];
+    const elWoDate = document.getElementById('dash-kpi-wo-date');
+    if (elWoDate) elWoDate.textContent = nearestWo;
+
+    const bgRateTotal = data.kpis?.ban_giao?.rate || 0;
+    const elBgRate = document.getElementById('dash-kpi-bg-rate');
+    if (elBgRate) elBgRate.textContent = `${bgRateTotal}% Bàn Giao`;
+    const elBgBar = document.getElementById('dash-kpi-bg-bar');
+    if (elBgBar) elBgBar.style.width = `${Math.min(100, bgRateTotal)}%`;
+
+    // 6. Vẽ Biểu Đồ Line Bằng Chart.js
+    const canvas = document.getElementById('dash-line-chart');
+    if (canvas) {
+        const isScurve = dashboardState.chartMode === 'scurve';
+
+        const datasetGaActual = {
+            label: isScurve ? 'Lũy Kế Gá Lắp (Tấn)' : 'Gá Lắp Hàng Ngày (Tấn)',
+            data: isScurve ? cumGaActual : dailyGaActual.map(v => Math.round(v * 100) / 100),
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.08)',
+            borderWidth: 2.5,
+            fill: isScurve,
+            tension: 0.3,
+            pointRadius: isScurve ? 2 : 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#2563eb'
+        };
+
+        const datasetGaPlan = {
+            label: isScurve ? 'Kế Hoạch Gá Lắp (Tấn)' : 'Kế Hoạch Gá Phân Bổ (Tấn/ngày)',
+            data: isScurve ? cumPlanGa : dailyPlanGa,
+            borderColor: '#93c5fd',
+            borderWidth: 2,
+            borderDash: [5, 4],
+            fill: false,
+            tension: 0.2,
+            pointRadius: 0,
+            pointHoverRadius: 4
+        };
+
+        const datasetHanActual = {
+            label: isScurve ? 'Lũy Kế Hàn (Tấn)' : 'Hàn Hàng Ngày (Tấn)',
+            data: isScurve ? cumHanActual : dailyHanActual.map(v => Math.round(v * 100) / 100),
+            borderColor: '#d97706',
+            backgroundColor: 'rgba(217, 119, 6, 0.08)',
+            borderWidth: 2.5,
+            fill: isScurve,
+            tension: 0.3,
+            pointRadius: isScurve ? 2 : 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#d97706'
+        };
+
+        const datasetHanPlan = {
+            label: isScurve ? 'Kế Hoạch Hàn (Tấn)' : 'Kế Hoạch Hàn Phân Bổ (Tấn/ngày)',
+            data: isScurve ? cumPlanHan : dailyPlanHan,
+            borderColor: '#fcd34d',
+            borderWidth: 2,
+            borderDash: [5, 4],
+            fill: false,
+            tension: 0.2,
+            pointRadius: 0,
+            pointHoverRadius: 4
+        };
+
+        if (dashboardState.lineChartInstance) {
+            dashboardState.lineChartInstance.destroy();
+        }
+
+        dashboardState.lineChartInstance = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: dayLabels,
+                datasets: [datasetGaActual, datasetGaPlan, datasetHanActual, datasetHanPlan]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.92)',
+                        titleColor: '#fff',
+                        bodyColor: '#cbd5e1',
+                        padding: 10,
+                        cornerRadius: 10,
+                        callbacks: {
+                            label: function(context) {
+                                return ` ${context.dataset.label}: ${context.parsed.y.toLocaleString()} Tấn`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: { size: 10, weight: 'bold' },
+                            color: '#64748b'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(226, 232, 240, 0.8)'
+                        },
+                        ticks: {
+                            font: { size: 11, family: 'monospace' },
+                            color: '#64748b',
+                            callback: function(value) {
+                                return value + ' T';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 7. Thống Kê Điểm Nhấn Dưới Chân Biểu Đồ
+    let peakGaVal = 0, peakGaDay = '--';
+    let peakHanVal = 0, peakHanDay = '--';
+
+    for (let i = 0; i < dayLabels.length; i++) {
+        if (dailyGaActual[i] > peakGaVal) {
+            peakGaVal = dailyGaActual[i];
+            peakGaDay = `${dayLabels[i]} (${Math.round(peakGaVal * 10) / 10}T)`;
+        }
+        if (dailyHanActual[i] > peakHanVal) {
+            peakHanVal = dailyHanActual[i];
+            peakHanDay = `${dayLabels[i]} (${Math.round(peakHanVal * 10) / 10}T)`;
+        }
+    }
+
+    const elPeakGa = document.getElementById('dash-peak-ga');
+    if (elPeakGa) elPeakGa.textContent = peakGaDay;
+
+    const elPeakHan = document.getElementById('dash-peak-han');
+    if (elPeakHan) elPeakHan.textContent = peakHanDay;
+
+    const avgDaily = workingDays > 0 ? Math.round((totalMonthGaTons + totalMonthHanTons) / 2 / workingDays * 10) / 10 : 0;
+    const elAvg = document.getElementById('dash-avg-daily');
+    if (elAvg) elAvg.textContent = `${avgDaily} Tấn/ngày`;
+
+    const elStatus = document.getElementById('dash-status-eval');
+    if (elStatus) {
+        if (gaRate >= 100 && hanRate >= 100) {
+            elStatus.textContent = '🌟 Vượt Kế Hoạch';
+            elStatus.className = 'font-extrabold text-emerald-700 font-mono text-xs sm:text-sm';
+        } else if (gaRate >= 80 || hanRate >= 80) {
+            elStatus.textContent = '🟢 Bám Sát Tiến Độ';
+            elStatus.className = 'font-extrabold text-blue-700 font-mono text-xs sm:text-sm';
+        } else if (totalMonthGaTons > 0 || totalMonthHanTons > 0) {
+            elStatus.textContent = '⚡ Cần Tăng Tốc';
+            elStatus.className = 'font-extrabold text-amber-700 font-mono text-xs sm:text-sm';
+        } else {
+            elStatus.textContent = 'Chưa Triển Khai';
+            elStatus.className = 'font-extrabold text-slate-500 font-mono text-xs sm:text-sm';
+        }
+    }
+
+    // 8. Đổ Dữ Liệu Vào Bảng Chi Tiết Từng Ngày
+    renderDashboardDayTable(dayLabels, dailyGaActual, cumGaActual, dailyHanActual, cumHanActual, cumPlanGa, dailyNtActual, dailyBgActual);
+}
+
+// Bảng chi tiết sản lượng gá hàn theo từng ngày
+function renderDashboardDayTable(labels, gaActual, cumGa, hanActual, cumHan, plan, ntActual, bgActual) {
+    const tbody = document.getElementById('dash-day-table-tbody');
+    const summaryEl = document.getElementById('dash-day-table-summary');
+    if (!tbody) return;
+
+    let activeDaysCount = 0;
+    let html = '';
+
+    for (let i = 0; i < labels.length; i++) {
+        const ga = Math.round(gaActual[i] * 100) / 100;
+        const han = Math.round(hanActual[i] * 100) / 100;
+        const nt = Math.round(ntActual[i] * 100) / 100;
+        const bg = Math.round(bgActual[i] * 100) / 100;
+        const pl = Math.round(plan[i] * 100) / 100;
+
+        if (ga > 0 || han > 0 || nt > 0 || bg > 0) activeDaysCount++;
+
+        const isTodayOrActive = (ga > 0 || han > 0);
+        const rowBg = isTodayOrActive ? 'bg-blue-50/20 hover:bg-blue-50/50' : 'hover:bg-slate-50';
+
+        const diff = Math.round((cumGa[i] - pl) * 100) / 100;
+        let evalBadge = `<span class="text-slate-400 text-[10px]">--</span>`;
+        if (diff > 0) {
+            evalBadge = `<span class="px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">+${diff}T</span>`;
+        } else if (diff < 0) {
+            evalBadge = `<span class="px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 text-[10px] font-bold">${diff}T</span>`;
+        }
+
+        html += `
+            <tr class="${rowBg} transition">
+                <td class="py-2 px-3 font-bold text-slate-800">${labels[i]}</td>
+                <td class="py-2 px-3 text-right text-blue-700 font-bold">${ga > 0 ? ga.toLocaleString() : '-'}</td>
+                <td class="py-2 px-3 text-right text-blue-900">${cumGa[i].toLocaleString()}</td>
+                <td class="py-2 px-3 text-right text-amber-700 font-bold">${han > 0 ? han.toLocaleString() : '-'}</td>
+                <td class="py-2 px-3 text-right text-amber-900">${cumHan[i].toLocaleString()}</td>
+                <td class="py-2 px-3 text-right text-slate-600">${pl.toLocaleString()}</td>
+                <td class="py-2 px-3 text-right text-teal-700">${nt > 0 ? nt.toLocaleString() : '-'}</td>
+                <td class="py-2 px-3 text-right text-emerald-700 font-bold">${bg > 0 ? bg.toLocaleString() : '-'}</td>
+                <td class="py-2 px-3 text-center">${evalBadge}</td>
+            </tr>
+        `;
+    }
+
+    tbody.innerHTML = html;
+    if (summaryEl) summaryEl.textContent = `${activeDaysCount} / ${labels.length} ngày ghi nhận`;
+}
+
+// PHẦN 2: TÌNH TRẠNG NHẬN BÁN THÀNH PHẨM (BTP)
+function renderDashboardBtpSection() {
+    const data = dashboardState.currentProjectData;
+    if (!data) return;
+
+    const items = data.items || [];
+    let countReady = 0;
+    let countMissing = 0;
+    let countZero = 0;
+
+    let totalWeightTons = 0;
+    let receivedWeightTons = 0;
+    let missingWeightTons = 0;
+
+    // Nhóm theo Hạng mục
+    const hmMap = {};
+
+    items.forEach(it => {
+        const wKg = it.tweight || 0;
+        const wTons = wKg / 1000;
+        totalWeightTons += wTons;
+
+        const hm = it.hang_muc || 'Khác';
+        if (!hmMap[hm]) {
+            hmMap[hm] = { total: 0, received: 0, missing: 0 };
+        }
+        hmMap[hm].total += wTons;
+
+        // Đánh giá tỷ lệ phôi & BTP
+        const phoiRate = it.nhan_phoi?.rate || 0;
+        const phoiKl = (it.nhan_phoi?.kl || 0) / 1000;
+
+        if (phoiRate >= 95 || it.status === 'BAN_GIAO' || it.status === 'NGHIEM_THU' || it.status === 'TO_HOP_THU') {
+            countReady++;
+            receivedWeightTons += wTons;
+            hmMap[hm].received += wTons;
+        } else if (phoiRate > 0 || phoiKl > 0 || it.ga_lap?.sl > 0) {
+            countMissing++;
+            const recTons = phoiKl > 0 ? phoiKl : (wTons * phoiRate / 100);
+            receivedWeightTons += recTons;
+            missingWeightTons += Math.max(0, wTons - recTons);
+            hmMap[hm].received += recTons;
+            hmMap[hm].missing += Math.max(0, wTons - recTons);
+        } else {
+            countZero++;
+            missingWeightTons += wTons;
+            hmMap[hm].missing += wTons;
+        }
+    });
+
+    totalWeightTons = Math.round(totalWeightTons * 10) / 10;
+    receivedWeightTons = Math.round(receivedWeightTons * 10) / 10;
+    missingWeightTons = Math.round(missingWeightTons * 10) / 10;
+
+    const readyPct = items.length > 0 ? Math.round(countReady / items.length * 100) : 0;
+    const recPct = totalWeightTons > 0 ? Math.round(receivedWeightTons / totalWeightTons * 100) : 0;
+
+    // Cập nhật thẻ KPI BTP
+    const elBtpRec = document.getElementById('dash-kpi-btp-received');
+    if (elBtpRec) elBtpRec.textContent = receivedWeightTons.toLocaleString();
+
+    const elBtpMiss = document.getElementById('dash-kpi-btp-missing');
+    if (elBtpMiss) elBtpMiss.textContent = `${missingWeightTons.toLocaleString()} Tấn`;
+
+    const elBtpReady = document.getElementById('dash-kpi-btp-ready');
+    if (elBtpReady) elBtpReady.textContent = `${countReady} CK đủ 100%`;
+
+    const elBtpRate = document.getElementById('dash-kpi-btp-rate');
+    if (elBtpRate) elBtpRate.textContent = `${recPct}% Đã Về`;
+
+    const elBtpBar = document.getElementById('dash-kpi-btp-bar');
+    if (elBtpBar) elBtpBar.style.width = `${Math.min(100, recPct)}%`;
+
+    // Cập nhật số liệu chi tiết trong box Doughnut
+    const elCenterPct = document.getElementById('dash-btp-center-pct');
+    if (elCenterPct) elCenterPct.textContent = `${readyPct}%`;
+
+    const elTotalBadge = document.getElementById('dash-btp-total-badge');
+    if (elTotalBadge) elTotalBadge.textContent = `${items.length} CK`;
+
+    const elCountReady = document.getElementById('dash-btp-count-ready');
+    if (elCountReady) elCountReady.textContent = `${countReady} CK (${readyPct}%)`;
+
+    const elCountMissing = document.getElementById('dash-btp-count-missing');
+    if (elCountMissing) elCountMissing.textContent = `${countMissing} CK`;
+
+    const elCountZero = document.getElementById('dash-btp-count-zero');
+    if (elCountZero) elCountZero.textContent = `${countZero} CK`;
+
+    // 1. Vẽ Biểu Đồ Doughnut BTP
+    const doughnutCanvas = document.getElementById('dash-btp-doughnut');
+    if (doughnutCanvas) {
+        if (dashboardState.btpDoughnutInstance) dashboardState.btpDoughnutInstance.destroy();
+        dashboardState.btpDoughnutInstance = new Chart(doughnutCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: ['Đủ 100% BTP', 'Đang thiếu BTP', 'Chưa có BTP'],
+                datasets: [{
+                    data: [countReady, countMissing, countZero],
+                    backgroundColor: ['#10b981', '#f59e0b', '#f43f5e'],
+                    borderWidth: 2,
+                    borderColor: '#ffffff',
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                const total = countReady + countMissing + countZero;
+                                const pct = total > 0 ? Math.round(ctx.parsed / total * 100) : 0;
+                                return ` ${ctx.label}: ${ctx.parsed} cấu kiện (${pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // 2. Vẽ Biểu Đồ Stacked Bar Theo Hạng Mục
+    const barCanvas = document.getElementById('dash-btp-bar');
+    if (barCanvas) {
+        const hmLabels = Object.keys(hmMap);
+        const hmRec = hmLabels.map(hm => Math.round(hmMap[hm].received * 10) / 10);
+        const hmMiss = hmLabels.map(hm => Math.round(hmMap[hm].missing * 10) / 10);
+
+        if (dashboardState.btpBarInstance) dashboardState.btpBarInstance.destroy();
+        dashboardState.btpBarInstance = new Chart(barCanvas, {
+            type: 'bar',
+            data: {
+                labels: hmLabels.map(lbl => lbl.length > 18 ? lbl.substring(0, 16) + '...' : lbl),
+                datasets: [
+                    {
+                        label: 'Đã nhận (Tấn)',
+                        data: hmRec,
+                        backgroundColor: '#10b981',
+                        borderRadius: 6,
+                        stack: 'Stack 0'
+                    },
+                    {
+                        label: 'Còn thiếu (Tấn)',
+                        data: hmMiss,
+                        backgroundColor: '#f87171',
+                        borderRadius: 6,
+                        stack: 'Stack 0'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: true,
+                        grid: { display: false },
+                        ticks: { font: { size: 10 }, color: '#64748b' }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        grid: { color: 'rgba(226, 232, 240, 0.8)' },
+                        ticks: {
+                            font: { size: 10, family: 'monospace' },
+                            callback: v => v + ' T'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                }
+            }
+        });
+
+        const totalBarEl = document.getElementById('dash-btp-bar-total');
+        if (totalBarEl) totalBarEl.textContent = `Tổng: ${totalWeightTons} Tấn`;
+    }
+
+    // 3. Đổ Danh Sách BTP
+    renderDashboardBtpTable();
+}
+
+// Bảng chi tiết tình trạng nhận BTP của cấu kiện
+function renderDashboardBtpTable() {
+    const data = dashboardState.currentProjectData;
+    if (!data) return;
+
+    const tbody = document.getElementById('dash-btp-table-tbody');
+    if (!tbody) return;
+
+    const raw = data.items || [];
+    const q = (dashboardState.btpSearchQuery || '').toLowerCase().trim();
+
+    let items = raw;
+    if (q) {
+        items = raw.filter(it => 
+            (it.so_chi_tiet && it.so_chi_tiet.toLowerCase().includes(q)) ||
+            (it.ten_ban_ve && it.ten_ban_ve.toLowerCase().includes(q)) ||
+            (it.hang_muc && it.hang_muc.toLowerCase().includes(q))
+        );
+    }
+
+    // Ưu tiên hiển thị cấu kiện đang thiếu BTP trước
+    const displayList = items.slice(0, 50);
+
+    let html = '';
+    displayList.forEach((it, idx) => {
+        const pRate = it.nhan_phoi?.rate || 0;
+        const wTons = Math.round((it.tweight || 0) / 10) / 100;
+
+        let btpBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200">Chưa có BTP</span>`;
+        if (pRate >= 95) {
+            btpBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">Đủ 100% BTP</span>`;
+        } else if (pRate > 0) {
+            btpBadge = `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">Đang nhận (${pRate}%)</span>`;
+        }
+
+        let stageBadge = `<span class="text-slate-400 text-[10px]">Chưa làm</span>`;
+        if (it.ban_giao?.sl > 0) stageBadge = `<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">5. Bàn giao</span>`;
+        else if (it.nghiem_thu?.sl > 0) stageBadge = `<span class="px-2 py-0.5 rounded bg-teal-100 text-teal-800 text-[10px] font-bold">4. Nghiệm thu</span>`;
+        else if (it.to_hop_thu?.sl > 0) stageBadge = `<span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 text-[10px] font-bold">3. TH thử</span>`;
+        else if (it.han?.sl > 0) stageBadge = `<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-bold">2. Đã hàn</span>`;
+        else if (it.ga_lap?.sl > 0) stageBadge = `<span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 text-[10px] font-bold">1. Đã gá</span>`;
+
+        html += `
+            <tr class="hover:bg-slate-50 transition">
+                <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">${idx + 1}</td>
+                <td class="py-2 px-3 font-bold text-slate-900 font-mono">${it.so_chi_tiet || '-'}</td>
+                <td class="py-2 px-3 text-slate-700 font-mono">${it.ten_ban_ve || '-'}</td>
+                <td class="py-2 px-3 text-slate-600 text-xs">${it.hang_muc || '-'}</td>
+                <td class="py-2 px-3 text-slate-600 font-medium">Tổ ${it.phan_giao || '-'}</td>
+                <td class="py-2 px-3 text-right font-mono font-bold">${it.tqty || 1}</td>
+                <td class="py-2 px-3 text-right font-mono font-bold text-blue-700">${wTons} T</td>
+                <td class="py-2 px-3 text-center">
+                    <div class="flex items-center justify-center gap-1.5">
+                        <div class="w-14 bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                            <div class="bg-emerald-500 h-1.5 rounded-full" style="width: ${Math.min(100, pRate)}%"></div>
+                        </div>
+                        <span class="text-[10px] font-mono font-bold text-slate-600">${pRate}%</span>
+                    </div>
+                </td>
+                <td class="py-2 px-3 text-center">${btpBadge}</td>
+                <td class="py-2 px-3 text-center">${stageBadge}</td>
+            </tr>
+        `;
+    });
+
+    if (html === '') {
+        html = `<tr><td colspan="10" class="text-center py-6 text-slate-400">Không tìm thấy cấu kiện phù hợp</td></tr>`;
+    }
+
+    tbody.innerHTML = html;
+}
+
+// PHẦN 3: BIỂU ĐỒ GRANT TIẾN ĐỘ (GANTT TIMELINE CHART)
+function renderDashboardGantt() {
+    const data = dashboardState.currentProjectData;
+    const container = document.getElementById('dash-gantt-container');
+    if (!data || !container) return;
+
+    const raw = data.items || [];
+    const q = (dashboardState.ganttSearchQuery || '').toLowerCase().trim();
+    const stageFilter = dashboardState.ganttFilterStage;
+    const selHm = dashboardState.selectedHangMuc;
+    const selPg = dashboardState.selectedPhanGiao;
+
+    // 1. Lọc cấu kiện
+    let items = raw.filter(it => {
+        if (selHm !== 'all' && it.hang_muc !== selHm) return false;
+        if (selPg !== 'all' && it.phan_giao !== selPg) return false;
+        if (stageFilter === 'ga' && (!it.ga_lap?.sl)) return false;
+        if (stageFilter === 'han' && (!it.han?.sl)) return false;
+        if (stageFilter === 'th' && (!it.to_hop_thu?.sl)) return false;
+        if (stageFilter === 'nt' && (!it.nghiem_thu?.sl)) return false;
+        if (stageFilter === 'bg' && (!it.ban_giao?.sl)) return false;
+
+        if (q) {
+            const matchCode = it.so_chi_tiet && it.so_chi_tiet.toLowerCase().includes(q);
+            const matchDraw = it.ten_ban_ve && it.ten_ban_ve.toLowerCase().includes(q);
+            const matchHm = it.hang_muc && it.hang_muc.toLowerCase().includes(q);
+            if (!matchCode && !matchDraw && !matchHm) return false;
+        }
+        return true;
+    });
+
+    // 2. Thu thập ngày bắt đầu và kết thúc toàn bộ để lập Timeline Scale
+    function parseDate(dStr) {
+        if (!dStr) return null;
+        const parts = dStr.split('/');
+        if (parts.length === 3) {
+            return new Date(parseInt(parts[2], 10), parseInt(parts[1], 10) - 1, parseInt(parts[0], 10));
+        }
+        return null;
+    }
+
+    let minTime = Infinity;
+    let maxTime = -Infinity;
+
+    items.forEach(it => {
+        ['ga_lap', 'han', 'to_hop_thu', 'nghiem_thu', 'ban_giao'].forEach(stg => {
+            const dt = parseDate(it[stg]?.ngay);
+            if (dt) {
+                const t = dt.getTime();
+                if (t < minTime) minTime = t;
+                if (t > maxTime) maxTime = t;
+            }
+        });
+        const dtWo = parseDate(it.ngay_giao_wo);
+        if (dtWo) {
+            const t = dtWo.getTime();
+            if (t > maxTime) maxTime = t;
+            if (t < minTime) minTime = t;
+        }
+    });
+
+    if (minTime === Infinity || maxTime === -Infinity || minTime >= maxTime) {
+        // Dự phòng mốc thời gian mặc định
+        const now = new Date();
+        minTime = new Date(now.getFullYear(), now.getMonth() - 1, 1).getTime();
+        maxTime = new Date(now.getFullYear(), now.getMonth() + 2, 1).getTime();
+    } else {
+        // Mở rộng lề 3 ngày trước và sau
+        minTime -= 3 * 86400000;
+        maxTime += 5 * 86400000;
+    }
+
+    const totalDuration = maxTime - minTime;
+
+    // 3. Tạo các mốc trục thời gian (Timeline Axis Ticks - Khoảng 8 - 12 mốc)
+    const tickCount = 8;
+    const ticks = [];
+    for (let i = 0; i <= tickCount; i++) {
+        const t = minTime + (totalDuration * i / tickCount);
+        const dt = new Date(t);
+        const d = dt.getDate() < 10 ? `0${dt.getDate()}` : dt.getDate();
+        const m = (dt.getMonth() + 1) < 10 ? `0${dt.getMonth() + 1}` : (dt.getMonth() + 1);
+        ticks.push({
+            percent: (i / tickCount) * 100,
+            label: `${d}/${m}`
+        });
+    }
+
+    // Lấy tối đa 40 cấu kiện để biểu diễn Gantt tối ưu hiệu năng
+    const displayItems = items.slice(0, 40);
+
+    let html = `
+        <div class="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-2xs">
+            <!-- Timeline Header -->
+            <div class="flex items-center bg-slate-100 border-b border-slate-200 text-xs font-bold text-slate-700 py-2.5">
+                <div class="w-64 sm:w-80 px-3 shrink-0 border-r border-slate-200 uppercase tracking-wide text-[11px]">
+                    Cấu Kiện & Thông Tin Chế Tạo
+                </div>
+                <div class="flex-1 relative h-6">
+                    ${ticks.map(tk => `
+                        <div class="absolute -translate-x-1/2 text-[10px] font-mono text-slate-500 font-bold" style="left: ${tk.percent}%">
+                            ${tk.label}
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+
+            <!-- Timeline Rows -->
+            <div class="divide-y divide-slate-100 text-xs">
+    `;
+
+    if (displayItems.length === 0) {
+        html += `
+            <div class="py-12 text-center text-slate-400 font-medium">
+                Không có cấu kiện nào phù hợp điều kiện lọc Gantt
+            </div>
+        `;
+    } else {
+        displayItems.forEach((it, idx) => {
+            const dtGa = parseDate(it.ga_lap?.ngay);
+            const dtHan = parseDate(it.han?.ngay);
+            const dtTh = parseDate(it.to_hop_thu?.ngay);
+            const dtNt = parseDate(it.nghiem_thu?.ngay);
+            const dtBg = parseDate(it.ban_giao?.ngay);
+            const dtWo = parseDate(it.ngay_giao_wo);
+
+            const wTons = Math.round((it.tweight || 0) / 10) / 100;
+
+            function calcPos(dt) {
+                if (!dt) return null;
+                return Math.max(0, Math.min(100, ((dt.getTime() - minTime) / totalDuration) * 100));
+            }
+
+            const pGa = calcPos(dtGa);
+            const pHan = calcPos(dtHan);
+            const pTh = calcPos(dtTh);
+            const pNt = calcPos(dtNt);
+            const pBg = calcPos(dtBg);
+            const pWo = calcPos(dtWo);
+
+            html += `
+                <div class="flex items-center hover:bg-slate-50/80 transition py-2 group">
+                    <!-- Cột thông tin cấu kiện -->
+                    <div class="w-64 sm:w-80 px-3 shrink-0 border-r border-slate-200">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-slate-900 font-mono text-xs truncate" title="${it.so_chi_tiet}">${it.so_chi_tiet}</span>
+                            <span class="font-bold font-mono text-blue-700 text-[11px]">${wTons} T</span>
+                        </div>
+                        <div class="flex items-center justify-between text-[11px] text-slate-500 mt-0.5 truncate">
+                            <span class="truncate">${it.ten_ban_ve || it.hang_muc}</span>
+                            <span class="text-slate-400 shrink-0 ml-1">Tổ ${it.phan_giao}</span>
+                        </div>
+                    </div>
+
+                    <!-- Đường dải màu Gantt -->
+                    <div class="flex-1 relative h-7 mx-2 bg-slate-50/50 rounded-lg overflow-hidden flex items-center">
+                        <!-- Grid vạch mờ thẳng đứng -->
+                        ${ticks.map(tk => `
+                            <div class="absolute top-0 bottom-0 w-px bg-slate-200/60 pointer-events-none" style="left: ${tk.percent}%"></div>
+                        `).join('')}
+
+                        <!-- Thanh Gá Lắp -->
+                        ${pGa !== null ? `
+                            <div class="absolute h-4 rounded bg-blue-600 shadow-2xs cursor-pointer hover:scale-110 transition flex items-center justify-center text-[9px] text-white font-bold px-1" 
+                                style="left: ${pGa}%; width: ${Math.max(2.5, (pHan !== null && pHan > pGa) ? (pHan - pGa) : 3)}%"
+                                title="Gá Lắp: ${it.ga_lap?.ngay} • ${it.ga_lap?.kl || 0} kg">
+                                Gá
+                            </div>
+                        ` : ''}
+
+                        <!-- Điểm / Thanh Hàn -->
+                        ${pHan !== null ? `
+                            <div class="absolute h-4 rounded bg-amber-500 shadow-2xs cursor-pointer hover:scale-110 transition flex items-center justify-center text-[9px] text-white font-bold px-1" 
+                                style="left: ${pHan}%; width: ${Math.max(2.5, (pNt !== null && pNt > pHan) ? Math.min(6, pNt - pHan) : 3)}%"
+                                title="Hàn: ${it.han?.ngay} • ${it.han?.kl || 0} kg">
+                                Hàn
+                            </div>
+                        ` : ''}
+
+                        <!-- Điểm Tổ Hợp Thử -->
+                        ${pTh !== null ? `
+                            <div class="absolute h-4 w-4 rounded-full bg-purple-600 border border-white shadow-2xs cursor-pointer hover:scale-125 transition flex items-center justify-center text-[8px] text-white font-extrabold -ml-2" 
+                                style="left: ${pTh}%"
+                                title="Tổ Hợp Thử: ${it.to_hop_thu?.ngay}">
+                                TH
+                            </div>
+                        ` : ''}
+
+                        <!-- Điểm Nghiệm Thu -->
+                        ${pNt !== null ? `
+                            <div class="absolute h-4 w-4 rounded-full bg-teal-600 border border-white shadow-2xs cursor-pointer hover:scale-125 transition flex items-center justify-center text-[8px] text-white font-extrabold -ml-2" 
+                                style="left: ${pNt}%"
+                                title="Nghiệm Thu: ${it.nghiem_thu?.ngay}">
+                                NT
+                            </div>
+                        ` : ''}
+
+                        <!-- Điểm Bàn Giao -->
+                        ${pBg !== null ? `
+                            <div class="absolute h-4 w-4 rounded-full bg-emerald-600 border border-white shadow-2xs cursor-pointer hover:scale-125 transition flex items-center justify-center text-[8px] text-white font-extrabold -ml-2" 
+                                style="left: ${pBg}%"
+                                title="Bàn Giao: ${it.ban_giao?.ngay} • ĐV: ${it.ban_giao?.don_vi_nhan || 'AMECC'}">
+                                BG
+                            </div>
+                        ` : ''}
+
+                        <!-- Cột cờ hạn WO Deadline -->
+                        ${pWo !== null ? `
+                            <div class="absolute top-0 bottom-0 w-0.5 bg-rose-500 z-10 cursor-pointer" 
+                                style="left: ${pWo}%"
+                                title="Hạn Giao Hàng WO: ${it.ngay_giao_wo}">
+                                <div class="w-2.5 h-2.5 rounded-full bg-rose-600 -ml-1 -top-1 absolute border border-white"></div>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        });
+    }
+
+    html += `
+            </div>
+            ${items.length > 40 ? `
+                <div class="px-4 py-2.5 bg-slate-50 text-center text-xs text-slate-500 font-medium border-t border-slate-200">
+                    Đang hiển thị 40 / ${items.length} cấu kiện • Sử dụng ô tìm kiếm phía trên để tra cứu từng cấu kiện cụ thể
+                </div>
+            ` : ''}
+        </div>
+    `;
+
+    container.innerHTML = html;
+}
+
+// Thiết lập các sự kiện lắng nghe cho Dashboard
+function setupDashboardEventListeners() {
+    // 1. Thay đổi dự án
+    const projSelect = document.getElementById('dash-select-project');
+    if (projSelect) {
+        projSelect.addEventListener('change', (e) => {
+            loadDashboardProject(e.target.value);
+        });
+    }
+
+    // 2. Thay đổi Tháng/Năm
+    const monthSelect = document.getElementById('dash-select-month');
+    if (monthSelect) {
+        monthSelect.addEventListener('change', (e) => {
+            dashboardState.selectedMonth = e.target.value;
+            renderDashboardKPIsAndLineChart();
+        });
+    }
+
+    // 3. Thay đổi Hạng mục
+    const hmSelect = document.getElementById('dash-select-hangmuc');
+    if (hmSelect) {
+        hmSelect.addEventListener('change', (e) => {
+            dashboardState.selectedHangMuc = e.target.value;
+            renderDashboardAll();
+        });
+    }
+
+    // 4. Thay đổi Tổ phân giao
+    const pgSelect = document.getElementById('dash-select-phangiao');
+    if (pgSelect) {
+        pgSelect.addEventListener('change', (e) => {
+            dashboardState.selectedPhanGiao = e.target.value;
+            renderDashboardAll();
+        });
+    }
+
+    // 5. Chế độ đường S-Curve vs Từng ngày
+    const btnScurve = document.getElementById('dash-btn-mode-scurve');
+    const btnDaily = document.getElementById('dash-btn-mode-daily');
+    if (btnScurve && btnDaily) {
+        btnScurve.addEventListener('click', () => {
+            dashboardState.chartMode = 'scurve';
+            btnScurve.className = 'flex-1 py-1 rounded-lg text-xs font-bold transition cursor-pointer text-center bg-purple-600 text-white shadow-2xs';
+            btnDaily.className = 'flex-1 py-1 rounded-lg text-xs font-bold transition cursor-pointer text-center text-slate-300 hover:text-white';
+            renderDashboardKPIsAndLineChart();
+        });
+
+        btnDaily.addEventListener('click', () => {
+            dashboardState.chartMode = 'daily';
+            btnDaily.className = 'flex-1 py-1 rounded-lg text-xs font-bold transition cursor-pointer text-center bg-purple-600 text-white shadow-2xs';
+            btnScurve.className = 'flex-1 py-1 rounded-lg text-xs font-bold transition cursor-pointer text-center text-slate-300 hover:text-white';
+            renderDashboardKPIsAndLineChart();
+        });
+    }
+
+    // 6. Áp dụng mục tiêu kế hoạch
+    const btnApplyTarget = document.getElementById('dash-btn-apply-target');
+    const inputTarget = document.getElementById('dash-input-target-tons');
+    if (btnApplyTarget && inputTarget) {
+        btnApplyTarget.addEventListener('click', () => {
+            const val = parseFloat(inputTarget.value) || 50;
+            dashboardState.targetTons = val;
+            renderDashboardKPIsAndLineChart();
+        });
+        inputTarget.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const val = parseFloat(inputTarget.value) || 50;
+                dashboardState.targetTons = val;
+                renderDashboardKPIsAndLineChart();
+            }
+        });
+    }
+
+    // 7. Thu gọn / Mở rộng bảng nhật ký từng ngày
+    const btnToggleDayTable = document.getElementById('dash-btn-toggle-day-table');
+    const dayTableContainer = document.getElementById('dash-day-table-container');
+    const dayTableChevron = document.getElementById('dash-day-table-chevron');
+    if (btnToggleDayTable && dayTableContainer) {
+        btnToggleDayTable.addEventListener('click', () => {
+            dashboardState.isDayTableOpen = !dashboardState.isDayTableOpen;
+            if (dashboardState.isDayTableOpen) {
+                dayTableContainer.classList.remove('hidden');
+                if (dayTableChevron) dayTableChevron.style.transform = 'rotate(180deg)';
+            } else {
+                dayTableContainer.classList.add('hidden');
+                if (dayTableChevron) dayTableChevron.style.transform = 'rotate(0deg)';
+            }
+        });
+    }
+
+    // 8. Tìm kiếm BTP
+    const inputBtpSearch = document.getElementById('dash-search-btp');
+    if (inputBtpSearch) {
+        let btpTimeout = null;
+        inputBtpSearch.addEventListener('input', (e) => {
+            clearTimeout(btpTimeout);
+            const val = e.target.value;
+            btpTimeout = setTimeout(() => {
+                dashboardState.btpSearchQuery = val;
+                renderDashboardBtpTable();
+            }, 200);
+        });
+    }
+
+    // 9. Tìm kiếm & Lọc Gantt
+    const inputGanttSearch = document.getElementById('dash-gantt-search');
+    if (inputGanttSearch) {
+        let ganttTimeout = null;
+        inputGanttSearch.addEventListener('input', (e) => {
+            clearTimeout(ganttTimeout);
+            const val = e.target.value;
+            ganttTimeout = setTimeout(() => {
+                dashboardState.ganttSearchQuery = val;
+                renderDashboardGantt();
+            }, 200);
+        });
+    }
+
+    const selectGanttStage = document.getElementById('dash-gantt-filter-stage');
+    if (selectGanttStage) {
+        selectGanttStage.addEventListener('change', (e) => {
+            dashboardState.ganttFilterStage = e.target.value;
+            renderDashboardGantt();
+        });
+    }
+
+    // 10. Nút Làm Mới Dashboard
+    const btnRefresh = document.getElementById('btn-dash-refresh');
+    if (btnRefresh) {
+        btnRefresh.addEventListener('click', () => {
+            if (dashboardState.currentProjectId) {
+                delete _qldaDataCache[dashboardState.currentProjectId];
+                loadDashboardProject(dashboardState.currentProjectId);
+            }
+        });
+    }
 }
 
