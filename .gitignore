@@ -5,7 +5,9 @@ cache.db
 *.msi
 .vscode/
 .idea/
-/Data/
+/Data/*
+!/Data/announcements.json
+!/data/announcements.json
 !online_247/data/
 !online_247/data/**
 *.xlsx

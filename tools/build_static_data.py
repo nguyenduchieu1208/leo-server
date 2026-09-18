@@ -173,6 +173,12 @@ def build_static_package():
     with open(os.path.join(DATA_OUTPUT_DIR, "qlda_projects.json"), "w", encoding="utf-8") as jf:
         json.dump(qlda_catalog, jf, ensure_ascii=False, indent=2)
 
+    # Sao chép announcements.json sang thư mục web tĩnh
+    ann_src = os.path.join(BASE_DIR, "data", "announcements.json")
+    if os.path.exists(ann_src):
+        shutil.copyfile(ann_src, os.path.join(DATA_OUTPUT_DIR, "announcements.json"))
+        print("  -> Đã đồng bộ thông báo: announcements.json")
+
     elapsed = time.time() - start_time
     print("=" * 70)
     print(f"✅ ĐÃ HOÀN TẤT BIÊN DỊCH GÓI ONLINE 24/24 TRONG {elapsed:.1f} GIÂY!")

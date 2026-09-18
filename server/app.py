@@ -9,6 +9,7 @@ FastAPI Server Tra Cứu Tình Trạng Vật Tư & BTP Theo Ngày - AMECC.
 
 import os
 import sys
+import json
 import socket
 import threading
 import urllib.parse
@@ -482,6 +483,61 @@ async def upload_qlda_excel(request: Request, file: UploadFile = File(...)):
         print(f"[-] Loi pre-cache file QLDA vua tai len: {e}")
 
     return {"status": "success", "message": f"Đã nạp và lưu trữ file QLDA {safe_fname} vào hệ thống thành công!"}
+
+ANNOUNCEMENTS_FILE = os.path.join(BASE_DIR, "data", "announcements.json")
+ONLINE_ANNOUNCEMENTS_FILE = os.path.join(BASE_DIR, "online_247", "data", "announcements.json")
+
+@app.get("/api/announcements")
+async def get_announcements():
+    """Lấy danh sách thông báo tiến độ và các bản tin cập nhật trang web"""
+    if os.path.exists(ANNOUNCEMENTS_FILE):
+        try:
+            with open(ANNOUNCEMENTS_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[-] Lỗi đọc announcements.json: {e}")
+    return {
+        "last_updated": "18/09/2026",
+        "badge": "Thông Báo Quan Trọng",
+        "title": "Kế Hoạch Cập Nhật Tiến Độ Công Đoạn & Bản Tin Trang Web",
+        "schedule_notice": {
+            "frequency": "Kế hoạch tiến độ công đoạn sẽ cập nhật 1 tuần 1 lần",
+            "contact_person": "Anh Cường (AMC2)",
+            "contact_note": "Số liệu hằng ngày xin liên hệ anh Cường (AMC2) để được hỗ trợ kịp thời.",
+            "hotline": ""
+        },
+        "web_updates": []
+    }
+
+@app.post("/api/announcements")
+async def save_announcements(request: Request):
+    """Cập nhật nội dung bảng thông báo (Chỉ chủ máy/Admin mới được phép)"""
+    if not is_host_admin(request):
+        raise HTTPException(
+            status_code=403,
+            detail="Bạn không có quyền! Chỉ chủ máy mới được phép sửa bảng thông báo."
+        )
+    try:
+        data = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Dữ liệu JSON không hợp lệ.")
+    
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="Dữ liệu thông báo phải là đối tượng JSON.")
+    
+    os.makedirs(os.path.dirname(ANNOUNCEMENTS_FILE), exist_ok=True)
+    with open(ANNOUNCEMENTS_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+    
+    # Đồng bộ tức thì sang thư mục online_247 nếu tồn tại
+    try:
+        os.makedirs(os.path.dirname(ONLINE_ANNOUNCEMENTS_FILE), exist_ok=True)
+        with open(ONLINE_ANNOUNCEMENTS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[-] Không thể ghi sang online_247: {e}")
+        
+    return {"status": "success", "message": "Đã cập nhật bảng thông báo thành công!", "data": data}
 
 def run_server(port: int = 8000):
     lan_ip = get_lan_ip()
