@@ -74,7 +74,7 @@ def format_date_val(val: Any, default_year: Optional[int] = None) -> Optional[st
     if m2:
         p1, p2, y = int(m2.group(1)), int(m2.group(2)), int(m2.group(3))
         if 2020 <= y <= 2035:
-            d, mo = (p1, p2) if (p1 > 12 or p2 <= 12) else (p1, p2)
+            d, mo = (p2, p1) if (p2 > 12 >= p1) else (p1, p2)
             if 1 <= d <= 31 and 1 <= mo <= 12:
                 return f"{d:02d}/{mo:02d}/{y:04d}"
 
@@ -328,7 +328,7 @@ def detect_btp_sheet_data(ws) -> Dict[str, Any]:
             
         if cell_val is None:
             consec_empty += 1
-            if consec_empty > 6:
+            if consec_empty > 15:
                 break
             continue
             
@@ -388,7 +388,7 @@ def detect_btp_sheet_data(ws) -> Dict[str, Any]:
                 if m_dmy:
                     p1, p2, y = int(m_dmy.group(1)), int(m_dmy.group(2)), int(m_dmy.group(3))
                     if 2020 <= y <= 2035:
-                        d, mo = (p1, p2) if (p1 > 12 or p2 <= 12) else (p1, p2)
+                        d, mo = (p2, p1) if (p2 > 12 >= p1) else (p1, p2)
                         if 1 <= d <= 31 and 1 <= mo <= 12:
                             d_day, d_month, d_explicit = d, mo, y
                 else:
@@ -547,216 +547,220 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
         raise FileNotFoundError(f"File not found: {file_path}")
         
     wb = openpyxl.load_workbook(file_path, data_only=True)
-    all_sheets = wb.sheetnames
+    try:
+        all_sheets = wb.sheetnames
     
-    bom_sheets = [
-        s for s in all_sheets 
-        if not s.strip().upper().startswith("BTP") 
-        and s.strip().upper() != "COVER"
-        and "NHAS" not in s.strip().upper()
-    ]
+        bom_sheets = [
+            s for s in all_sheets 
+            if not s.strip().upper().startswith("BTP") 
+            and s.strip().upper() != "COVER"
+            and "NHAS" not in s.strip().upper()
+        ]
     
-    project_code = os.path.basename(file_path).replace("PL.xlsx", "").replace(".xlsx", "").strip()
-    all_assemblies: List[Dict[str, Any]] = []
-    all_dates_set = set()
-    daily_delivery_summary: Dict[str, Dict[str, Any]] = {}
-    shape_warnings_list: List[Dict[str, Any]] = []
+        project_code = os.path.basename(file_path).replace("PL.xlsx", "").replace(".xlsx", "").strip()
+        all_assemblies: List[Dict[str, Any]] = []
+        all_dates_set = set()
+        daily_delivery_summary: Dict[str, Dict[str, Any]] = {}
+        shape_warnings_list: List[Dict[str, Any]] = []
     
-    for b_sheet in bom_sheets:
-        ws_bom = wb[b_sheet]
-        btp_sheet_name = find_matching_btp_sheet(wb, b_sheet)
+        for b_sheet in bom_sheets:
+            ws_bom = wb[b_sheet]
+            btp_sheet_name = find_matching_btp_sheet(wb, b_sheet)
         
-        btp_data = None
-        if btp_sheet_name and btp_sheet_name in wb.sheetnames:
-            btp_data = detect_btp_sheet_data(wb[btp_sheet_name])
-            for d in btp_data["date_cols"]:
-                all_dates_set.add(d)
+            btp_data = None
+            if btp_sheet_name and btp_sheet_name in wb.sheetnames:
+                btp_data = detect_btp_sheet_data(wb[btp_sheet_name])
+                for d in btp_data["date_cols"]:
+                    all_dates_set.add(d)
                 
-        header_row, col_map = detect_bom_columns(ws_bom)
+            header_row, col_map = detect_bom_columns(ws_bom)
         
-        current_assy = None
-        for r in range(header_row + 1, ws_bom.max_row + 1):
-            as_sym_val = ws_bom.cell(r, col_map.get("as_symbol", 31)).value
-            as_sym_str = clean_str(as_sym_val).lower()
+            current_assy = None
+            for r in range(header_row + 1, ws_bom.max_row + 1):
+                as_sym_val = ws_bom.cell(r, col_map.get("as_symbol", 31)).value
+                as_sym_str = clean_str(as_sym_val).lower()
             
-            assy_no_val = ws_bom.cell(r, col_map.get("assembly", 3)).value
-            assy_no_str = clean_str(assy_no_val)
-            dwg_str = clean_str(ws_bom.cell(r, col_map.get("dwg", 2)).value)
-            desc_str = clean_str(ws_bom.cell(r, col_map.get("description", 4)).value)
-            size_str = clean_str(ws_bom.cell(r, col_map.get("size", 7)).value)
+                assy_no_val = ws_bom.cell(r, col_map.get("assembly", 3)).value
+                assy_no_str = clean_str(assy_no_val)
+                dwg_str = clean_str(ws_bom.cell(r, col_map.get("dwg", 2)).value)
+                desc_str = clean_str(ws_bom.cell(r, col_map.get("description", 4)).value)
+                size_str = clean_str(ws_bom.cell(r, col_map.get("size", 7)).value)
             
-            if as_sym_str == "x":
-                if current_assy is not None:
-                    _finalize_assembly_metrics(current_assy, shape_warnings_list)
-                    all_assemblies.append(current_assy)
+                if as_sym_str == "x":
+                    if current_assy is not None:
+                        _finalize_assembly_metrics(current_assy, shape_warnings_list)
+                        all_assemblies.append(current_assy)
                     
-                assy_giao_val = ws_bom.cell(r, col_map.get("don_vi_giao", 17)).value
-                assy_don_vi_giao = clean_str(assy_giao_val).upper() if assy_giao_val else ""
-                if assy_don_vi_giao in ["-", "0", "NONE", "NULL"]:
-                    assy_don_vi_giao = ""
+                    assy_giao_val = ws_bom.cell(r, col_map.get("don_vi_giao", 17)).value
+                    assy_don_vi_giao = clean_str(assy_giao_val).upper() if assy_giao_val else ""
+                    if assy_don_vi_giao in ["-", "0", "NONE", "NULL"]:
+                        assy_don_vi_giao = ""
 
-                current_assy = {
-                    "id": f"{b_sheet}_{assy_no_str}_{r}",
-                    "sheet": b_sheet,
-                    "btp_sheet": btp_sheet_name or "Không có",
-                    "row_index": r,
-                    "assembly_no": assy_no_str,
-                    "dwg": dwg_str,
-                    "description": desc_str,
-                    "size": size_str,
-                    "don_vi_giao": assy_don_vi_giao,
-                    "parts": [],
-                    "total_parts_count": 0,
-                    "received_parts_count": 0,
-                    "total_tqty": 0,
-                    "total_da_nhan": 0,
-                    "completion_rate": 0.0,
-                    "status": "not_received",
-                    "has_shape_issue": False,
-                    "shape_issues_count": 0,
-                    "daily_received": {}
-                }
-            elif current_assy is not None:
-                part_no_val = ws_bom.cell(r, col_map.get("part_no", 5)).value
-                part_cut_val = ws_bom.cell(r, col_map.get("mark_cutting", 6)).value
-                part_no = clean_str(part_no_val)
-                part_cut = clean_str(part_cut_val)
-                
-                if not part_no and not part_cut and not desc_str and not size_str:
-                    continue
-                    
-                tqty_val = parse_number(ws_bom.cell(r, col_map.get("tqty", 12)).value, is_int=True) or 1
-                qty_val = parse_number(ws_bom.cell(r, col_map.get("qty", 10)).value, is_int=True) or 1
-                len_val = parse_number(ws_bom.cell(r, col_map.get("length", 8)).value, is_int=True)
-                mat_val = clean_str(ws_bom.cell(r, col_map.get("material", 9)).value)
-                uweight_val = parse_number(ws_bom.cell(r, col_map.get("uweight", 13)).value)
-                tweight_val = parse_number(ws_bom.cell(r, col_map.get("tweight", 14)).value)
-                
-                btp_info = None
-                if btp_data:
-                    if part_cut and part_cut.upper() in btp_data["items"]:
-                        btp_info = btp_data["items"][part_cut.upper()]
-                    elif part_no and part_no.upper() in btp_data["items"]:
-                        btp_info = btp_data["items"][part_no.upper()]
-                    else:
-                        norm_k = normalize_key(part_cut) or normalize_key(part_no)
-                        if norm_k in btp_data["normalized_map"]:
-                            orig_k = btp_data["normalized_map"][norm_k]
-                            btp_info = btp_data["items"].get(orig_k)
-                            
-                part_raw = {
-                    "part_no": part_no,
-                    "part_cut": part_cut,
-                    "size": size_str,
-                    "desc": desc_str,
-                    "length": len_val,
-                    "tqty": tqty_val
-                }
-                shape_analysis = analyze_shape_part(part_raw, btp_info)
-                
-                da_nhan = btp_info.get("da_nhan", 0) if btp_info else 0
-                con_thieu = btp_info.get("con_thieu", tqty_val) if btp_info else tqty_val
-                chung_loai = btp_info.get("chung_loai", "") if btp_info else ""
-                dates_received = btp_info.get("dates_received", {}) if btp_info else {}
-                ktra_noi = btp_info.get("ktra_noi", "") if btp_info else ""
-                bom_remark = clean_str(ws_bom.cell(r, col_map.get("remark", 30)).value)
-
-                # Cột ktra nối, vướng mắc thép hình và ghi chú BOM đưa vào phần ghi chú
-                note_items = []
-                if ktra_noi:
-                    note_items.append(f"Ktra nối: {ktra_noi}")
-                if shape_analysis.get("has_length_issue"):
-                    note_items.append("Chưa đủ chiều dài")
-                if bom_remark:
-                    note_items.append(bom_remark)
-                ghi_chu = " | ".join(note_items)
-                
-                # 1. Xác định Đơn vị gia công (DVG)
-                dvg_candidate = ""
-                if btp_info and btp_info.get("dvg"):
-                    dvg_candidate = btp_info.get("dvg")
-                if not dvg_candidate and "dvg" in col_map:
-                    dvg_candidate = clean_str(ws_bom.cell(r, col_map["dvg"]).value)
-
-                dvg_clean = dvg_candidate.strip().upper() if dvg_candidate else ""
-                if not dvg_clean or dvg_clean in ["-", "0", "NONE", "NULL"]:
-                    dvg_clean = "KHÁC"
-
-                # 2. Xác định Đơn vị giao (Phân giao tổ)
-                giao_candidate = ""
-                if btp_info and btp_info.get("don_vi_giao"):
-                    giao_candidate = btp_info.get("don_vi_giao")
-                if not giao_candidate and "don_vi_giao" in col_map:
-                    giao_candidate = clean_str(ws_bom.cell(r, col_map["don_vi_giao"]).value)
-                if not giao_candidate and current_assy.get("don_vi_giao"):
-                    giao_candidate = current_assy.get("don_vi_giao")
-
-                giao_clean = giao_candidate.strip().upper() if giao_candidate else ""
-                if not giao_clean or giao_clean in ["-", "0", "NONE", "NULL"]:
-                    giao_clean = "CHƯA PHÂN GIAO"
-
-                # Tính toán trọng lượng
-                uweight = uweight_val if uweight_val is not None else 0.0
-                tweight = tweight_val if tweight_val is not None else round(tqty_val * uweight, 2)
-                da_nhan_weight = round(min(da_nhan, tqty_val) * uweight, 2) if uweight else 0.0
-                con_thieu_weight = round(max(0.0, con_thieu * uweight), 2) if uweight else 0.0
-
-                part_entry = {
-                    "row_index": r,
-                    "part_no": part_no,
-                    "part_cut": part_cut,
-                    "display_name": part_cut if part_cut else part_no,
-                    "description": desc_str,
-                    "chung_loai": chung_loai,
-                    "size": size_str,
-                    "length": len_val,
-                    "material": mat_val,
-                    "qty": qty_val,
-                    "tqty": tqty_val,
-                    "uweight": uweight,
-                    "tweight": tweight,
-                    "da_nhan_weight": da_nhan_weight,
-                    "con_thieu_weight": con_thieu_weight,
-                    "da_nhan": da_nhan,
-                    "con_thieu": con_thieu,
-                    "dvg": dvg_clean,
-                    "don_vi_giao": giao_clean,
-                    "dates_received": dates_received,
-                    "ktra_noi": ktra_noi,
-                    "remark": bom_remark,
-                    "ghi_chu": ghi_chu,
-                    "shape_analysis": shape_analysis,
-                    "is_fully_received": da_nhan >= tqty_val and tqty_val > 0
-                }
-                
-                current_assy["parts"].append(part_entry)
-                
-                for d_str, q_rec in dates_received.items():
-                    if d_str not in daily_delivery_summary:
-                        daily_delivery_summary[d_str] = {
-                            "date": d_str,
-                            "total_items_count": 0,
-                            "total_qty": 0,
-                            "assemblies_affected": set(),
-                            "parts_list": []
-                        }
-                    daily_delivery_summary[d_str]["total_items_count"] += 1
-                    daily_delivery_summary[d_str]["total_qty"] += q_rec
-                    daily_delivery_summary[d_str]["assemblies_affected"].add(current_assy["assembly_no"])
-                    daily_delivery_summary[d_str]["parts_list"].append({
-                        "assembly_no": current_assy["assembly_no"],
-                        "dwg": current_assy["dwg"],
-                        "part_name": part_entry["display_name"],
+                    current_assy = {
+                        "id": f"{b_sheet}_{assy_no_str}_{r}",
+                        "sheet": b_sheet,
+                        "btp_sheet": btp_sheet_name or "Không có",
+                        "row_index": r,
+                        "assembly_no": assy_no_str,
+                        "dwg": dwg_str,
+                        "description": desc_str,
                         "size": size_str,
-                        "qty_received": q_rec,
-                        "chung_loai": chung_loai
-                    })
+                        "don_vi_giao": assy_don_vi_giao,
+                        "parts": [],
+                        "total_parts_count": 0,
+                        "received_parts_count": 0,
+                        "total_tqty": 0,
+                        "total_da_nhan": 0,
+                        "completion_rate": 0.0,
+                        "status": "not_received",
+                        "has_shape_issue": False,
+                        "shape_issues_count": 0,
+                        "daily_received": {}
+                    }
+                elif current_assy is not None:
+                    part_no_val = ws_bom.cell(r, col_map.get("part_no", 5)).value
+                    part_cut_val = ws_bom.cell(r, col_map.get("mark_cutting", 6)).value
+                    part_no = clean_str(part_no_val)
+                    part_cut = clean_str(part_cut_val)
+                
+                    if not part_no and not part_cut and not desc_str and not size_str:
+                        continue
+                    
+                    tqty_val = parse_number(ws_bom.cell(r, col_map.get("tqty", 12)).value, is_int=True) or 1
+                    qty_val = parse_number(ws_bom.cell(r, col_map.get("qty", 10)).value, is_int=True) or 1
+                    len_val = parse_number(ws_bom.cell(r, col_map.get("length", 8)).value, is_int=True)
+                    mat_val = clean_str(ws_bom.cell(r, col_map.get("material", 9)).value)
+                    uweight_val = parse_number(ws_bom.cell(r, col_map.get("uweight", 13)).value)
+                    tweight_val = parse_number(ws_bom.cell(r, col_map.get("tweight", 14)).value)
+                
+                    btp_info = None
+                    if btp_data:
+                        if part_cut and part_cut.upper() in btp_data["items"]:
+                            btp_info = btp_data["items"][part_cut.upper()]
+                        elif part_no and part_no.upper() in btp_data["items"]:
+                            btp_info = btp_data["items"][part_no.upper()]
+                        else:
+                            norm_k = normalize_key(part_cut) or normalize_key(part_no)
+                            if norm_k in btp_data["normalized_map"]:
+                                orig_k = btp_data["normalized_map"][norm_k]
+                                btp_info = btp_data["items"].get(orig_k)
+                            
+                    part_raw = {
+                        "part_no": part_no,
+                        "part_cut": part_cut,
+                        "size": size_str,
+                        "desc": desc_str,
+                        "length": len_val,
+                        "tqty": tqty_val
+                    }
+                    shape_analysis = analyze_shape_part(part_raw, btp_info)
+                
+                    da_nhan = btp_info.get("da_nhan", 0) if btp_info else 0
+                    con_thieu = btp_info.get("con_thieu", tqty_val) if btp_info else tqty_val
+                    chung_loai = btp_info.get("chung_loai", "") if btp_info else ""
+                    dates_received = btp_info.get("dates_received", {}) if btp_info else {}
+                    ktra_noi = btp_info.get("ktra_noi", "") if btp_info else ""
+                    bom_remark = clean_str(ws_bom.cell(r, col_map.get("remark", 30)).value)
 
-        if current_assy is not None:
-            _finalize_assembly_metrics(current_assy, shape_warnings_list)
-            all_assemblies.append(current_assy)
+                    # Cột ktra nối, vướng mắc thép hình và ghi chú BOM đưa vào phần ghi chú
+                    note_items = []
+                    if ktra_noi:
+                        note_items.append(f"Ktra nối: {ktra_noi}")
+                    if shape_analysis.get("has_length_issue"):
+                        note_items.append("Chưa đủ chiều dài")
+                    if bom_remark:
+                        note_items.append(bom_remark)
+                    ghi_chu = " | ".join(note_items)
+                
+                    # 1. Xác định Đơn vị gia công (DVG)
+                    dvg_candidate = ""
+                    if btp_info and btp_info.get("dvg"):
+                        dvg_candidate = btp_info.get("dvg")
+                    if not dvg_candidate and "dvg" in col_map:
+                        dvg_candidate = clean_str(ws_bom.cell(r, col_map["dvg"]).value)
 
-    wb.close()
+                    dvg_clean = dvg_candidate.strip().upper() if dvg_candidate else ""
+                    if not dvg_clean or dvg_clean in ["-", "0", "NONE", "NULL"]:
+                        dvg_clean = "KHÁC"
+
+                    # 2. Xác định Đơn vị giao (Phân giao tổ)
+                    giao_candidate = ""
+                    if btp_info and btp_info.get("don_vi_giao"):
+                        giao_candidate = btp_info.get("don_vi_giao")
+                    if not giao_candidate and "don_vi_giao" in col_map:
+                        giao_candidate = clean_str(ws_bom.cell(r, col_map["don_vi_giao"]).value)
+                    if not giao_candidate and current_assy.get("don_vi_giao"):
+                        giao_candidate = current_assy.get("don_vi_giao")
+
+                    giao_clean = giao_candidate.strip().upper() if giao_candidate else ""
+                    if not giao_clean or giao_clean in ["-", "0", "NONE", "NULL"]:
+                        giao_clean = "CHƯA PHÂN GIAO"
+
+                    # Tính toán trọng lượng
+                    uweight = uweight_val if uweight_val is not None else 0.0
+                    tweight = tweight_val if tweight_val is not None else round(tqty_val * uweight, 2)
+                    da_nhan_weight = round(min(da_nhan, tqty_val) * uweight, 2) if uweight else 0.0
+                    con_thieu_weight = round(max(0.0, con_thieu * uweight), 2) if uweight else 0.0
+
+                    part_entry = {
+                        "row_index": r,
+                        "part_no": part_no,
+                        "part_cut": part_cut,
+                        "display_name": part_cut if part_cut else part_no,
+                        "description": desc_str,
+                        "chung_loai": chung_loai,
+                        "size": size_str,
+                        "length": len_val,
+                        "material": mat_val,
+                        "qty": qty_val,
+                        "tqty": tqty_val,
+                        "uweight": uweight,
+                        "tweight": tweight,
+                        "da_nhan_weight": da_nhan_weight,
+                        "con_thieu_weight": con_thieu_weight,
+                        "da_nhan": da_nhan,
+                        "con_thieu": con_thieu,
+                        "dvg": dvg_clean,
+                        "don_vi_giao": giao_clean,
+                        "dates_received": dates_received,
+                        "ktra_noi": ktra_noi,
+                        "remark": bom_remark,
+                        "ghi_chu": ghi_chu,
+                        "shape_analysis": shape_analysis,
+                        "is_fully_received": da_nhan >= tqty_val and tqty_val > 0
+                    }
+                
+                    current_assy["parts"].append(part_entry)
+                
+                    for d_str, q_rec in dates_received.items():
+                        if d_str not in daily_delivery_summary:
+                            daily_delivery_summary[d_str] = {
+                                "date": d_str,
+                                "total_items_count": 0,
+                                "total_qty": 0,
+                                "assemblies_affected": set(),
+                                "parts_list": []
+                            }
+                        daily_delivery_summary[d_str]["total_items_count"] += 1
+                        daily_delivery_summary[d_str]["total_qty"] += q_rec
+                        daily_delivery_summary[d_str]["assemblies_affected"].add(current_assy["assembly_no"])
+                        daily_delivery_summary[d_str]["parts_list"].append({
+                            "assembly_no": current_assy["assembly_no"],
+                            "dwg": current_assy["dwg"],
+                            "part_name": part_entry["display_name"],
+                            "size": size_str,
+                            "qty_received": q_rec,
+                            "chung_loai": chung_loai
+                        })
+
+            if current_assy is not None:
+                _finalize_assembly_metrics(current_assy, shape_warnings_list)
+                all_assemblies.append(current_assy)
+    finally:
+        try:
+            wb.close()
+        except Exception:
+            pass
     
     for d_str, d_data in daily_delivery_summary.items():
         d_data["assemblies_affected"] = sorted(list(d_data["assemblies_affected"]))

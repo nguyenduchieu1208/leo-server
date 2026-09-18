@@ -59,8 +59,9 @@ def build_static_package():
                     content = f.read()
                 # Đảm bảo đường dẫn tài nguyên trong index.html là relative để chạy được trên GitHub Pages / Vercel
                 if filename == "index.html":
-                    content = content.replace('href="/frontend/style.css', 'href="style.css')
-                    content = content.replace('src="/frontend/app.js', 'src="app.js')
+                    v_tag = int(time.time())
+                    content = re.sub(r'href="[^"]*style\.css[^"]*"', f'href="style.css?v={v_tag}"', content)
+                    content = re.sub(r'src="[^"]*app\.js[^"]*"', f'src="app.js?v={v_tag}"', content)
                     if "xlsx.bundle.js" not in content and "xlsx.full.min.js" not in content:
                         content = content.replace('</head>', '    <!-- xlsx-js-style Export -->\n    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>\n</head>')
                 with open(dst, "w", encoding="utf-8") as f:
@@ -83,7 +84,7 @@ def build_static_package():
             print(f"  [{idx}/{len(projects)}] Đang xử lý {fname} ({proj_id})...", end="", flush=True)
 
             try:
-                data = get_cached_project(fpath, force_reload=False)
+                data = get_cached_project(fpath, force_reload=True)
                 json_file_name = f"{proj_id}.json"
                 json_path = os.path.join(DATA_OUTPUT_DIR, json_file_name)
                 

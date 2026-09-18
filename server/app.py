@@ -62,9 +62,9 @@ app.add_middleware(
 async def add_custom_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["ngrok-skip-browser-warning"] = "true"
-    # Ngăn trình duyệt cache file giao diện khi đang phát triển / cập nhật
+    # Ngăn trình duyệt cache dữ liệu API và file giao diện khi cập nhật
     path = request.url.path.lower()
-    if path.endswith((".js", ".css", ".html")) or path in ["/", "/index.html"]:
+    if path.startswith("/api/") or path.endswith((".js", ".css", ".html")) or path in ["/", "/index.html"]:
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
@@ -73,6 +73,18 @@ async def add_custom_headers(request: Request, call_next):
 DATA_FOLDER = os.path.join(BASE_DIR, "Data")
 QLDA_FOLDER = os.path.join(BASE_DIR, "03.QLDA")
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+
+def is_safe_path(target_path: str, allowed_dirs: list) -> bool:
+    """Xác thực bảo mật chống Path Traversal: Đảm bảo đường dẫn nằm trong thư mục cho phép"""
+    try:
+        target_abs = os.path.abspath(target_path)
+        for d in allowed_dirs:
+            d_abs = os.path.abspath(d)
+            if os.path.commonpath([target_abs, d_abs]) == d_abs:
+                return True
+    except Exception:
+        pass
+    return False
 
 if os.path.exists(FRONTEND_DIR):
     app.mount("/frontend", StaticFiles(directory=FRONTEND_DIR), name="frontend")
@@ -114,8 +126,10 @@ def is_host_admin(request: Request) -> bool:
     if request.headers.get("x-forwarded-for"):
         return False
         
-    client_host = request.client.host if request.client else ""
-    return client_host in ["127.0.0.1", "localhost", "::1", "testclient"]
+    client_host = (request.client.host if request.client else "").lower()
+    if client_host.startswith("::ffff:"):
+        client_host = client_host.replace("::ffff:", "")
+    return client_host in ["127.0.0.1", "localhost", "::1", "testclient"] or client_host.startswith("127.")
 
 @app.on_event("startup")
 async def on_startup():
@@ -178,8 +192,11 @@ async def get_project_data(
         force_reload = False
 
     target_path = None
-    if file_path and os.path.exists(file_path):
-        target_path = file_path
+    if file_path:
+        if not is_safe_path(file_path, [DATA_FOLDER]):
+            raise HTTPException(status_code=400, detail="Đường dẫn file không hợp lệ hoặc nằm ngoài thư mục Data")
+        if os.path.exists(file_path):
+            target_path = file_path
     elif project_id:
         projects = list_available_projects(DATA_FOLDER)
         for p in projects:
@@ -224,8 +241,11 @@ async def get_qlda_project_data(
     Trả về toàn bộ dữ liệu tiến độ 5 công đoạn của 1 dự án QLDA (phản hồi trong 0.001s từ RAM/SQLite)
     """
     target_path = None
-    if file_path and os.path.exists(file_path):
-        target_path = file_path
+    if file_path:
+        if not is_safe_path(file_path, [QLDA_FOLDER]):
+            raise HTTPException(status_code=400, detail="Đường dẫn file không hợp lệ hoặc nằm ngoài thư mục 03.QLDA")
+        if os.path.exists(file_path):
+            target_path = file_path
     elif project_id:
         projects = list_available_qlda_projects(QLDA_FOLDER)
         for p in projects:
@@ -263,8 +283,11 @@ async def export_qlda_excel_endpoint(
     - Định dạng tiêu đề gộp nhóm, hàng Subtotal tự động co giãn, phông chữ Times New Roman chuẩn form
     """
     target_path = None
-    if file_path and os.path.exists(file_path):
-        target_path = file_path
+    if file_path:
+        if not is_safe_path(file_path, [QLDA_FOLDER]):
+            raise HTTPException(status_code=400, detail="Đường dẫn file không hợp lệ hoặc nằm ngoài thư mục 03.QLDA")
+        if os.path.exists(file_path):
+            target_path = file_path
     elif project_id:
         projects = list_available_qlda_projects(QLDA_FOLDER)
         for p in projects:
@@ -337,8 +360,11 @@ async def export_data_endpoint(
         format = "csv"
 
     target_path = None
-    if file_path and os.path.exists(file_path):
-        target_path = file_path
+    if file_path:
+        if not is_safe_path(file_path, [DATA_FOLDER]):
+            raise HTTPException(status_code=400, detail="Đường dẫn file không hợp lệ hoặc nằm ngoài thư mục Data")
+        if os.path.exists(file_path):
+            target_path = file_path
     elif project_id:
         projects = list_available_projects(DATA_FOLDER)
         for p in projects:
@@ -416,18 +442,19 @@ async def upload_excel(request: Request, file: UploadFile = File(...)):
             detail="Bạn không có quyền! Chỉ chủ máy mới được phép tải lên file Excel."
         )
 
-    if not file.filename or not file.filename.endswith((".xlsx", ".xlsm")):
+    safe_fname = os.path.basename(file.filename or "")
+    if not safe_fname or not safe_fname.endswith((".xlsx", ".xlsm")):
         raise HTTPException(status_code=400, detail="Chỉ chấp nhận file Excel đuôi .xlsx hoặc .xlsm")
     
     os.makedirs(DATA_FOLDER, exist_ok=True)
-    dest_path = os.path.join(DATA_FOLDER, file.filename)
+    dest_path = os.path.join(DATA_FOLDER, safe_fname)
     with open(dest_path, "wb") as buffer:
         import shutil
         shutil.copyfileobj(file.file, buffer)
         
     clear_all_cache()
     threading.Thread(target=warm_up_cache, args=(DATA_FOLDER, QLDA_FOLDER), daemon=True).start()
-    return {"status": "success", "message": f"Đã nạp file {file.filename} vào hệ thống thành công!"}
+    return {"status": "success", "message": f"Đã nạp file {safe_fname} vào hệ thống thành công!"}
 
 @app.post("/api/upload-qlda-excel")
 async def upload_qlda_excel(request: Request, file: UploadFile = File(...)):
@@ -438,11 +465,12 @@ async def upload_qlda_excel(request: Request, file: UploadFile = File(...)):
             detail="Bạn không có quyền! Chỉ chủ máy mới được phép tải lên file Excel QLDA."
         )
 
-    if not file.filename or not file.filename.endswith((".xlsx", ".xlsm")):
+    safe_fname = os.path.basename(file.filename or "")
+    if not safe_fname or not safe_fname.endswith((".xlsx", ".xlsm")):
         raise HTTPException(status_code=400, detail="Chỉ chấp nhận file Excel đuôi .xlsx hoặc .xlsm")
     
     os.makedirs(QLDA_FOLDER, exist_ok=True)
-    dest_path = os.path.join(QLDA_FOLDER, file.filename)
+    dest_path = os.path.join(QLDA_FOLDER, safe_fname)
     with open(dest_path, "wb") as buffer:
         import shutil
         shutil.copyfileobj(file.file, buffer)
@@ -453,7 +481,7 @@ async def upload_qlda_excel(request: Request, file: UploadFile = File(...)):
     except Exception as e:
         print(f"[-] Loi pre-cache file QLDA vua tai len: {e}")
 
-    return {"status": "success", "message": f"Đã nạp và lưu trữ file QLDA {file.filename} vào hệ thống thành công!"}
+    return {"status": "success", "message": f"Đã nạp và lưu trữ file QLDA {safe_fname} vào hệ thống thành công!"}
 
 def run_server(port: int = 8000):
     lan_ip = get_lan_ip()

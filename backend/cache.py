@@ -19,9 +19,20 @@ DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "cache.db")
 _RAM_CACHE: Dict[str, Dict[str, Any]] = {}
 _RAM_LOCK = threading.Lock()
 
+def get_db_connection() -> sqlite3.Connection:
+    """Kết nối SQLite tối ưu đa luồng với WAL mode và timeout 30s chống 'database is locked'"""
+    conn = sqlite3.connect(DB_PATH, timeout=30.0)
+    try:
+        conn.execute("PRAGMA journal_mode = WAL;")
+        conn.execute("PRAGMA busy_timeout = 30000;")
+        conn.execute("PRAGMA synchronous = NORMAL;")
+    except Exception:
+        pass
+    return conn
+
 def init_cache_db():
     """Khởi tạo bảng cache trong SQLite nếu chưa tồn tại"""
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS project_cache (
@@ -66,7 +77,7 @@ def get_cached_project(file_path: str, force_reload: bool = False) -> Dict[str, 
 
     init_cache_db()
     if not force_reload:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT mtime, data_json FROM project_cache WHERE file_path = ?", (file_path,))
         row = cursor.fetchone()
@@ -92,7 +103,7 @@ def get_cached_project(file_path: str, force_reload: bool = False) -> Dict[str, 
     data_str = json.dumps(parsed_data, ensure_ascii=False)
     json_bytes = data_str.encode("utf-8")
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         INSERT OR REPLACE INTO project_cache (file_path, mtime, data_json, updated_at)
@@ -148,7 +159,7 @@ def get_cached_qlda(file_path: str, force_reload: bool = False) -> Dict[str, Any
 
     init_cache_db()
     if not force_reload:
-        conn = sqlite3.connect(DB_PATH)
+        conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT mtime, data_json FROM qlda_cache WHERE file_path = ?", (file_path,))
         row = cursor.fetchone()
@@ -174,7 +185,7 @@ def get_cached_qlda(file_path: str, force_reload: bool = False) -> Dict[str, Any
     data_str = json.dumps(parsed_data, ensure_ascii=False)
     json_bytes = data_str.encode("utf-8")
     
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
         INSERT OR REPLACE INTO qlda_cache (file_path, mtime, data_json, updated_at)
@@ -265,7 +276,7 @@ def clear_all_cache():
     with _RAM_LOCK:
         _RAM_CACHE.clear()
     init_cache_db()
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM project_cache")
     cursor.execute("DELETE FROM qlda_cache")
