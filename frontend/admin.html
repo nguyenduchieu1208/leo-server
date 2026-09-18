@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cổng Quản Trị Hệ Thống - AMECC2</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4f46e5',
+                        brand: {
+                            50: '#eef2ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .dropzone-active {
+            border-color: #6366f1 !important;
+            background-color: rgba(99, 102, 241, 0.1) !important;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased">
+
+    <!-- ========================================================================= -->
+    <!-- MÀN HÌNH 1: ĐĂNG NHẬP QUẢN TRỊ VIÊN (HIỂN THỊ KHI CHƯA XÁC THỰC) -->
+    <!-- ========================================================================= -->
+    <div id="login-view" class="flex-1 flex items-center justify-center p-4">
+        <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+            <!-- Glow effect -->
+            <div class="absolute -top-24 -left-24 w-48 h-48 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="text-center mb-6">
+                <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center mx-auto mb-3 shadow-lg shadow-indigo-500/30">
+                    <i data-lucide="shield-check" class="w-8 h-8 text-white"></i>
+                </div>
+                <h1 class="text-xl sm:text-2xl font-black text-white tracking-tight">AMECC2 ADMIN PORTAL</h1>
+                <p class="text-xs sm:text-sm text-slate-400 mt-1">Hệ Thống Quản Trị Cập Nhật Dữ Liệu & Thông Báo</p>
+            </div>
+
+            <!-- Cảnh báo lỗi đăng nhập -->
+            <div id="login-error-alert" class="hidden mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs font-semibold flex items-center gap-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4 shrink-0"></i>
+                <span id="login-error-msg">Tài khoản hoặc mật khẩu không chính xác!</span>
+            </div>
+
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                        <i data-lucide="mail" class="w-3.5 h-3.5 text-indigo-400"></i>
+                        <span>Email Quản Trị</span>
+                    </label>
+                    <input type="email" id="login-email" required value="ndhieu1208@gmail.com" 
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-300 mb-1.5 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="key-round" class="w-3.5 h-3.5 text-amber-400"></i>
+                            <span>Mật Khẩu</span>
+                        </span>
+                        <button type="button" id="btn-toggle-password" class="text-[11px] text-slate-400 hover:text-white transition">Hiện</button>
+                    </label>
+                    <input type="password" id="login-password" required placeholder="Nhập mật khẩu quản trị..."
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                </div>
+
+                <button type="submit" id="btn-submit-login" 
+                    class="w-full mt-2 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-[0.98] text-white rounded-xl text-sm font-bold shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2 cursor-pointer">
+                    <i data-lucide="log-in" class="w-4 h-4"></i>
+                    <span>Đăng Nhập Vào Hệ Thống</span>
+                </button>
+            </form>
+
+            <div class="mt-6 pt-4 border-t border-slate-800/80 text-center">
+                <a href="/" class="text-xs text-slate-400 hover:text-indigo-300 transition flex items-center justify-center gap-1.5">
+                    <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
+                    <span>Quay lại Trang Chủ Người Dùng</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- MÀN HÌNH 2: BẢNG ĐIỀU KHIỂN ADMIN (HIỂN THỊ KHI ĐÃ ĐĂNG NHẬP) -->
+    <!-- ========================================================================= -->
+    <div id="admin-view" class="hidden flex-1 flex flex-col">
+        <!-- Header Admin -->
+        <header class="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-50 backdrop-blur-md">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+                        <i data-lucide="shield" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h2 class="text-sm sm:text-base font-black text-white tracking-tight">AMECC2 QUẢN TRỊ</h2>
+                            <span class="text-[10px] uppercase tracking-wider font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-md font-mono">ONLINE</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400 hidden sm:block">Tra cứu vật tư & Tiến độ công đoạn chế tạo</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2.5">
+                    <div class="hidden md:flex items-center gap-1.5 px-3 py-1 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-slate-300">
+                        <i data-lucide="user" class="w-3.5 h-3.5 text-indigo-400"></i>
+                        <span id="user-email-badge" class="font-semibold font-mono">ndhieu1208@gmail.com</span>
+                    </div>
+
+                    <a href="/" target="_blank" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition cursor-pointer" title="Mở trang chủ người dùng trong tab mới">
+                        <i data-lucide="external-link" class="w-3.5 h-3.5 text-indigo-400"></i>
+                        <span>Xem Trang Chủ</span>
+                    </a>
+
+                    <button id="btn-logout" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-xl text-xs font-semibold transition cursor-pointer" title="Đăng xuất khỏi tài khoản quản trị">
+                        <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+                        <span class="hidden sm:inline">Đăng Xuất</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Khung Nội Dung Chính -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+            <!-- Thẻ Thông Tin Trạng Thái Hệ Thống & Thao Tác Nhanh -->
+            <div class="bg-gradient-to-r from-slate-900 via-indigo-950/50 to-slate-900 border border-slate-800 rounded-3xl p-5 shadow-lg">
+                <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-slate-800/60 border border-slate-700/50 p-3.5 rounded-2xl">
+                        <div class="text-xs text-slate-400 font-semibold mb-1 flex items-center gap-1.5">
+                            <i data-lucide="server" class="w-3.5 h-3.5 text-emerald-400"></i>
+                            <span>Máy Chủ Nội Bộ (LAN)</span>
+                        </div>
+                        <div id="stat-lan-url" class="text-xs sm:text-sm font-bold font-mono text-white truncate">Đang tải...</div>
+                    </div>
+
+                    <div class="bg-slate-800/60 border border-slate-700/50 p-3.5 rounded-2xl">
+                        <div class="text-xs text-slate-400 font-semibold mb-1 flex items-center gap-1.5">
+                            <i data-lucide="globe" class="w-3.5 h-3.5 text-indigo-400"></i>
+                            <span>Đường Truyền Ngoài (4G/WAN)</span>
+                        </div>
+                        <div id="stat-public-url" class="text-xs sm:text-sm font-bold font-mono text-indigo-300 truncate">Đang kết nối...</div>
+                    </div>
+
+                    <div class="bg-slate-800/60 border border-slate-700/50 p-3.5 rounded-2xl">
+                        <div class="text-xs text-slate-400 font-semibold mb-1 flex items-center gap-1.5">
+                            <i data-lucide="file-spreadsheet" class="w-3.5 h-3.5 text-teal-400"></i>
+                            <span>File Tiến Độ QLDA</span>
+                        </div>
+                        <div id="stat-qlda-count" class="text-base sm:text-lg font-black text-white font-mono">-- file</div>
+                    </div>
+
+                    <div class="bg-slate-800/60 border border-slate-700/50 p-3.5 rounded-2xl">
+                        <div class="text-xs text-slate-400 font-semibold mb-1 flex items-center gap-1.5">
+                            <i data-lucide="package" class="w-3.5 h-3.5 text-amber-400"></i>
+                            <span>File Vật Tư (Packing List)</span>
+                        </div>
+                        <div id="stat-pl-count" class="text-base sm:text-lg font-black text-white font-mono">-- file</div>
+                    </div>
+                </div>
+
+                <!-- Các nút tác vụ nhanh -->
+                <div class="mt-4 pt-4 border-t border-slate-800 flex items-center flex-wrap gap-2.5 justify-between">
+                    <div class="flex items-center gap-2 text-xs text-slate-400">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                        <span>Hệ thống nén RAM Cache & SQLite hoạt động tối ưu.</span>
+                    </div>
+
+                    <div class="flex items-center flex-wrap gap-2">
+                        <button id="btn-action-clear-cache" class="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 rounded-xl text-xs font-bold transition cursor-pointer">
+                            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+                            <span>Làm Mới & Nạp Lại RAM Cache</span>
+                        </button>
+
+                        <button id="btn-action-sync-online" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-xl text-xs font-bold transition cursor-pointer" title="Đồng bộ sang nhánh online 24/24">
+                            <i data-lucide="cloud-upload" class="w-3.5 h-3.5"></i>
+                            <span>Đồng Bộ Sang Online 24/24</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Thanh Điều Hướng Các Tab Quản Lý -->
+            <div class="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
+                <button type="button" data-admin-tab="excel" class="admin-tab-btn active px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer bg-indigo-600 text-white shadow-md shadow-indigo-600/20">
+                    <i data-lucide="file-up" class="w-4 h-4"></i>
+                    <span>1. Cập Nhật & Quản Lý File Excel</span>
+                </button>
+
+                <button type="button" data-admin-tab="announcements" class="admin-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80">
+                    <i data-lucide="bell" class="w-4 h-4"></i>
+                    <span>2. Cập Nhật Bảng Thông Báo</span>
+                </button>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- TAB 1: CẬP NHẬT & QUẢN LÝ FILE EXCEL -->
+            <!-- ================================================================= -->
+            <div id="pane-excel" class="space-y-6">
+                <!-- Khu vực 2 ô Tải lên Excel -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Ô 1: Tải lên File Tiến Độ QLDA -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-sm relative flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300">
+                                    <i data-lucide="factory" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm sm:text-base font-bold text-white">Tải Lên File Tiến Độ Công Đoạn (QLDA)</h3>
+                                    <p class="text-xs text-slate-400">File quản lý 5 công đoạn (Gá, Hàn, TH thử, NT, Bàn giao) -> thư mục <code class="text-emerald-400 font-mono">03.QLDA/</code></p>
+                                </div>
+                            </div>
+
+                            <div id="dropzone-qlda" class="border-2 border-dashed border-slate-700 hover:border-emerald-500/60 rounded-2xl p-6 text-center transition cursor-pointer bg-slate-800/40">
+                                <i data-lucide="upload-cloud" class="w-8 h-8 text-emerald-400 mx-auto mb-2"></i>
+                                <p class="text-xs font-semibold text-slate-200">Kéo thả file Excel vào đây, hoặc <span class="text-emerald-400 underline">bấm để chọn file</span></p>
+                                <p class="text-[11px] text-slate-500 mt-1">Định dạng .xlsx hoặc .xlsm (Ví dụ: A290.xlsx, A320.xlsx...)</p>
+                                <input type="file" id="file-input-qlda" accept=".xlsx,.xlsm" class="hidden">
+                            </div>
+                        </div>
+
+                        <div id="status-upload-qlda" class="mt-3 text-xs hidden p-2.5 rounded-xl"></div>
+                    </div>
+
+                    <!-- Ô 2: Tải lên File Vật Tư PL -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-sm relative flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300">
+                                    <i data-lucide="package" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-sm sm:text-base font-bold text-white">Tải Lên File Vật Tư & BTP (Packing List)</h3>
+                                    <p class="text-xs text-slate-400">File tra cứu phôi vật tư, BTP, tiến độ nhận hàng -> thư mục <code class="text-indigo-400 font-mono">Data/</code></p>
+                                </div>
+                            </div>
+
+                            <div id="dropzone-pl" class="border-2 border-dashed border-slate-700 hover:border-indigo-500/60 rounded-2xl p-6 text-center transition cursor-pointer bg-slate-800/40">
+                                <i data-lucide="upload-cloud" class="w-8 h-8 text-indigo-400 mx-auto mb-2"></i>
+                                <p class="text-xs font-semibold text-slate-200">Kéo thả file Excel vào đây, hoặc <span class="text-indigo-400 underline">bấm để chọn file</span></p>
+                                <p class="text-[11px] text-slate-500 mt-1">Định dạng .xlsx hoặc .xlsm (Ví dụ: A290PL.xlsx, A320PL.xlsx...)</p>
+                                <input type="file" id="file-input-pl" accept=".xlsx,.xlsm" class="hidden">
+                            </div>
+                        </div>
+
+                        <div id="status-upload-pl" class="mt-3 text-xs hidden p-2.5 rounded-xl"></div>
+                    </div>
+                </div>
+
+                <!-- Danh sách Bảng Quản Lý File Excel Trên Máy Chủ -->
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-sm space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="folder-kanban" class="w-5 h-5 text-indigo-400"></i>
+                            <h3 class="text-sm sm:text-base font-bold text-white">Danh Sách File Excel Trong Hệ Thống</h3>
+                            <span id="badge-total-files" class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono border border-slate-700">0 file</span>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <!-- Bộ lọc loại thư mục -->
+                            <select id="filter-file-folder" class="bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="all">📂 Tất cả thư mục</option>
+                                <option value="03.QLDA">🏭 03.QLDA (Tiến độ)</option>
+                                <option value="Data">📦 Data (Vật tư PL)</option>
+                            </select>
+
+                            <!-- Ô tìm kiếm nhanh file -->
+                            <div class="relative">
+                                <input type="text" id="input-search-files" placeholder="Tìm tên file..." 
+                                    class="bg-slate-800 border border-slate-700 rounded-xl pl-8 pr-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-36 sm:w-48">
+                                <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
+                            </div>
+
+                            <button id="btn-refresh-files" class="p-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-300 transition" title="Tải lại danh sách file">
+                                <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Bảng Danh Sách File -->
+                    <div class="overflow-x-auto rounded-2xl border border-slate-800">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-800/80 text-slate-400 uppercase font-bold text-[11px] border-b border-slate-700">
+                                <tr>
+                                    <th class="py-3 px-4">Tên File</th>
+                                    <th class="py-3 px-4">Phân Loại / Thư Mục</th>
+                                    <th class="py-3 px-4">Kích Thước</th>
+                                    <th class="py-3 px-4">Cập Nhật Lần Cuối</th>
+                                    <th class="py-3 px-4 text-center">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="files-table-body" class="divide-y divide-slate-800 text-slate-300">
+                                <tr>
+                                    <td colspan="5" class="py-8 text-center text-slate-500">Đang nạp danh sách file...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- TAB 2: CẬP NHẬT BẢNG THÔNG BÁO (ANNOUNCEMENTS.JSON) -->
+            <!-- ================================================================= -->
+            <div id="pane-announcements" class="hidden space-y-6">
+                <form id="announcements-form" class="space-y-6">
+                    <!-- Khung 1: Thông tin tiêu đề & Lịch cập nhật -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+                        <div class="flex items-center gap-2 border-b border-slate-800 pb-3">
+                            <i data-lucide="megaphone" class="w-5 h-5 text-amber-400"></i>
+                            <h3 class="text-base font-bold text-white">Nội Dung Thông Báo Chính & Đầu Mối Liên Hệ</h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-300 mb-1">Huy Hiệu (Badge)</label>
+                                <input type="text" id="ann-badge" required
+                                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+
+                            <div class="sm:col-span-2">
+                                <label class="block text-xs font-bold text-slate-300 mb-1">Tiêu Đề Bảng Thông Báo</label>
+                                <input type="text" id="ann-title" required
+                                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-300 mb-1">Ngày Hiển Thị Cập Nhật</label>
+                                <input type="text" id="ann-last-updated" placeholder="dd/mm/yyyy"
+                                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-300 mb-1">Tần Suất Cập Nhật</label>
+                                <input type="text" id="ann-frequency"
+                                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-300 mb-1">Người Phụ Trách / Liên Hệ</label>
+                                <input type="text" id="ann-contact-person" placeholder="Ví dụ: Anh Cường (AMC2)"
+                                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+
+                            <div class="sm:col-span-2">
+                                <label class="block text-xs font-bold text-slate-300 mb-1">Ghi Chú Liên Hệ Hỗ Trợ</label>
+                                <input type="text" id="ann-contact-note"
+                                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-300 mb-1">Số Hotline (Nếu có)</label>
+                                <input type="text" id="ann-hotline" placeholder="Số điện thoại liên hệ..."
+                                    class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Khung 2: Danh sách các bản tin cập nhật trang web (web_updates) -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="newspaper" class="w-5 h-5 text-indigo-400"></i>
+                                <h3 class="text-base font-bold text-white">Danh Sách Bản Tin Cập Nhật Web</h3>
+                            </div>
+
+                            <button type="button" id="btn-add-web-update" class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer">
+                                <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+                                <span>Thêm Bản Tin Mới</span>
+                            </button>
+                        </div>
+
+                        <!-- Danh sách động các card bản tin -->
+                        <div id="web-updates-container" class="space-y-4">
+                            <!-- Nạp động bằng JavaScript -->
+                        </div>
+                    </div>
+
+                    <!-- Nút Lưu Bảng Thông Báo -->
+                    <div class="flex items-center justify-end gap-3 pt-2">
+                        <span id="ann-save-status" class="text-xs font-semibold text-slate-400 hidden"></span>
+                        <button type="submit" id="btn-save-announcements" class="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white rounded-xl text-sm font-bold shadow-lg shadow-emerald-600/30 transition cursor-pointer active:scale-95">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            <span>Lưu & Đồng Bộ Bảng Thông Báo</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Xác Nhận Xóa File -->
+    <div id="modal-delete" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+                <i data-lucide="trash-2" class="w-6 h-6"></i>
+            </div>
+            <div class="text-center">
+                <h4 class="text-base font-bold text-white">Xác nhận xóa file?</h4>
+                <p class="text-xs text-slate-400 mt-1">Bạn có chắc chắn muốn xóa file <strong id="delete-file-name" class="text-rose-400 font-mono"></strong> không? Thao tác này không thể hoàn tác.</p>
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" id="btn-cancel-delete" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition">Hủy</button>
+                <button type="button" id="btn-confirm-delete" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition">Xóa Vĩnh Viễn</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT XỬ LÝ TOÀN BỘ LOGIC ADMIN PORTAL -->
+    <script>
+        const state = {
+            authenticated: false,
+            email: 'ndhieu1208@gmail.com',
+            token: localStorage.getItem('admin_token') || '',
+            files: [],
+            announcements: null,
+            fileToDelete: null
+        };
+
+        // Khởi tạo icon Lucide
+        function updateIcons() {
+            if (window.lucide && typeof lucide.createIcons === 'function') {
+                lucide.createIcons();
+            }
+        }
+
+        // Kiểm tra phiên làm việc khi tải trang
+        async function checkAuthStatus() {
+            try {
+                const headers = {};
+                if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
+                
+                const res = await fetch('/api/admin/check', { headers, cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.authenticated) {
+                        state.authenticated = true;
+                        state.email = data.email || 'ndhieu1208@gmail.com';
+                        showAdminView();
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn("Lỗi kiểm tra auth:", e);
+            }
+            showLoginView();
+        }
+
+        function showLoginView() {
+            document.getElementById('login-view').classList.remove('hidden');
+            document.getElementById('admin-view').classList.add('hidden');
+            updateIcons();
+        }
+
+        function showAdminView() {
+            document.getElementById('login-view').classList.add('hidden');
+            document.getElementById('admin-view').classList.remove('hidden');
+            const badge = document.getElementById('user-email-badge');
+            if (badge) badge.textContent = state.email;
+            updateIcons();
+
+            loadServerInfo();
+            loadFilesList();
+            loadAnnouncementsData();
+        }
+
+        // Đăng nhập
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value.trim();
+            const btn = document.getElementById('btn-submit-login');
+            const alertBox = document.getElementById('login-error-alert');
+            const alertMsg = document.getElementById('login-error-msg');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Đang xác thực...</span>';
+            updateIcons();
+            alertBox.classList.add('hidden');
+
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    state.authenticated = true;
+                    state.token = data.token;
+                    localStorage.setItem('admin_token', data.token);
+                    showAdminView();
+                } else {
+                    alertBox.classList.remove('hidden');
+                    alertMsg.textContent = data.detail || 'Tài khoản hoặc mật khẩu không chính xác!';
+                }
+            } catch (err) {
+                alertBox.classList.remove('hidden');
+                alertMsg.textContent = 'Lỗi kết nối máy chủ! Vui lòng thử lại sau.';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="log-in" class="w-4 h-4"></i><span>Đăng Nhập Vào Hệ Thống</span>';
+                updateIcons();
+            }
+        });
+
+        // Ẩn/Hiện mật khẩu
+        document.getElementById('btn-toggle-password').addEventListener('click', () => {
+            const pwdInput = document.getElementById('login-password');
+            const btn = document.getElementById('btn-toggle-password');
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                btn.textContent = 'Ẩn';
+            } else {
+                pwdInput.type = 'password';
+                btn.textContent = 'Hiện';
+            }
+        });
+
+        // Đăng xuất
+        document.getElementById('btn-logout').addEventListener('click', async () => {
+            try {
+                await fetch('/api/admin/logout', { method: 'POST' });
+            } catch (e) {}
+            state.authenticated = false;
+            state.token = '';
+            localStorage.removeItem('admin_token');
+            showLoginView();
+        });
+
+        // Chuyển tab Admin
+        document.querySelectorAll('.admin-tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tab = btn.dataset.adminTab;
+                document.querySelectorAll('.admin-tab-btn').forEach(b => {
+                    b.className = 'admin-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80';
+                });
+                btn.className = 'admin-tab-btn active px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer bg-indigo-600 text-white shadow-md shadow-indigo-600/20';
+
+                document.getElementById('pane-excel').classList.toggle('hidden', tab !== 'excel');
+                document.getElementById('pane-announcements').classList.toggle('hidden', tab !== 'announcements');
+                updateIcons();
+            });
+        });
+
+        // Tải thông tin máy chủ
+        async function loadServerInfo() {
+            try {
+                const res = await fetch('/api/info', { cache: 'no-store' });
+                if (res.ok) {
+                    const info = await res.json();
+                    document.getElementById('stat-lan-url').textContent = info.lan_url || `http://${info.lan_ip}:${info.port}`;
+                    document.getElementById('stat-public-url').textContent = info.public_url || 'Chưa mở tunnel';
+                }
+            } catch (e) {}
+        }
+
+        // Tải danh sách file Excel
+        async function loadFilesList() {
+            const tbody = document.getElementById('files-table-body');
+            tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500">Đang quét file...</td></tr>';
+
+            try {
+                const headers = {};
+                if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
+                const res = await fetch('/api/admin/files', { headers, cache: 'no-store' });
+                if (res.ok) {
+                    const data = await res.json();
+                    state.files = data.files || [];
+                    renderFilesTable();
+                } else {
+                    tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-rose-500 font-semibold">Lỗi nạp danh sách file.</td></tr>';
+                }
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-rose-500 font-semibold">Không thể kết nối máy chủ.</td></tr>';
+            }
+        }
+
+        function renderFilesTable() {
+            const tbody = document.getElementById('files-table-body');
+            const folderFilter = document.getElementById('filter-file-folder').value;
+            const searchKeyword = (document.getElementById('input-search-files').value || '').trim().toLowerCase();
+
+            let filtered = state.files.filter(f => {
+                if (folderFilter !== 'all' && f.folder !== folderFilter) return false;
+                if (searchKeyword && !f.name.toLowerCase().includes(searchKeyword)) return false;
+                return true;
+            });
+
+            // Cập nhật số lượng trên các thẻ
+            const qldaCount = state.files.filter(f => f.folder === '03.QLDA').length;
+            const plCount = state.files.filter(f => f.folder === 'Data').length;
+            document.getElementById('stat-qlda-count').textContent = `${qldaCount} file`;
+            document.getElementById('stat-pl-count').textContent = `${plCount} file`;
+            document.getElementById('badge-total-files').textContent = `${filtered.length} / ${state.files.length} file`;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500">Không tìm thấy file Excel nào phù hợp.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(f => {
+                const isQlda = f.folder === '03.QLDA';
+                const badgeClass = isQlda ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' : 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30';
+                return `
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3 px-4 font-mono font-bold text-white flex items-center gap-2">
+                            <i data-lucide="${isQlda ? 'factory' : 'package'}" class="w-4 h-4 ${isQlda ? 'text-emerald-400' : 'text-indigo-400'} shrink-0"></i>
+                            <span class="truncate max-w-xs sm:max-w-md">${f.name}</span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badgeClass}">
+                                ${f.folder}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 font-mono text-slate-300">${f.size_formatted}</td>
+                        <td class="py-3 px-4 text-slate-400 text-[11px]">${f.mtime_formatted}</td>
+                        <td class="py-3 px-4 text-center">
+                            <button onclick="promptDeleteFile('${f.name}', '${f.folder}')" class="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg transition cursor-pointer" title="Xóa file này">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+            updateIcons();
+        }
+
+        document.getElementById('filter-file-folder').addEventListener('change', renderFilesTable);
+        document.getElementById('input-search-files').addEventListener('input', renderFilesTable);
+        document.getElementById('btn-refresh-files').addEventListener('click', loadFilesList);
+
+        // Kéo thả và Upload File
+        function setupUploader(dropzoneId, inputId, statusId, uploadEndpoint) {
+            const dropzone = document.getElementById(dropzoneId);
+            const input = document.getElementById(inputId);
+            const status = document.getElementById(statusId);
+
+            dropzone.addEventListener('click', () => input.click());
+
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dropzone-active');
+            });
+            ['dragleave', 'dragend'].forEach(ev => {
+                dropzone.addEventListener(ev, () => dropzone.classList.remove('dropzone-active'));
+            });
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dropzone-active');
+                if (e.dataTransfer.files.length > 0) {
+                    uploadFile(e.dataTransfer.files[0], uploadEndpoint, status);
+                }
+            });
+
+            input.addEventListener('change', () => {
+                if (input.files.length > 0) {
+                    uploadFile(input.files[0], uploadEndpoint, status);
+                    input.value = '';
+                }
+            });
+        }
+
+        async function uploadFile(file, endpoint, statusEl) {
+            if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xlsm')) {
+                statusEl.className = 'mt-3 text-xs p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-semibold block';
+                statusEl.textContent = 'Chỉ chấp nhận file Excel đuôi .xlsx hoặc .xlsm!';
+                return;
+            }
+
+            statusEl.className = 'mt-3 text-xs p-3 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 font-semibold block flex items-center gap-2';
+            statusEl.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Đang nạp file ${file.name}...</span>`;
+            updateIcons();
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const headers = {};
+                if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
+
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers,
+                    body: formData
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    statusEl.className = 'mt-3 text-xs p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 font-semibold block flex items-center gap-2';
+                    statusEl.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i><span>${data.message || 'Tải lên thành công!'}</span>`;
+                    loadFilesList();
+                } else {
+                    statusEl.className = 'mt-3 text-xs p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-semibold block';
+                    statusEl.textContent = data.detail || 'Lỗi tải lên file!';
+                }
+            } catch (e) {
+                statusEl.className = 'mt-3 text-xs p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 font-semibold block';
+                statusEl.textContent = 'Lỗi kết nối máy chủ khi tải lên!';
+            }
+            updateIcons();
+        }
+
+        setupUploader('dropzone-qlda', 'file-input-qlda', 'status-upload-qlda', '/api/upload-qlda-excel');
+        setupUploader('dropzone-pl', 'file-input-pl', 'status-upload-pl', '/api/upload-excel');
+
+        // Xóa File
+        window.promptDeleteFile = function(name, folder) {
+            state.fileToDelete = { name, folder };
+            document.getElementById('delete-file-name').textContent = name;
+            document.getElementById('modal-delete').classList.remove('hidden');
+            updateIcons();
+        };
+
+        document.getElementById('btn-cancel-delete').addEventListener('click', () => {
+            document.getElementById('modal-delete').classList.add('hidden');
+            state.fileToDelete = null;
+        });
+
+        document.getElementById('btn-confirm-delete').addEventListener('click', async () => {
+            if (!state.fileToDelete) return;
+            const { name, folder } = state.fileToDelete;
+            document.getElementById('modal-delete').classList.add('hidden');
+
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
+
+                const res = await fetch('/api/admin/delete-file', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify({ name, folder })
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    alert(`Đã xóa file ${name} thành công!`);
+                    loadFilesList();
+                } else {
+                    alert(`Lỗi: ${data.detail || 'Không thể xóa file'}`);
+                }
+            } catch (e) {
+                alert('Lỗi kết nối máy chủ!');
+            }
+            state.fileToDelete = null;
+        });
+
+        // Nạp Dữ Liệu Thông Báo (announcements.json)
+        async function loadAnnouncementsData() {
+            try {
+                const res = await fetch(`/api/announcements?t=${Date.now()}`, { cache: 'no-store' });
+                if (res.ok) {
+                    state.announcements = await res.json();
+                    renderAnnouncementsForm();
+                }
+            } catch (e) {
+                console.warn("Lỗi nạp thông báo:", e);
+            }
+        }
+
+        function renderAnnouncementsForm() {
+            const ann = state.announcements || {};
+            document.getElementById('ann-badge').value = ann.badge || 'Thông Báo Quan Trọng';
+            document.getElementById('ann-title').value = ann.title || 'Kế Hoạch Cập Nhật Tiến Độ Công Đoạn & Bản Tin Trang Web';
+            document.getElementById('ann-last-updated').value = ann.last_updated || new Date().toLocaleDateString('vi-VN');
+            document.getElementById('ann-frequency').value = ann.schedule_notice?.frequency || 'Kế hoạch tiến độ công đoạn sẽ cập nhật 1 tuần 1 lần';
+            document.getElementById('ann-contact-person').value = ann.schedule_notice?.contact_person || 'Anh Cường (AMC2)';
+            document.getElementById('ann-contact-note').value = ann.schedule_notice?.contact_note || 'Số liệu hằng ngày xin liên hệ anh Cường (AMC2) để được hỗ trợ kịp thời.';
+            document.getElementById('ann-hotline').value = ann.schedule_notice?.hotline || '';
+
+            renderWebUpdatesList(ann.web_updates || []);
+        }
+
+        function renderWebUpdatesList(updates) {
+            const container = document.getElementById('web-updates-container');
+            if (updates.length === 0) {
+                container.innerHTML = '<div class="text-xs text-slate-500 py-4 text-center">Chưa có bản tin cập nhật nào. Bấm nút "Thêm Bản Tin Mới" phía trên để tạo.</div>';
+                return;
+            }
+
+            container.innerHTML = updates.map((upd, idx) => `
+                <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-4 space-y-3 relative update-card" data-index="${idx}">
+                    <div class="flex items-center justify-between gap-2 border-b border-slate-700/50 pb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 font-mono text-xs font-bold flex items-center justify-center">${idx + 1}</span>
+                            <span class="text-xs font-bold text-slate-300">Bản Tin Cập Nhật #${idx + 1}</span>
+                        </div>
+                        <button type="button" onclick="removeWebUpdate(${idx})" class="p-1 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition cursor-pointer" title="Xóa bản tin này">
+                            <i data-lucide="trash" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-400 mb-1">Ngày Đăng</label>
+                            <input type="text" class="upd-date w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white" value="${upd.date || ''}">
+                        </div>
+                        <div class="sm:col-span-2">
+                            <label class="block text-[11px] font-bold text-slate-400 mb-1">Nhãn / Thẻ (Tag)</label>
+                            <input type="text" class="upd-tag w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white" value="${upd.tag || 'Cập nhật hệ thống'}">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-400 mb-1">Tiêu Đề Bản Tin</label>
+                        <input type="text" class="upd-title w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-semibold" value="${upd.title || ''}">
+                    </div>
+
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-400 mb-1">Nội Dung Chi Tiết</label>
+                        <textarea class="upd-content w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 h-20">${upd.content || ''}</textarea>
+                    </div>
+                </div>
+            `).join('');
+            updateIcons();
+        }
+
+        // Thêm bản tin mới
+        document.getElementById('btn-add-web-update').addEventListener('click', () => {
+            if (!state.announcements) state.announcements = {};
+            if (!Array.isArray(state.announcements.web_updates)) state.announcements.web_updates = [];
+            
+            state.announcements.web_updates.unshift({
+                id: `upd-${Date.now()}`,
+                date: new Date().toLocaleDateString('vi-VN'),
+                tag: 'Cập nhật tiến độ',
+                title: 'Cập nhật số liệu mới',
+                content: 'Nội dung thông tin cập nhật mới...'
+            });
+            renderWebUpdatesList(state.announcements.web_updates);
+        });
+
+        // Xóa bản tin
+        window.removeWebUpdate = function(index) {
+            if (state.announcements && Array.isArray(state.announcements.web_updates)) {
+                state.announcements.web_updates.splice(index, 1);
+                renderWebUpdatesList(state.announcements.web_updates);
+            }
+        };
+
+        // Lưu bảng thông báo
+        document.getElementById('announcements-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-save-announcements');
+            const statusEl = document.getElementById('ann-save-status');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Đang lưu...</span>';
+            updateIcons();
+
+            // Gom dữ liệu từ form
+            const updates = [];
+            document.querySelectorAll('.update-card').forEach(card => {
+                const date = card.querySelector('.upd-date').value.trim();
+                const tag = card.querySelector('.upd-tag').value.trim();
+                const title = card.querySelector('.upd-title').value.trim();
+                const content = card.querySelector('.upd-content').value.trim();
+                if (title) {
+                    updates.push({
+                        id: `upd-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+                        date,
+                        tag,
+                        title,
+                        content
+                    });
+                }
+            });
+
+            const payload = {
+                last_updated: document.getElementById('ann-last-updated').value.trim(),
+                badge: document.getElementById('ann-badge').value.trim(),
+                title: document.getElementById('ann-title').value.trim(),
+                schedule_notice: {
+                    frequency: document.getElementById('ann-frequency').value.trim(),
+                    contact_person: document.getElementById('ann-contact-person').value.trim(),
+                    contact_note: document.getElementById('ann-contact-note').value.trim(),
+                    hotline: document.getElementById('ann-hotline').value.trim()
+                },
+                web_updates: updates
+            };
+
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
+
+                const res = await fetch('/api/announcements', {
+                    method: 'POST',
+                    headers,
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (res.ok && data.status === 'success') {
+                    statusEl.className = 'text-xs font-semibold text-emerald-400 block';
+                    statusEl.textContent = '✓ Đã lưu và đồng bộ bảng thông báo thành công!';
+                    state.announcements = payload;
+                    setTimeout(() => statusEl.classList.add('hidden'), 4000);
+                } else {
+                    statusEl.className = 'text-xs font-semibold text-rose-400 block';
+                    statusEl.textContent = `Lỗi: ${data.detail || 'Không thể lưu'}`;
+                }
+            } catch (err) {
+                statusEl.className = 'text-xs font-semibold text-rose-400 block';
+                statusEl.textContent = 'Lỗi kết nối máy chủ!';
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i><span>Lưu & Đồng Bộ Bảng Thông Báo</span>';
+                updateIcons();
+            }
+        });
+
+        // Làm mới cache toàn bộ
+        document.getElementById('btn-action-clear-cache').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-action-clear-cache');
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Đang nạp lại RAM...</span>';
+            updateIcons();
+
+            try {
+                const headers = {};
+                if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
+                const res = await fetch('/api/clear-cache', { method: 'POST', headers });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.message || 'Đã nạp lại RAM Cache thành công!');
+                    loadFilesList();
+                } else {
+                    alert(`Lỗi: ${data.detail || 'Không thể nạp lại'}`);
+                }
+            } catch (e) {
+                alert('Lỗi kết nối máy chủ!');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i><span>Làm Mới & Nạp Lại RAM Cache</span>';
+                updateIcons();
+            }
+        });
+
+        // Đồng bộ sang online 24/24
+        document.getElementById('btn-action-sync-online').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-action-sync-online');
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Đang biên dịch...</span>';
+            updateIcons();
+
+            try {
+                const headers = {};
+                if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
+                const res = await fetch('/api/admin/sync-online', { method: 'POST', headers });
+                const data = await res.json();
+                if (res.ok) {
+                    alert(data.message || 'Đã đồng bộ sang bản Online 24/24 thành công!');
+                } else {
+                    alert(`Lỗi: ${data.detail || 'Không thể đồng bộ'}`);
+                }
+            } catch (e) {
+                alert('Lỗi kết nối máy chủ!');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i data-lucide="cloud-upload" class="w-3.5 h-3.5"></i><span>Đồng Bộ Sang Online 24/24</span>';
+                updateIcons();
+            }
+        });
+
+        // Khởi động khi nạp trang
+        window.addEventListener('DOMContentLoaded', () => {
+            checkAuthStatus();
+        });
+    </script>
+</body>
+</html>

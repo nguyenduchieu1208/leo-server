@@ -13,6 +13,11 @@ import json
 import socket
 import threading
 import urllib.parse
+import hashlib
+import hmac
+import secrets
+import datetime
+import time
 from typing import Optional
 from fastapi import FastAPI, Request, Query, HTTPException, BackgroundTasks, UploadFile, File
 from fastapi.staticfiles import StaticFiles
@@ -115,10 +120,59 @@ def get_lan_ip() -> str:
         s.close()
     return ip
 
+# =========================================================================
+# QUẢN TRỊ VIÊN & XÁC THỰC BẢO MẬT (ADMIN AUTHENTICATION)
+# =========================================================================
+
+ADMIN_EMAIL = "ndhieu1208@gmail.com"
+ADMIN_PASSWORD = "12082003"
+
+SECRET_FILE = os.path.join(BASE_DIR, ".admin_secret")
+if os.path.exists(SECRET_FILE):
+    try:
+        with open(SECRET_FILE, "r", encoding="utf-8") as f:
+            ADMIN_SECRET_KEY = f.read().strip()
+    except Exception:
+        ADMIN_SECRET_KEY = secrets.token_hex(32)
+else:
+    ADMIN_SECRET_KEY = secrets.token_hex(32)
+    try:
+        with open(SECRET_FILE, "w", encoding="utf-8") as f:
+            f.write(ADMIN_SECRET_KEY)
+    except Exception:
+        pass
+
+def generate_admin_token(email: str) -> str:
+    """Tạo token phiên HMAC có thời hạn 7 ngày"""
+    expire_ts = int(time.time()) + 7 * 86400
+    msg = f"{email}:{expire_ts}"
+    sig = hmac.new(ADMIN_SECRET_KEY.encode(), msg.encode(), hashlib.sha256).hexdigest()
+    return f"{msg}:{sig}"
+
+def verify_admin_token(token: str) -> bool:
+    """Xác minh tính hợp lệ và thời hạn của token phiên"""
+    if not token or not isinstance(token, str):
+        return False
+    parts = token.split(":")
+    if len(parts) != 3:
+        return False
+    email, expire_ts_str, sig = parts
+    if email.lower() != ADMIN_EMAIL.lower():
+        return False
+    try:
+        expire_ts = int(expire_ts_str)
+        import time as _t
+        if _t.time() > expire_ts:
+            return False
+    except ValueError:
+        return False
+    msg = f"{email}:{expire_ts_str}"
+    expected_sig = hmac.new(ADMIN_SECRET_KEY.encode(), msg.encode(), hashlib.sha256).hexdigest()
+    return hmac.compare_digest(sig, expected_sig)
+
 def is_host_admin(request: Request) -> bool:
     """
-    Kiểm tra bảo mật: Chỉ duy nhất người ngồi trực tiếp tại máy chủ (localhost)
-    mới có quyền làm mới và tải lên dữ liệu. Tất cả người dùng từ LAN hoặc Tunnel đều bị từ chối.
+    Kiểm tra bảo mật máy chủ cục bộ (localhost)
     """
     # Nếu có header từ Cloudflare hoặc Ngrok Tunnel
     if request.headers.get("cf-connecting-ip") or request.headers.get("cf-ray") or request.headers.get("ngrok-trace-id"):
@@ -132,6 +186,25 @@ def is_host_admin(request: Request) -> bool:
         client_host = client_host.replace("::ffff:", "")
     return client_host in ["127.0.0.1", "localhost", "::1", "testclient"] or client_host.startswith("127.")
 
+def is_authenticated_admin(request: Request) -> bool:
+    """
+    Kiểm tra quyền Admin:
+    1. Kiểm tra cookie 'admin_session'
+    2. Kiểm tra header 'Authorization: Bearer <token>'
+    3. Hoặc người dùng trực tiếp trên máy chủ localhost
+    """
+    token = request.cookies.get("admin_session")
+    if token and verify_admin_token(token):
+        return True
+
+    auth_header = request.headers.get("authorization", "")
+    if auth_header.lower().startswith("bearer "):
+        t = auth_header[7:].strip()
+        if verify_admin_token(t):
+            return True
+
+    return is_host_admin(request)
+
 @app.on_event("startup")
 async def on_startup():
     threading.Thread(target=warm_up_cache, args=(DATA_FOLDER, QLDA_FOLDER), daemon=True).start()
@@ -144,6 +217,17 @@ async def serve_index():
     return JSONResponse({
         "status": "online",
         "message": "Server đang chạy..."
+    })
+
+@app.get("/admin")
+@app.get("/admin/")
+async def serve_admin():
+    admin_file = os.path.join(FRONTEND_DIR, "admin.html")
+    if os.path.exists(admin_file):
+        return FileResponse(admin_file)
+    return JSONResponse({
+        "status": "error",
+        "message": "Không tìm thấy file frontend/admin.html"
     })
 
 @app.get("/api/info")
@@ -167,7 +251,7 @@ async def get_server_info(request: Request):
         "lan_url": f"http://{lan_ip}:{port}",
         "lan_ip": lan_ip,
         "public_url": tunnel_url,
-        "is_admin": is_host_admin(request),
+        "is_admin": is_authenticated_admin(request),
         "port": port,
         "data_folder": DATA_FOLDER
     }
@@ -415,11 +499,11 @@ async def export_data_endpoint(
 
 @app.post("/api/clear-cache")
 async def api_clear_cache(request: Request):
-    """Bảo mật: Chỉ người chạy máy chủ (Host / 127.0.0.1) mới có quyền làm mới dữ liệu"""
-    if not is_host_admin(request):
+    """Bảo mật: Chỉ Quản Trị Viên mới có quyền làm mới dữ liệu"""
+    if not is_authenticated_admin(request):
         raise HTTPException(
             status_code=403, 
-            detail="Bạn không có quyền! Chỉ người quản trị máy chủ (Host) mới có quyền làm mới dữ liệu."
+            detail="Bạn không có quyền! Yêu cầu đăng nhập tài khoản Quản Trị Viên."
         )
         
     clear_all_cache()
@@ -436,11 +520,11 @@ async def api_clear_cache(request: Request):
 
 @app.post("/api/upload-excel")
 async def upload_excel(request: Request, file: UploadFile = File(...)):
-    """Bảo mật: Chỉ duy nhất chủ máy (localhost) mới được phép tải lên file Excel PL"""
-    if not is_host_admin(request):
+    """Bảo mật: Chỉ Quản Trị Viên mới được phép tải lên file Excel PL"""
+    if not is_authenticated_admin(request):
         raise HTTPException(
             status_code=403, 
-            detail="Bạn không có quyền! Chỉ chủ máy mới được phép tải lên file Excel."
+            detail="Bạn không có quyền! Yêu cầu đăng nhập tài khoản Quản Trị Viên."
         )
 
     safe_fname = os.path.basename(file.filename or "")
@@ -459,11 +543,11 @@ async def upload_excel(request: Request, file: UploadFile = File(...)):
 
 @app.post("/api/upload-qlda-excel")
 async def upload_qlda_excel(request: Request, file: UploadFile = File(...)):
-    """Bảo mật: Chỉ duy nhất chủ máy (localhost) mới được phép tải lên file Excel QLDA"""
-    if not is_host_admin(request):
+    """Bảo mật: Chỉ Quản Trị Viên mới được phép tải lên file Excel QLDA"""
+    if not is_authenticated_admin(request):
         raise HTTPException(
             status_code=403, 
-            detail="Bạn không có quyền! Chỉ chủ máy mới được phép tải lên file Excel QLDA."
+            detail="Bạn không có quyền! Yêu cầu đăng nhập tài khoản Quản Trị Viên."
         )
 
     safe_fname = os.path.basename(file.filename or "")
@@ -484,18 +568,19 @@ async def upload_qlda_excel(request: Request, file: UploadFile = File(...)):
 
     return {"status": "success", "message": f"Đã nạp và lưu trữ file QLDA {safe_fname} vào hệ thống thành công!"}
 
-ANNOUNCEMENTS_FILE = os.path.join(BASE_DIR, "data", "announcements.json")
+ANNOUNCEMENTS_FILE = os.path.join(DATA_FOLDER, "announcements.json")
 ONLINE_ANNOUNCEMENTS_FILE = os.path.join(BASE_DIR, "online_247", "data", "announcements.json")
 
 @app.get("/api/announcements")
 async def get_announcements():
     """Lấy danh sách thông báo tiến độ và các bản tin cập nhật trang web"""
-    if os.path.exists(ANNOUNCEMENTS_FILE):
-        try:
-            with open(ANNOUNCEMENTS_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            print(f"[-] Lỗi đọc announcements.json: {e}")
+    for a_path in [ANNOUNCEMENTS_FILE, os.path.join(BASE_DIR, "data", "announcements.json")]:
+        if os.path.exists(a_path):
+            try:
+                with open(a_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"[-] Lỗi đọc announcements.json: {e}")
     return {
         "last_updated": "18/09/2026",
         "badge": "Thông Báo Quan Trọng",
@@ -511,11 +596,11 @@ async def get_announcements():
 
 @app.post("/api/announcements")
 async def save_announcements(request: Request):
-    """Cập nhật nội dung bảng thông báo (Chỉ chủ máy/Admin mới được phép)"""
-    if not is_host_admin(request):
+    """Cập nhật nội dung bảng thông báo (Chỉ Quản Trị Viên mới được phép)"""
+    if not is_authenticated_admin(request):
         raise HTTPException(
             status_code=403,
-            detail="Bạn không có quyền! Chỉ chủ máy mới được phép sửa bảng thông báo."
+            detail="Bạn không có quyền! Yêu cầu đăng nhập tài khoản Quản Trị Viên."
         )
     try:
         data = await request.json()
@@ -538,6 +623,159 @@ async def save_announcements(request: Request):
         print(f"[-] Không thể ghi sang online_247: {e}")
         
     return {"status": "success", "message": "Đã cập nhật bảng thông báo thành công!", "data": data}
+
+# =========================================================================
+# API QUẢN TRỊ VIÊN RIÊNG BIỆT (ADMIN PORTAL APIS)
+# =========================================================================
+
+@app.post("/api/admin/login")
+async def api_admin_login(request: Request, response: Response):
+    """Đăng nhập tài khoản Quản Trị Viên (ndhieu1208@gmail.com)"""
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Dữ liệu JSON đăng nhập không hợp lệ.")
+    
+    email = str(body.get("email") or body.get("username") or "").strip().lower()
+    password = str(body.get("password") or "").strip()
+    
+    if email == ADMIN_EMAIL.lower() and password == ADMIN_PASSWORD:
+        token = generate_admin_token(ADMIN_EMAIL)
+        res = JSONResponse({
+            "status": "success",
+            "message": "Đăng nhập thành công!",
+            "token": token,
+            "user": {
+                "email": ADMIN_EMAIL,
+                "role": "admin"
+            }
+        })
+        res.set_cookie(
+            key="admin_session",
+            value=token,
+            max_age=7 * 86400,
+            httponly=True,
+            samesite="lax",
+            path="/"
+        )
+        return res
+    else:
+        raise HTTPException(status_code=401, detail="Tài khoản hoặc mật khẩu không chính xác!")
+
+@app.post("/api/admin/logout")
+async def api_admin_logout(response: Response):
+    """Đăng xuất tài khoản Quản Trị Viên"""
+    res = JSONResponse({"status": "success", "message": "Đã đăng xuất thành công."})
+    res.delete_cookie(key="admin_session", path="/")
+    return res
+
+@app.get("/api/admin/check")
+async def api_admin_check(request: Request):
+    """Kiểm tra trạng thái đăng nhập của Quản Trị Viên"""
+    is_admin = is_authenticated_admin(request)
+    return {
+        "authenticated": is_admin,
+        "email": ADMIN_EMAIL if is_admin else None,
+        "is_localhost": is_host_admin(request)
+    }
+
+@app.get("/api/admin/files")
+async def get_admin_files(request: Request):
+    """Lấy danh sách các file Excel trong Data/ và 03.QLDA/"""
+    if not is_authenticated_admin(request):
+        raise HTTPException(status_code=403, detail="Yêu cầu quyền Quản Trị Viên.")
+    
+    files_list = []
+    
+    def scan_dir(folder_path: str, category_name: str, folder_key: str):
+        if not os.path.exists(folder_path):
+            return
+        for f in os.listdir(folder_path):
+            if f.startswith("~$") or not f.lower().endswith((".xlsx", ".xlsm")):
+                continue
+            fp = os.path.join(folder_path, f)
+            if not os.path.isfile(fp):
+                continue
+            try:
+                st = os.stat(fp)
+                size_bytes = st.st_size
+                mtime = st.st_mtime
+                mtime_str = datetime.datetime.fromtimestamp(mtime).strftime("%d/%m/%Y %H:%M:%S")
+                
+                if size_bytes > 1024 * 1024:
+                    size_str = f"{size_bytes / (1024 * 1024):.2f} MB"
+                else:
+                    size_str = f"{size_bytes / 1024:.1f} KB"
+                
+                files_list.append({
+                    "name": f,
+                    "category": category_name,
+                    "folder": folder_key,
+                    "file_path": fp,
+                    "size_bytes": size_bytes,
+                    "size_formatted": size_str,
+                    "mtime": mtime,
+                    "mtime_formatted": mtime_str
+                })
+            except Exception:
+                pass
+                
+    scan_dir(QLDA_FOLDER, "Tiến Độ Công Đoạn (QLDA)", "03.QLDA")
+    scan_dir(DATA_FOLDER, "Vật Tư & BTP (Packing List)", "Data")
+    
+    # Sắp xếp file mới nhất lên đầu
+    files_list.sort(key=lambda x: x["mtime"], reverse=True)
+    return {
+        "status": "success",
+        "count": len(files_list),
+        "files": files_list
+    }
+
+@app.post("/api/admin/delete-file")
+async def delete_admin_file(request: Request):
+    """Xóa 1 file Excel khỏi hệ thống"""
+    if not is_authenticated_admin(request):
+        raise HTTPException(status_code=403, detail="Yêu cầu quyền Quản Trị Viên.")
+    
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Dữ liệu JSON không hợp lệ.")
+        
+    filename = os.path.basename(str(body.get("name") or "").strip())
+    folder_type = str(body.get("folder") or body.get("category") or "").strip()
+    
+    if not filename or filename.startswith("."):
+        raise HTTPException(status_code=400, detail="Tên file không hợp lệ.")
+        
+    target_dir = QLDA_FOLDER if "qlda" in folder_type.lower() or "03" in folder_type.lower() else DATA_FOLDER
+    target_path = os.path.join(target_dir, filename)
+    
+    if not is_safe_path(target_path, [DATA_FOLDER, QLDA_FOLDER]):
+        raise HTTPException(status_code=400, detail="Đường dẫn file không an toàn.")
+        
+    if not os.path.exists(target_path):
+        raise HTTPException(status_code=404, detail="File không tồn tại trên hệ thống.")
+        
+    try:
+        os.remove(target_path)
+        clear_all_cache()
+        threading.Thread(target=warm_up_cache, args=(DATA_FOLDER, QLDA_FOLDER), daemon=True).start()
+        return {"status": "success", "message": f"Đã xóa file {filename} và làm mới bộ nhớ cache thành công."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Không thể xóa file: {str(e)}")
+
+@app.post("/api/admin/sync-online")
+async def admin_sync_online(request: Request):
+    """Kích hoạt biên dịch và đồng bộ dữ liệu sang bản Online 24/24"""
+    if not is_authenticated_admin(request):
+        raise HTTPException(status_code=403, detail="Yêu cầu quyền Quản Trị Viên.")
+    try:
+        from tools.build_static_data import build_static_package
+        build_static_package()
+        return {"status": "success", "message": "Đã biên dịch và đồng bộ toàn bộ dữ liệu tĩnh sang online_247 thành công!"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi đồng bộ online: {str(e)}")
 
 def run_server(port: int = 8000):
     lan_ip = get_lan_ip()
