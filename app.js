@@ -141,6 +141,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     setInterval(loadServerInfo, 15000); // Giãn tần suất polling để không gây nghẽn mạng
     
     await loadProjectsList();
+    await loadAnnouncements();
+    setupAnnouncementEvents();
     setupEventListeners();
 });
 
@@ -231,6 +233,27 @@ async function loadServerInfo() {
             } else {
                 btnUpload.classList.add('hidden');
                 btnUpload.classList.remove('flex');
+            }
+        }
+
+        const btnEditAnn = document.getElementById('btn-edit-announcement');
+        if (btnEditAnn) {
+            if (state.isAdmin) {
+                btnEditAnn.classList.remove('hidden');
+                btnEditAnn.classList.add('inline-flex');
+            } else {
+                btnEditAnn.classList.add('hidden');
+                btnEditAnn.classList.remove('inline-flex');
+            }
+        }
+        const btnViewToEdit = document.getElementById('btn-view-to-edit-announcement');
+        if (btnViewToEdit) {
+            if (state.isAdmin) {
+                btnViewToEdit.classList.remove('hidden');
+                btnViewToEdit.classList.add('inline-flex');
+            } else {
+                btnViewToEdit.classList.add('hidden');
+                btnViewToEdit.classList.remove('inline-flex');
             }
         }
     } catch (e) {
@@ -6319,6 +6342,390 @@ function setupDashboardEventListeners() {
             if (dashboardState.currentProjectId) {
                 delete _qldaDataCache[dashboardState.currentProjectId];
                 loadDashboardProject(dashboardState.currentProjectId);
+            }
+        });
+    }
+}
+
+// =========================================================================
+// QUẢN LÝ BẢNG THÔNG BÁO TIẾN ĐỘ & BẢN TIN CẬP NHẬT TRANG WEB (DYNAMIC ANNOUNCEMENTS)
+// =========================================================================
+
+const DEFAULT_ANNOUNCEMENTS = {
+    last_updated: "18/09/2026",
+    badge: "Thông Báo Quan Trọng",
+    title: "Kế Hoạch Cập Nhật Tiến Độ Công Đoạn & Bản Tin Trang Web",
+    schedule_notice: {
+        frequency: "Kế hoạch tiến độ công đoạn sẽ cập nhật 1 tuần 1 lần",
+        contact_person: "Anh Cường (AMC2)",
+        contact_note: "Số liệu hằng ngày xin liên hệ anh Cường (AMC2) để được hỗ trợ kịp thời.",
+        hotline: ""
+    },
+    web_updates: [
+        {
+            id: "upd-1",
+            date: "18/09/2026",
+            tag: "Cập nhật hệ thống",
+            title: "Tối ưu hóa hệ thống & Đồng bộ ngày nhận hàng mới nhất",
+            content: "Hoàn tất quét dữ liệu ngày nhận 17/09/2026 cho dự án A290, tự động đưa ngày nhận mới nhất lên đầu danh sách, nâng cấp cơ chế chống lưu cache trình duyệt và gia cố bảo mật máy chủ."
+        }
+    ]
+};
+
+async function loadAnnouncements() {
+    try {
+        let data = null;
+        if (!state.isStaticMode) {
+            try {
+                const res = await fetch(`/api/announcements?t=${Date.now()}`, { cache: 'no-store' });
+                if (res.ok) {
+                    data = await res.json();
+                }
+            } catch (err) {
+                console.warn("API /api/announcements không phản hồi, thử tải file tĩnh");
+            }
+        }
+        if (!data) {
+            const res = await fetch(`data/announcements.json?t=${Date.now()}`, { cache: 'no-store' });
+            if (res.ok) {
+                data = await res.json();
+            }
+        }
+        state.announcements = data || DEFAULT_ANNOUNCEMENTS;
+    } catch (e) {
+        console.warn("Lỗi nạp thông báo:", e);
+        state.announcements = DEFAULT_ANNOUNCEMENTS;
+    }
+    renderAnnouncementUI();
+}
+
+function renderAnnouncementUI() {
+    const ann = state.announcements || DEFAULT_ANNOUNCEMENTS;
+    
+    // 1. Cập nhật thẻ hiển thị chính trong tab QLDA
+    const titleEl = document.getElementById('announcement-title');
+    if (titleEl) titleEl.textContent = ann.title || 'Kế Hoạch Cập Nhật Tiến Độ Công Đoạn & Bản Tin Trang Web';
+
+    const badgeEl = document.getElementById('announcement-badge');
+    if (badgeEl) badgeEl.textContent = ann.badge || 'Thông Báo Quan Trọng';
+
+    const updatedEl = document.getElementById('announcement-updated-time');
+    if (updatedEl) updatedEl.textContent = ann.last_updated || new Date().toLocaleDateString('vi-VN');
+
+    const freqEl = document.getElementById('announcement-frequency');
+    if (freqEl) freqEl.textContent = ann.schedule_notice?.frequency || 'Kế hoạch tiến độ công đoạn sẽ cập nhật 1 tuần 1 lần';
+
+    const contactEl = document.getElementById('announcement-contact-person');
+    if (contactEl) contactEl.textContent = ann.schedule_notice?.contact_person || 'Anh Cường (AMC2)';
+
+    const noteEl = document.getElementById('announcement-contact-note');
+    if (noteEl) noteEl.textContent = ann.schedule_notice?.contact_note || 'Số liệu hằng ngày xin liên hệ anh Cường (AMC2) để được hỗ trợ kịp thời.';
+
+    // 2. Cập nhật trong Modal Xem nhanh
+    const modalFreq = document.getElementById('modal-view-ann-frequency');
+    if (modalFreq) modalFreq.textContent = ann.schedule_notice?.frequency || 'Kế hoạch tiến độ công đoạn sẽ cập nhật 1 tuần 1 lần';
+
+    const modalContact = document.getElementById('modal-view-ann-contact');
+    if (modalContact) modalContact.textContent = ann.schedule_notice?.contact_person || 'Anh Cường (AMC2)';
+
+    const modalNote = document.getElementById('modal-view-ann-note');
+    if (modalNote) modalNote.textContent = ann.schedule_notice?.contact_note || 'Số liệu hằng ngày xin liên hệ anh Cường (AMC2) để được hỗ trợ kịp thời.';
+
+    // 3. Render danh sách cập nhật web
+    renderUpdatesList('announcement-web-updates-list', ann.web_updates || []);
+    renderUpdatesList('modal-view-ann-updates-list', ann.web_updates || []);
+
+    // 4. Kiểm soát hiển thị nút sửa cho Admin
+    const btnEdit = document.getElementById('btn-edit-announcement');
+    if (btnEdit) {
+        if (state.isAdmin) {
+            btnEdit.classList.remove('hidden');
+            btnEdit.classList.add('inline-flex');
+        } else {
+            btnEdit.classList.add('hidden');
+            btnEdit.classList.remove('inline-flex');
+        }
+    }
+    const btnViewToEdit = document.getElementById('btn-view-to-edit-announcement');
+    if (btnViewToEdit) {
+        if (state.isAdmin) {
+            btnViewToEdit.classList.remove('hidden');
+            btnViewToEdit.classList.add('inline-flex');
+        } else {
+            btnViewToEdit.classList.add('hidden');
+            btnViewToEdit.classList.remove('inline-flex');
+        }
+    }
+
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+        lucide.createIcons();
+    }
+}
+
+function renderUpdatesList(containerId, updates) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (!updates || updates.length === 0) {
+        container.innerHTML = `
+            <div class="p-3 text-center text-slate-400 bg-white/60 border border-dashed border-slate-200 rounded-xl text-xs">
+                Chưa có bản tin cập nhật mới nào được đăng.
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = updates.map(u => `
+        <div class="bg-white/95 border border-slate-200/90 rounded-xl p-3 shadow-2xs hover:border-amber-300 transition">
+            <div class="flex items-center justify-between gap-2 mb-1">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800">${escapeHtml(u.tag || 'Cập nhật')}</span>
+                    <span class="font-bold text-slate-900 text-xs">${escapeHtml(u.title || '')}</span>
+                </div>
+                <span class="text-[10px] text-slate-400 font-mono">${escapeHtml(u.date || '')}</span>
+            </div>
+            <p class="text-[11px] text-slate-600 leading-relaxed">${escapeHtml(u.content || '')}</p>
+        </div>
+    `).join('');
+}
+
+function openAnnouncementEditModal() {
+    const ann = state.announcements || DEFAULT_ANNOUNCEMENTS;
+    
+    const titleInput = document.getElementById('input-ann-title');
+    if (titleInput) titleInput.value = ann.title || '';
+
+    const badgeInput = document.getElementById('input-ann-badge');
+    if (badgeInput) badgeInput.value = ann.badge || 'Thông Báo Quan Trọng';
+
+    const freqInput = document.getElementById('input-ann-frequency');
+    if (freqInput) freqInput.value = ann.schedule_notice?.frequency || 'Kế hoạch tiến độ công đoạn sẽ cập nhật 1 tuần 1 lần';
+
+    const contactInput = document.getElementById('input-ann-contact');
+    if (contactInput) contactInput.value = ann.schedule_notice?.contact_person || 'Anh Cường (AMC2)';
+
+    const noteInput = document.getElementById('input-ann-note');
+    if (noteInput) noteInput.value = ann.schedule_notice?.contact_note || 'Số liệu hằng ngày xin liên hệ anh Cường (AMC2) để được hỗ trợ kịp thời.';
+
+    // Render danh sách dòng tin trong modal sửa
+    const updatesContainer = document.getElementById('edit-ann-updates-container');
+    if (updatesContainer) {
+        updatesContainer.innerHTML = '';
+        const list = ann.web_updates || [];
+        list.forEach((u, idx) => {
+            addWebUpdateRow(u);
+        });
+        if (list.length === 0) {
+            addWebUpdateRow({ date: new Date().toLocaleDateString('vi-VN'), tag: 'Tính Năng Mới', title: '', content: '' });
+        }
+    }
+
+    const modal = document.getElementById('modal-edit-announcement');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+        lucide.createIcons();
+    }
+}
+
+function closeAnnouncementEditModal() {
+    const modal = document.getElementById('modal-edit-announcement');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+function addWebUpdateRow(data = {}) {
+    const container = document.getElementById('edit-ann-updates-container');
+    if (!container) return;
+
+    const rowId = 'row-upd-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+    const row = document.createElement('div');
+    row.className = 'p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 relative group';
+    row.id = rowId;
+
+    row.innerHTML = `
+        <div class="flex items-center justify-between gap-2">
+            <div class="grid grid-cols-2 gap-2 flex-1">
+                <div>
+                    <label class="text-[10px] text-slate-500 font-bold block">Ngày cập nhật:</label>
+                    <input type="text" class="upd-date w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-mono" value="${escapeHtml(data.date || new Date().toLocaleDateString('vi-VN'))}">
+                </div>
+                <div>
+                    <label class="text-[10px] text-slate-500 font-bold block">Nhãn (Tag):</label>
+                    <input type="text" class="upd-tag w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold text-amber-700" value="${escapeHtml(data.tag || 'Cập nhật')}">
+                </div>
+            </div>
+            <button type="button" onclick="document.getElementById('${rowId}').remove()" class="p-1.5 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded-lg transition cursor-pointer" title="Xóa dòng tin này">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <div>
+            <label class="text-[10px] text-slate-500 font-bold block">Tiêu đề bản tin:</label>
+            <input type="text" class="upd-title w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-bold" value="${escapeHtml(data.title || '')}" placeholder="VD: Ra mắt tính năng tra cứu mới...">
+        </div>
+        <div>
+            <label class="text-[10px] text-slate-500 font-bold block">Nội dung chi tiết:</label>
+            <textarea class="upd-content w-full bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs h-14" placeholder="Mô tả tóm tắt nội dung thay đổi hoặc tính năng mới...">${escapeHtml(data.content || '')}</textarea>
+        </div>
+    `;
+    container.appendChild(row);
+
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+        lucide.createIcons();
+    }
+}
+
+async function saveAnnouncementData() {
+    const titleInput = document.getElementById('input-ann-title');
+    const badgeInput = document.getElementById('input-ann-badge');
+    const freqInput = document.getElementById('input-ann-frequency');
+    const contactInput = document.getElementById('input-ann-contact');
+    const noteInput = document.getElementById('input-ann-note');
+
+    const updateRows = document.querySelectorAll('#edit-ann-updates-container > div');
+    const collectedUpdates = [];
+    updateRows.forEach((r, idx) => {
+        const d = r.querySelector('.upd-date')?.value?.trim() || '';
+        const t = r.querySelector('.upd-tag')?.value?.trim() || 'Cập nhật';
+        const title = r.querySelector('.upd-title')?.value?.trim() || '';
+        const content = r.querySelector('.upd-content')?.value?.trim() || '';
+        if (title || content) {
+            collectedUpdates.push({
+                id: `upd-${idx + 1}`,
+                date: d,
+                tag: t,
+                title: title,
+                content: content
+            });
+        }
+    });
+
+    const newAnn = {
+        last_updated: new Date().toLocaleDateString('vi-VN'),
+        badge: badgeInput?.value?.trim() || 'Thông Báo Quan Trọng',
+        title: titleInput?.value?.trim() || 'Kế Hoạch Cập Nhật Tiến Độ Công Đoạn & Bản Tin Trang Web',
+        schedule_notice: {
+            frequency: freqInput?.value?.trim() || 'Kế hoạch tiến độ công đoạn sẽ cập nhật 1 tuần 1 lần',
+            contact_person: contactInput?.value?.trim() || 'Anh Cường (AMC2)',
+            contact_note: noteInput?.value?.trim() || 'Số liệu hằng ngày xin liên hệ anh Cường (AMC2) để được hỗ trợ kịp thời.',
+            hotline: ''
+        },
+        web_updates: collectedUpdates
+    };
+
+    try {
+        const res = await fetch('/api/announcements', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newAnn)
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || 'Không thể lưu thông báo vào server');
+        }
+        state.announcements = newAnn;
+        renderAnnouncementUI();
+        closeAnnouncementEditModal();
+        alert('🎉 Đã cập nhật bảng thông báo thành công!');
+    } catch (e) {
+        alert('⚠️ Lỗi: ' + e.message);
+    }
+}
+
+function setupAnnouncementEvents() {
+    // 1. Mở modal xem thông báo
+    const btnOpenView = document.getElementById('btn-open-announcement-modal');
+    if (btnOpenView) {
+        btnOpenView.addEventListener('click', () => {
+            const modal = document.getElementById('modal-announcement-view');
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        });
+    }
+
+    const btnCloseView = document.getElementById('btn-close-view-announcement');
+    if (btnCloseView) {
+        btnCloseView.addEventListener('click', () => {
+            const modal = document.getElementById('modal-announcement-view');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        });
+    }
+
+    const btnCloseViewBottom = document.getElementById('btn-close-view-announcement-bottom');
+    if (btnCloseViewBottom) {
+        btnCloseViewBottom.addEventListener('click', () => {
+            const modal = document.getElementById('modal-announcement-view');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        });
+    }
+
+    // 2. Chuyển từ xem sang sửa (dành cho Admin)
+    const btnViewToEdit = document.getElementById('btn-view-to-edit-announcement');
+    if (btnViewToEdit) {
+        btnViewToEdit.addEventListener('click', () => {
+            const viewModal = document.getElementById('modal-announcement-view');
+            if (viewModal) {
+                viewModal.classList.add('hidden');
+                viewModal.classList.remove('flex');
+            }
+            openAnnouncementEditModal();
+        });
+    }
+
+    // 3. Nút sửa trên Card thông báo tab QLDA
+    const btnEditCard = document.getElementById('btn-edit-announcement');
+    if (btnEditCard) {
+        btnEditCard.addEventListener('click', openAnnouncementEditModal);
+    }
+
+    // 4. Đóng modal sửa
+    const btnCloseEdit = document.getElementById('btn-close-edit-announcement');
+    if (btnCloseEdit) btnCloseEdit.addEventListener('click', closeAnnouncementEditModal);
+
+    const btnCancelEdit = document.getElementById('btn-cancel-edit-announcement');
+    if (btnCancelEdit) btnCancelEdit.addEventListener('click', closeAnnouncementEditModal);
+
+    // 5. Thêm dòng tin mới
+    const btnAddRow = document.getElementById('btn-add-web-update-row');
+    if (btnAddRow) {
+        btnAddRow.addEventListener('click', () => {
+            addWebUpdateRow({ date: new Date().toLocaleDateString('vi-VN'), tag: 'Tính Năng Mới', title: '', content: '' });
+        });
+    }
+
+    // 6. Lưu thông báo
+    const btnSave = document.getElementById('btn-save-announcement');
+    if (btnSave) {
+        btnSave.addEventListener('click', saveAnnouncementData);
+    }
+
+    // 7. Nút Thu gọn / Mở rộng Card thông báo trên tab QLDA
+    const btnToggle = document.getElementById('btn-toggle-announcement');
+    if (btnToggle) {
+        btnToggle.addEventListener('click', () => {
+            const body = document.getElementById('announcement-body-content');
+            const icon = document.getElementById('icon-toggle-announcement');
+            if (body) {
+                const isHidden = body.classList.toggle('hidden');
+                if (icon) {
+                    icon.setAttribute('data-lucide', isHidden ? 'chevron-down' : 'chevron-up');
+                    if (window.lucide && typeof lucide.createIcons === 'function') {
+                        lucide.createIcons();
+                    }
+                }
             }
         });
     }
