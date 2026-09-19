@@ -765,6 +765,48 @@ async def delete_admin_file(request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Không thể xóa file: {str(e)}")
 
+@app.get("/api/admin/download-file")
+async def download_admin_file(request: Request, name: str = Query(...), folder: str = Query(...)):
+    """Tải file Excel từ hệ thống về máy tính"""
+    if not is_authenticated_admin(request):
+        raise HTTPException(status_code=403, detail="Yêu cầu quyền Quản Trị Viên.")
+    
+    filename = os.path.basename(name.strip())
+    target_dir = QLDA_FOLDER if "qlda" in folder.lower() or "03" in folder.lower() else DATA_FOLDER
+    target_path = os.path.join(target_dir, filename)
+
+    if not is_safe_path(target_path, [DATA_FOLDER, QLDA_FOLDER]) or not os.path.exists(target_path):
+        raise HTTPException(status_code=404, detail="Không tìm thấy file trên hệ thống.")
+
+    return FileResponse(
+        target_path,
+        filename=filename,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+@app.post("/api/admin/change-password")
+async def change_admin_password(request: Request):
+    """Đổi mật khẩu Quản Trị Viên"""
+    global ADMIN_PASSWORD
+    if not is_authenticated_admin(request):
+        raise HTTPException(status_code=403, detail="Yêu cầu quyền Quản Trị Viên.")
+    
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Dữ liệu JSON không hợp lệ.")
+        
+    old_pwd = str(body.get("old_password") or "").strip()
+    new_pwd = str(body.get("new_password") or "").strip()
+
+    if old_pwd != ADMIN_PASSWORD:
+        raise HTTPException(status_code=400, detail="Mật khẩu hiện tại không chính xác.")
+    if len(new_pwd) < 6:
+        raise HTTPException(status_code=400, detail="Mật khẩu mới phải có tối thiểu 6 ký tự.")
+
+    ADMIN_PASSWORD = new_pwd
+    return {"status": "success", "message": "Đã đổi mật khẩu quản trị viên thành công."}
+
 @app.post("/api/admin/sync-online")
 async def admin_sync_online(request: Request):
     """Kích hoạt biên dịch và đồng bộ dữ liệu sang bản Online 24/24"""
