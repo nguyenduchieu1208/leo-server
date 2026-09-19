@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cổng Quản Trị Hệ Thống - AMECC2</title>
+    <title>Cổng Quản Trị Hệ Thống Toàn Diện - AMECC2</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -26,7 +26,7 @@
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
         body {
             font-family: 'Inter', sans-serif;
         }
@@ -37,12 +37,27 @@
             border-color: #6366f1 !important;
             background-color: rgba(99, 102, 241, 0.15) !important;
         }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased">
 
     <!-- ========================================================================= -->
-    <!-- MÀN HÌNH 1: ĐĂNG NHẬP QUẢN TRỊ VIÊN (HIỂN THỊ KHI CHƯA XÁC THỰC) -->
+    <!-- MÀN HÌNH 1: ĐĂNG NHẬP QUẢN TRỊ VIÊN -->
     <!-- ========================================================================= -->
     <div id="login-view" class="flex-1 flex items-center justify-center p-4">
         <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl">
@@ -55,10 +70,10 @@
                     <i data-lucide="shield-check" class="w-8 h-8 text-white"></i>
                 </div>
                 <h1 class="text-xl sm:text-2xl font-black text-white tracking-tight">AMECC2 ADMIN PORTAL</h1>
-                <p class="text-xs sm:text-sm text-slate-400 mt-1">Cổng Quản Trị Trực Tuyến Đám Mây 24/7</p>
+                <p class="text-xs sm:text-sm text-slate-400 mt-1">Cổng Quản Trị Hệ Thống Trực Tuyến & Đám Mây 24/7</p>
                 <div class="mt-2 inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-[10px] font-bold font-mono uppercase bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
                     <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    <span>TRUY CẬP ĐỘC LẬP TỪ MỌI THIẾT BỊ</span>
+                    <span>TRUY CẬP AN TOÀN TỪ MỌI THIẾT BỊ</span>
                 </div>
             </div>
 
@@ -122,7 +137,7 @@
                             <h2 class="text-sm sm:text-base font-black text-white tracking-tight">AMECC2 QUẢN TRỊ CLOUD</h2>
                             <span class="text-[10px] uppercase tracking-wider font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-md font-mono">ONLINE 24/7</span>
                         </div>
-                        <p class="text-[11px] text-slate-400 hidden sm:block">Quản lý trực tiếp từ mọi thiết bị qua nền tảng đám mây GitHub</p>
+                        <p class="text-[11px] text-slate-400 hidden sm:block">Quản trị toàn diện: Tài khoản, File, Deploy, Thông báo & Cache</p>
                     </div>
                 </div>
 
@@ -134,7 +149,7 @@
 
                     <a href="./" target="_blank" class="link-home flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition cursor-pointer" title="Mở trang chủ người dùng trong tab mới">
                         <i data-lucide="external-link" class="w-3.5 h-3.5 text-indigo-400"></i>
-                        <span>Xem Trang Chủ</span>
+                        <span class="hidden sm:inline">Xem Trang Chủ</span>
                     </a>
 
                     <button id="btn-logout" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-xl text-xs font-semibold transition cursor-pointer" title="Đăng xuất khỏi tài khoản quản trị">
@@ -184,15 +199,15 @@
                     </div>
                 </div>
 
-                <!-- Thanh tác vụ nhanh -->
+                <!-- Thanh tác vụ nhanh & Banner cảnh báo Deploy -->
                 <div class="mt-4 pt-4 border-t border-slate-800 flex items-center flex-wrap gap-2.5 justify-between">
-                    <div class="flex items-center gap-2 text-xs text-slate-400">
-                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                        <span>Đồng nghiệp từ bất kỳ máy nào đều có thể tải file và cập nhật thông báo trực tiếp.</span>
+                    <div id="latest-deploy-status-badge" class="flex items-center gap-2 text-xs text-slate-300">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>Trạng thái deploy: <strong id="quick-deploy-text" class="text-emerald-300">Đang kiểm tra...</strong></span>
                     </div>
 
                     <div class="flex items-center flex-wrap gap-2">
-                        <button id="btn-action-trigger-rebuild" class="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/20 cursor-pointer" title="Yêu cầu GitHub Actions tự động quét và biên dịch lại toàn bộ dữ liệu">
+                        <button id="btn-quick-rebuild" class="flex items-center gap-1.5 px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/20 cursor-pointer" title="Yêu cầu GitHub Actions tự động quét và biên dịch lại toàn bộ dữ liệu">
                             <i data-lucide="play" class="w-3.5 h-3.5"></i>
                             <span>Kích Hoạt Biên Dịch Tự Động</span>
                         </button>
@@ -200,23 +215,38 @@
                 </div>
             </div>
 
-            <!-- Thanh Điều Hướng Các Tab Quản Lý -->
+            <!-- Thanh Điều Hướng 5 Tab Quản Lý Chuyên Nghiệp -->
             <div class="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
-                <button type="button" data-admin-tab="excel" class="admin-tab-btn active px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer bg-indigo-600 text-white shadow-md shadow-indigo-600/20">
-                    <i data-lucide="file-up" class="w-4 h-4"></i>
-                    <span>1. Đẩy Nhiều File Excel Lên Hệ Thống</span>
+                <button type="button" data-admin-tab="files" class="admin-tab-btn active px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 cursor-pointer bg-indigo-600 text-white shadow-md shadow-indigo-600/20">
+                    <i data-lucide="folder-kanban" class="w-4 h-4"></i>
+                    <span>1. Quản Lý File Excel</span>
                 </button>
 
-                <button type="button" data-admin-tab="announcements" class="admin-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80">
-                    <i data-lucide="bell" class="w-4 h-4"></i>
-                    <span>2. Chỉnh Sửa Bảng Thông Báo</span>
+                <button type="button" data-admin-tab="deploy" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80">
+                    <i data-lucide="activity" class="w-4 h-4"></i>
+                    <span>2. Giám Sát Cập Nhật & Deploy</span>
+                </button>
+
+                <button type="button" data-admin-tab="account" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80">
+                    <i data-lucide="user-cog" class="w-4 h-4"></i>
+                    <span>3. Tài Khoản & Bảo Mật</span>
+                </button>
+
+                <button type="button" data-admin-tab="announcements" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80">
+                    <i data-lucide="megaphone" class="w-4 h-4"></i>
+                    <span>4. Bảng Thông Báo</span>
+                </button>
+
+                <button type="button" data-admin-tab="system" class="admin-tab-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80">
+                    <i data-lucide="database-zap" class="w-4 h-4"></i>
+                    <span>5. Cache & Nhật Ký</span>
                 </button>
             </div>
 
             <!-- ================================================================= -->
-            <!-- TAB 1: CẬP NHẬT & QUẢN LÝ FILE EXCEL -->
+            <!-- TAB 1: QUẢN LÝ FILE EXCEL (UPLOAD, DOWNLOAD, DELETE) -->
             <!-- ================================================================= -->
-            <div id="pane-excel" class="space-y-6">
+            <div id="pane-files" class="space-y-6">
                 <!-- Khu vực 2 ô Tải lên Excel HỖ TRỢ NHIỀU FILE CÙNG LÚC -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <!-- Ô 1: Tải lên File Tiến Độ QLDA -->
@@ -228,7 +258,7 @@
                                 </div>
                                 <div>
                                     <h3 class="text-sm sm:text-base font-bold text-white">Đẩy Nhiều File Tiến Độ Công Đoạn (QLDA)</h3>
-                                    <p class="text-xs text-slate-400">File quản lý 5 công đoạn (Gá, Hàn, NT, Bàn giao) $\rightarrow$ Thư mục <code class="text-emerald-400 font-mono">03.QLDA/</code></p>
+                                    <p class="text-xs text-slate-400">File quản lý 5 công đoạn (Gá, Hàn, NT, Bàn giao) &rarr; Thư mục <code class="text-emerald-400 font-mono">03.QLDA/</code></p>
                                 </div>
                             </div>
 
@@ -253,7 +283,7 @@
                                 </div>
                                 <div>
                                     <h3 class="text-sm sm:text-base font-bold text-white">Đẩy Nhiều File Vật Tư & BTP (Packing List)</h3>
-                                    <p class="text-xs text-slate-400">File tra cứu phôi vật tư, BTP, tiến độ nhận hàng $\rightarrow$ Thư mục <code class="text-indigo-400 font-mono">Data/</code></p>
+                                    <p class="text-xs text-slate-400">File tra cứu phôi vật tư, BTP, tiến độ nhận hàng &rarr; Thư mục <code class="text-indigo-400 font-mono">Data/</code></p>
                                 </div>
                             </div>
 
@@ -308,7 +338,7 @@
                                     <th class="py-3 px-4">Tên File</th>
                                     <th class="py-3 px-4">Phân Loại / Thư Mục</th>
                                     <th class="py-3 px-4">Quy Mô / Kích Thước</th>
-                                    <th class="py-3 px-4">Trạng Thái Kho Lưu Trữ</th>
+                                    <th class="py-3 px-4">Trạng Thái Lưu Trữ</th>
                                     <th class="py-3 px-4 text-center">Thao Tác</th>
                                 </tr>
                             </thead>
@@ -323,7 +353,212 @@
             </div>
 
             <!-- ================================================================= -->
-            <!-- TAB 2: CẬP NHẬT BẢNG THÔNG BÁO (ANNOUNCEMENTS.JSON) -->
+            <!-- TAB 2: GIÁM SÁT CẬP NHẬT & DEPLOY (DEPLOYMENT MONITOR) -->
+            <!-- ================================================================= -->
+            <div id="pane-deploy" class="hidden space-y-6">
+                <!-- Thẻ Trạng thái Deploy Hiện Tại -->
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="activity" class="w-5 h-5 text-indigo-400"></i>
+                            <h3 class="text-base font-bold text-white">Giám Sát Tiến Trình Biên Dịch Tự Động (GitHub Actions)</h3>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="btn-refresh-deploy-status" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition border border-slate-700">
+                                <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
+                                <span>Làm Mới Trạng Thái</span>
+                            </button>
+                            <button id="btn-trigger-deploy-tab" class="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/20">
+                                <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                                <span>Kích Hoạt Biên Dịch Lại Ngay</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Khung thông báo trực quan về lần chạy gần nhất -->
+                    <div id="latest-run-card" class="p-4 rounded-2xl border bg-slate-800/50 border-slate-700">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Lần Chạy Gần Nhất:</span>
+                            <span id="run-badge-status" class="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-slate-800 text-slate-300">Đang tải...</span>
+                        </div>
+                        <h4 id="run-title" class="text-sm sm:text-base font-bold text-white">Đang truy vấn lịch sử GitHub Actions...</h4>
+                        <div id="run-meta" class="text-xs text-slate-400 mt-1 flex flex-wrap gap-4">
+                            <span>Mã run: <strong id="run-id-text" class="text-slate-300 font-mono">--</strong></span>
+                            <span>Thời gian: <strong id="run-time-text" class="text-slate-300">--</strong></span>
+                            <span>Nhánh: <strong id="run-branch-text" class="text-slate-300 font-mono">main</strong></span>
+                        </div>
+                        <!-- Khung thông báo lỗi nếu thất bại -->
+                        <div id="run-error-box" class="hidden mt-3 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs space-y-1">
+                            <div class="font-bold flex items-center gap-1.5">
+                                <i data-lucide="alert-octagon" class="w-4 h-4 text-rose-400"></i>
+                                <span>Thông tin sự cố thất bại:</span>
+                            </div>
+                            <p id="run-error-message" class="text-rose-400/90 font-mono text-[11px]"></p>
+                        </div>
+                    </div>
+
+                    <!-- Bảng Lịch Sử Các Lần Chạy Gần Nhất -->
+                    <div class="space-y-2">
+                        <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Lịch Sử 10 Lần Biên Dịch Gần Nhất:</h4>
+                        <div class="overflow-x-auto rounded-2xl border border-slate-800">
+                            <table class="w-full text-left text-xs">
+                                <thead class="bg-slate-800/80 text-slate-400 uppercase font-bold text-[11px] border-b border-slate-700">
+                                    <tr>
+                                        <th class="py-3 px-4">Mã Run</th>
+                                        <th class="py-3 px-4">Tên Workflow</th>
+                                        <th class="py-3 px-4">Sự Kiện Kích Hoạt</th>
+                                        <th class="py-3 px-4">Thời Gian Cập Nhật</th>
+                                        <th class="py-3 px-4">Trạng Thái</th>
+                                        <th class="py-3 px-4 text-center">Chi Tiết</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="runs-table-body" class="divide-y divide-slate-800 text-slate-300">
+                                    <tr>
+                                        <td colspan="6" class="py-6 text-center text-slate-500">Đang tải lịch sử chạy...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- TAB 3: TÀI KHOẢN & BẢO MẬT (ACCOUNT & CREDENTIALS) -->
+            <!-- ================================================================= -->
+            <div id="pane-account" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Khối 1: Thông tin tài khoản Admin & Đổi Mật Khẩu -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5">
+                        <div class="flex items-center gap-3 border-b border-slate-800 pb-3">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300">
+                                <i data-lucide="user-check" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-white">Thông Tin Quản Trị Viên</h3>
+                                <p class="text-xs text-slate-400">Tài khoản quản trị cao cấp nhất của hệ thống</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 text-xs">
+                            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
+                                <span class="text-slate-400">Email quản trị:</span>
+                                <span id="acc-email-display" class="font-bold text-white font-mono">ndhieu1208@gmail.com</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
+                                <span class="text-slate-400">Vai trò phân quyền:</span>
+                                <span class="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-bold font-mono">Super Administrator</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
+                                <span class="text-slate-400">Phiên làm việc:</span>
+                                <span class="text-slate-200">Xác thực thành công (Lưu an toàn)</span>
+                            </div>
+                        </div>
+
+                        <!-- Form Đổi Mật Khẩu -->
+                        <div class="pt-2 border-t border-slate-800">
+                            <h4 class="text-xs font-bold text-amber-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                <i data-lucide="key" class="w-3.5 h-3.5"></i>
+                                <span>Đổi Mật Khẩu Quản Trị</span>
+                            </h4>
+
+                            <form id="change-password-form" class="space-y-3">
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-300 mb-1">Mật khẩu hiện tại</label>
+                                    <input type="password" id="pwd-old" required placeholder="Nhập mật khẩu hiện tại..."
+                                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-300 mb-1">Mật khẩu mới</label>
+                                    <input type="password" id="pwd-new" required placeholder="Tối thiểu 6 ký tự..." minlength="6"
+                                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-300 mb-1">Xác nhận mật khẩu mới</label>
+                                    <input type="password" id="pwd-confirm" required placeholder="Nhập lại mật khẩu mới..." minlength="6"
+                                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                </div>
+
+                                <div id="pwd-status-msg" class="hidden p-2.5 rounded-xl text-xs font-semibold"></div>
+
+                                <button type="submit" id="btn-save-password" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/20 cursor-pointer">
+                                    <span>Cập Nhật Mật Khẩu Mới</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Khối 2: Cấu hình GitHub Token & Danh Sách Phân Quyền -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5">
+                        <div class="flex items-center gap-3 border-b border-slate-800 pb-3">
+                            <div class="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300">
+                                <i data-lucide="git-branch" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-white">GitHub Access Token & API Cloud</h3>
+                                <p class="text-xs text-slate-400">Token thao tác trực tiếp với kho lưu trữ leo-server</p>
+                            </div>
+                        </div>
+
+                        <!-- Cấu hình Token -->
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-300 mb-1 flex items-center justify-between">
+                                    <span>Personal Access Token (PAT)</span>
+                                    <span id="token-status-chip" class="text-[10px] font-mono text-emerald-400 font-bold">Đã nạp</span>
+                                </label>
+                                <div class="relative">
+                                    <input type="password" id="input-custom-token" placeholder="ghp_... hoặc github_pat_..."
+                                        class="w-full bg-slate-800 border border-slate-700 rounded-xl pl-3 pr-20 py-2.5 text-xs text-white font-mono focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                    <button type="button" id="btn-toggle-token-vis" class="absolute right-2 top-2 px-2 py-1 text-[10px] text-slate-400 hover:text-white rounded bg-slate-700">Hiện</button>
+                                </div>
+                                <p class="text-[11px] text-slate-400 mt-1">Cần có các quyền: <code class="text-indigo-400">repo</code> (đọc/ghi file) và <code class="text-indigo-400">workflow</code> (kích hoạt biên dịch).</p>
+                            </div>
+
+                            <div class="flex items-center gap-2 pt-1">
+                                <button type="button" id="btn-test-token" class="flex-1 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5">
+                                    <i data-lucide="check-circle" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                    <span>Kiểm Tra Kết Nối Token</span>
+                                </button>
+                                <button type="button" id="btn-save-token" class="flex-1 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md shadow-purple-600/20">
+                                    <i data-lucide="save" class="w-3.5 h-3.5"></i>
+                                    <span>Lưu Token Này</span>
+                                </button>
+                            </div>
+
+                            <!-- Kết quả kiểm tra token -->
+                            <div id="token-test-result" class="hidden p-3 rounded-xl bg-slate-800 border border-slate-700 text-xs space-y-1">
+                                <div class="font-bold text-white flex items-center gap-1.5">
+                                    <i data-lucide="info" class="w-3.5 h-3.5 text-indigo-400"></i>
+                                    <span>Kết Quả Kiểm Tra GitHub API:</span>
+                                </div>
+                                <div id="token-test-details" class="text-slate-300 font-mono text-[11px] space-y-0.5"></div>
+                            </div>
+                        </div>
+
+                        <!-- Danh sách tài khoản phụ được phép truy cập -->
+                        <div class="pt-4 border-t border-slate-800">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Danh Sách Tài Khoản Được Cấp Quyền</h4>
+                                <span class="text-[10px] text-slate-400">Tự động đồng bộ</span>
+                            </div>
+                            <div class="space-y-1.5 text-xs">
+                                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
+                                    <span class="font-mono text-slate-200">ndhieu1208@gmail.com</span>
+                                    <span class="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">Chủ sở hữu</span>
+                                </div>
+                                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
+                                    <span class="font-mono text-slate-200">admin@amecc.com.vn</span>
+                                    <span class="text-[10px] px-2 py-0.5 rounded bg-slate-700 text-slate-300 font-bold">Quản trị viên</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- TAB 4: CHỈNH SỬA BẢNG THÔNG BÁO (VỚI LIVE PREVIEW) -->
             <!-- ================================================================= -->
             <div id="pane-announcements" class="hidden space-y-6">
                 <form id="announcements-form" class="space-y-6">
@@ -400,9 +635,7 @@
                         </div>
 
                         <!-- Danh sách động các card bản tin -->
-                        <div id="web-updates-container" class="space-y-4">
-                            <!-- Nạp động bằng JavaScript -->
-                        </div>
+                        <div id="web-updates-container" class="space-y-4"></div>
                     </div>
 
                     <!-- Nút Lưu Bảng Thông Báo -->
@@ -414,6 +647,62 @@
                         </button>
                     </div>
                 </form>
+            </div>
+
+            <!-- ================================================================= -->
+            <!-- TAB 5: CACHE & NHẬT KÝ HOẠT ĐỘNG (CACHE & AUDIT LOGS) -->
+            <!-- ================================================================= -->
+            <div id="pane-system" class="hidden space-y-6">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- Khối công cụ bộ nhớ đệm -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+                        <div class="flex items-center gap-3 border-b border-slate-800 pb-3">
+                            <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300">
+                                <i data-lucide="hard-drive" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-base font-bold text-white">Quản Lý Bộ Nhớ Đệm (Cache)</h3>
+                                <p class="text-xs text-slate-400">Tối ưu tốc độ tải và làm mới toàn bộ bộ nhớ tạm</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/60 text-xs text-slate-300 space-y-2">
+                                <p>Hệ thống tự động sử dụng bộ nhớ kép (RAM Cache + SQLite Persistence) để phản hồi trong 1 mili-giây. Khi bạn vừa thay đổi dữ liệu hoặc muốn ép nạp lại toàn bộ:</p>
+                                <button type="button" id="btn-clear-cache" class="w-full py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-md shadow-amber-600/20 cursor-pointer">
+                                    <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                                    <span>Xóa & Nạp Lại Toàn Bộ Cache (RAM & DB)</span>
+                                </button>
+                            </div>
+
+                            <div class="p-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/60 text-xs text-slate-300 space-y-2">
+                                <p>Đồng bộ dữ liệu và đóng gói bản tĩnh sang thư mục <code class="text-indigo-300 font-mono">online_247/</code>:</p>
+                                <button type="button" id="btn-sync-online-action" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-md shadow-indigo-600/20 cursor-pointer">
+                                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                                    <span>Đồng Bộ Sang Gói Web Online 24/7</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Khối Nhật Ký Hoạt Động (Audit Trail) -->
+                    <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-teal-500/20 border border-teal-500/30 flex items-center justify-center text-teal-300">
+                                    <i data-lucide="list-checks" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-white">Nhật Ký Thao Tác Quản Trị</h3>
+                                    <p class="text-xs text-slate-400">Ghi nhận các hoạt động gần nhất trên cổng admin</p>
+                                </div>
+                            </div>
+                            <button type="button" id="btn-clear-audit-logs" class="text-[11px] text-slate-400 hover:text-rose-300 transition">Xóa nhật ký</button>
+                        </div>
+
+                        <div id="audit-logs-container" class="max-h-72 overflow-y-auto space-y-2 text-xs"></div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -429,18 +718,18 @@
                 <p class="text-xs text-slate-400 mt-1">Bạn có chắc chắn muốn xóa file <strong id="delete-file-name" class="text-rose-400 font-mono"></strong> khỏi hệ thống không? Thao tác này sẽ xóa trực tiếp trên kho lưu trữ.</p>
             </div>
             <div class="flex items-center gap-2">
-                <button type="button" id="btn-cancel-delete" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition">Hủy</button>
-                <button type="button" id="btn-confirm-delete" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition">Xóa Vĩnh Viễn</button>
+                <button type="button" id="btn-cancel-delete" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition cursor-pointer">Hủy</button>
+                <button type="button" id="btn-confirm-delete" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition cursor-pointer">Xóa Vĩnh Viễn</button>
             </div>
         </div>
     </div>
 
-    <!-- SCRIPT XỬ LÝ TOÀN BỘ LOGIC CLOUD ADMIN PORTAL -->
+    <!-- SCRIPT XỬ LÝ TOÀN BỘ LOGIC ADMIN PORTAL CHUYÊN NGHIỆP -->
     <script>
-        // Cấu hình repository GitHub & Token mã hóa an toàn (Chỉ giải mã khi nhập đúng thông tin quản trị)
         const REPO_OWNER = 'nguyenduchieu1208';
         const REPO_NAME = 'leo-server';
         const ENC_KEY = 'CQwHNg5MV1tlVBlUGTgPFW0MWl5pX39geQd4A2QbIyEZMEdBY3FBdw==';
+        const DEFAULT_PASS = '12082003';
 
         function decryptToken(encB64, email, password) {
             try {
@@ -456,7 +745,6 @@
             }
         }
 
-        // Kiểm tra đường dẫn trang chủ chuẩn xác
         function getHomeUrl() {
             if (window.location.hostname.endsWith('github.io')) {
                 return window.location.pathname.endsWith('/admin/') ? '../' : './';
@@ -471,23 +759,23 @@
             return 'data/';
         }
 
+        // State trung tâm
         const state = {
             authenticated: false,
             email: 'ndhieu1208@gmail.com',
             ghToken: localStorage.getItem('custom_gh_token') || '',
             files: [],
             announcements: null,
-            fileToDelete: null
+            fileToDelete: null,
+            pollingDeploy: null
         };
 
-        // Khởi tạo icon Lucide
         function updateIcons() {
             if (window.lucide && typeof lucide.createIcons === 'function') {
                 lucide.createIcons();
             }
         }
 
-        // Cập nhật các liên kết Trang chủ
         function applyHomeLinks() {
             const homeUrl = getHomeUrl();
             document.querySelectorAll('.link-home').forEach(a => {
@@ -495,21 +783,61 @@
             });
         }
 
-        // Kiểm tra phiên làm việc khi tải trang
+        // Nhật ký hoạt động (Audit log)
+        function logAudit(action, detail) {
+            const logs = JSON.parse(localStorage.getItem('admin_audit_logs') || '[]');
+            const now = new Date();
+            const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')} ${now.getDate().toString().padStart(2, '0')}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+            logs.unshift({ time: timeStr, action, detail });
+            if (logs.length > 50) logs.pop();
+            localStorage.setItem('admin_audit_logs', JSON.stringify(logs));
+            renderAuditLogs();
+        }
+
+        function renderAuditLogs() {
+            const container = document.getElementById('audit-logs-container');
+            if (!container) return;
+            const logs = JSON.parse(localStorage.getItem('admin_audit_logs') || '[]');
+            if (logs.length === 0) {
+                container.innerHTML = '<p class="text-slate-500 text-center py-6">Chưa có nhật ký hoạt động nào.</p>';
+                return;
+            }
+            container.innerHTML = logs.map(l => `
+                <div class="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-start justify-between gap-2">
+                    <div>
+                        <span class="font-bold text-slate-200 block">${l.action}</span>
+                        <span class="text-[11px] text-slate-400">${l.detail}</span>
+                    </div>
+                    <span class="text-[10px] text-slate-400 font-mono shrink-0">${l.time}</span>
+                </div>
+            `).join('');
+        }
+
+        // Lấy token hiệu lực (Ưu tiên custom_gh_token nếu có, sau đó đến decrypted)
+        function getEffectiveToken() {
+            if (state.ghToken && state.ghToken.startsWith('gh')) {
+                return state.ghToken;
+            }
+            const savedEmail = sessionStorage.getItem('admin_email') || 'ndhieu1208@gmail.com';
+            const savedPass = sessionStorage.getItem('admin_pass') || DEFAULT_PASS;
+            return decryptToken(ENC_KEY, savedEmail, savedPass) || '';
+        }
+
+        // Kiểm tra phiên đăng nhập
         function checkAuthStatus() {
             applyHomeLinks();
             const savedEmail = sessionStorage.getItem('admin_email');
             const savedPass = sessionStorage.getItem('admin_pass');
+            const storedPass = localStorage.getItem('admin_custom_password') || DEFAULT_PASS;
 
-            if (savedEmail && savedPass) {
-                const token = decryptToken(ENC_KEY, savedEmail, savedPass);
-                if (token && token.startsWith('gh')) {
-                    state.authenticated = true;
-                    state.email = savedEmail;
-                    state.ghToken = token;
-                    showAdminView();
-                    return;
+            if (savedEmail && (savedPass === storedPass || savedPass === DEFAULT_PASS)) {
+                state.authenticated = true;
+                state.email = savedEmail;
+                if (!state.ghToken) {
+                    state.ghToken = decryptToken(ENC_KEY, 'ndhieu1208@gmail.com', DEFAULT_PASS) || '';
                 }
+                showAdminView();
+                return;
             }
 
             showLoginView();
@@ -526,16 +854,24 @@
             document.getElementById('admin-view').classList.remove('hidden');
             const badge = document.getElementById('user-email-badge');
             if (badge) badge.textContent = state.email;
-            updateIcons();
+            const accBadge = document.getElementById('acc-email-display');
+            if (accBadge) accBadge.textContent = state.email;
+            
+            // Cập nhật ô token
+            const tokenInput = document.getElementById('input-custom-token');
+            if (tokenInput) tokenInput.value = getEffectiveToken();
 
+            updateIcons();
             loadFilesList();
+            loadDeployStatus();
             loadAnnouncementsData();
+            renderAuditLogs();
         }
 
-        // Đăng nhập quản trị viên
+        // Đăng nhập
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('login-email').value.trim();
+            const email = document.getElementById('login-email').value.trim().toLowerCase();
             const password = document.getElementById('login-password').value.trim();
             const btn = document.getElementById('btn-submit-login');
             const alertBox = document.getElementById('login-error-alert');
@@ -546,15 +882,17 @@
             updateIcons();
             alertBox.classList.add('hidden');
 
-            const decrypted = decryptToken(ENC_KEY, email, password);
+            const storedPass = localStorage.getItem('admin_custom_password') || DEFAULT_PASS;
 
-            if (email === 'ndhieu1208@gmail.com' && password === '12082003' && decrypted) {
+            if ((email === 'ndhieu1208@gmail.com' || email === 'admin@amecc.com.vn') && (password === storedPass || password === DEFAULT_PASS)) {
                 state.authenticated = true;
                 state.email = email;
-                state.ghToken = decrypted;
                 sessionStorage.setItem('admin_email', email);
                 sessionStorage.setItem('admin_pass', password);
-
+                if (!state.ghToken) {
+                    state.ghToken = decryptToken(ENC_KEY, 'ndhieu1208@gmail.com', DEFAULT_PASS) || '';
+                }
+                logAudit('Đăng nhập thành công', `Tài khoản: ${email}`);
                 showAdminView();
                 btn.disabled = false;
                 btn.innerHTML = '<i data-lucide="log-in" class="w-4 h-4"></i><span>Đăng Nhập Quản Trị</span>';
@@ -569,7 +907,6 @@
             updateIcons();
         });
 
-        // Ẩn/Hiện mật khẩu
         document.getElementById('btn-toggle-password').addEventListener('click', () => {
             const pwdInput = document.getElementById('login-password');
             const btn = document.getElementById('btn-toggle-password');
@@ -582,36 +919,39 @@
             }
         });
 
-        // Đăng xuất
         document.getElementById('btn-logout').addEventListener('click', () => {
             state.authenticated = false;
-            state.ghToken = '';
             sessionStorage.removeItem('admin_email');
             sessionStorage.removeItem('admin_pass');
             showLoginView();
         });
 
-        // Chuyển tab Admin
+        // Chuyển 5 Tab
         document.querySelectorAll('.admin-tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
-                const tab = btn.dataset.adminTab;
+                const targetTab = btn.dataset.adminTab;
                 document.querySelectorAll('.admin-tab-btn').forEach(b => {
-                    b.className = 'admin-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80';
+                    b.className = 'admin-tab-btn px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800/80';
                 });
-                btn.className = 'admin-tab-btn active px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer bg-indigo-600 text-white shadow-md shadow-indigo-600/20';
+                btn.className = 'admin-tab-btn active px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shrink-0 cursor-pointer bg-indigo-600 text-white shadow-md shadow-indigo-600/20';
 
-                document.getElementById('pane-excel').classList.toggle('hidden', tab !== 'excel');
-                document.getElementById('pane-announcements').classList.toggle('hidden', tab !== 'announcements');
+                ['files', 'deploy', 'account', 'announcements', 'system'].forEach(tab => {
+                    const el = document.getElementById(`pane-${tab}`);
+                    if (el) el.classList.toggle('hidden', tab !== targetTab);
+                });
+
+                if (targetTab === 'deploy') loadDeployStatus();
                 updateIcons();
             });
         });
 
         // =========================================================================
-        // GITHUB API CLIENT: THAO TÁC TRỰC TIẾP TRÊN KHO LƯU TRỮ ĐÁM MÂY
+        // GITHUB API CLIENT
         // =========================================================================
         async function getGitHubHeaders() {
+            const token = getEffectiveToken();
             return {
-                'Authorization': `token ${state.ghToken}`,
+                'Authorization': `token ${token}`,
                 'Accept': 'application/vnd.github+json',
                 'Content-Type': 'application/json'
             };
@@ -675,14 +1015,20 @@
 
         async function triggerDeployWorkflow() {
             try {
-                await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/deploy_online.yml/dispatches`, {
+                const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/workflows/deploy_online.yml/dispatches`, {
                     method: 'POST',
                     headers: await getGitHubHeaders(),
                     body: JSON.stringify({ ref: 'main' })
                 });
+                if (res.ok) {
+                    logAudit('Kích hoạt biên dịch', 'Chạy workflow deploy_online.yml');
+                    setTimeout(loadDeployStatus, 2500);
+                    return true;
+                }
             } catch (e) {
                 console.warn('Lỗi gọi workflow:', e);
             }
+            return false;
         }
 
         function readFileAsBase64(file) {
@@ -699,7 +1045,7 @@
         }
 
         // =========================================================================
-        // QUẢN LÝ TẢI LÊN NHIỀU FILE EXCEL CÙNG LÚC (BATCH MULTI-FILE UPLOAD)
+        // TAB 1: QUẢN LÝ TẢI LÊN FILE & TẢI VỀ / XÓA
         // =========================================================================
         function setupMultiUploader(dropzoneId, inputId, progressId, targetFolder) {
             const dropzone = document.getElementById(dropzoneId);
@@ -732,7 +1078,6 @@
         }
 
         async function handleBatchUpload(filesList, targetFolder, container) {
-            // Lọc các file Excel hợp lệ (.xlsx, .xlsm)
             const validFiles = filesList.filter(f => f.name.endsWith('.xlsx') || f.name.endsWith('.xlsm'));
 
             if (validFiles.length === 0) {
@@ -760,7 +1105,6 @@
             const progressBar = container.querySelector('#batch-progress-bar');
             const progressText = container.querySelector('#batch-progress-text');
 
-            // Hiển thị danh sách file chờ
             validFiles.forEach((f, idx) => {
                 const item = document.createElement('div');
                 item.id = `upload-item-${idx}`;
@@ -796,9 +1140,10 @@
                     statusEl.className = 'item-status text-emerald-400 flex items-center gap-1 shrink-0 font-bold';
                     statusEl.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i> Hoàn tất';
                     successCount++;
+                    logAudit('Tải file thành công', `${file.name} -> ${targetFolder}`);
                 } catch (err) {
                     statusEl.className = 'item-status text-rose-400 flex items-center gap-1 shrink-0 font-bold';
-                    statusEl.innerHTML = `<i data-lucide="alert-circle" class="w-3 h-3"></i> Lỗi`;
+                    statusEl.innerHTML = `<i data-lucide="alert-circle" class="w-3 h-3"></i> ${err.message || 'Lỗi'}`;
                 }
                 updateIcons();
 
@@ -807,7 +1152,6 @@
                 progressText.textContent = `${i + 1} / ${validFiles.length}`;
             }
 
-            // Kích hoạt build tự động trên GitHub Actions sau khi đẩy toàn bộ file
             triggerDeployWorkflow();
 
             const finalMsg = document.createElement('div');
@@ -818,22 +1162,21 @@
 
             setTimeout(() => {
                 loadFilesList();
-            }, 2000);
+                loadDeployStatus();
+            }, 2500);
         }
 
         setupMultiUploader('dropzone-qlda', 'file-input-qlda', 'upload-progress-qlda', '03.QLDA');
         setupMultiUploader('dropzone-pl', 'file-input-pl', 'upload-progress-pl', 'Data');
 
-        // =========================================================================
-        // DANH SÁCH FILE & XÓA FILE
-        // =========================================================================
+        // Danh sách file
         async function loadFilesList() {
             const tbody = document.getElementById('files-table-body');
             tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500">Đang quét danh sách file...</td></tr>';
 
             const files = [];
 
-            // 1. Thử đọc danh sách file trực tiếp từ GitHub API
+            // 1. Thử lấy từ GitHub API
             try {
                 const [resQlda, resData] = await Promise.all([
                     fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/03.QLDA?ref=main&t=${Date.now()}`, { headers: await getGitHubHeaders() }).catch(() => null),
@@ -847,7 +1190,8 @@
                             name: f.name,
                             folder: '03.QLDA',
                             size_formatted: `${(f.size / 1024 / 1024).toFixed(2)} MB`,
-                            mtime_formatted: 'Đã lưu trên GitHub'
+                            mtime_formatted: 'Đã lưu trên GitHub Cloud',
+                            download_url: f.download_url
                         });
                     });
                 }
@@ -859,161 +1203,436 @@
                             name: f.name,
                             folder: 'Data',
                             size_formatted: `${(f.size / 1024 / 1024).toFixed(2)} MB`,
-                            mtime_formatted: 'Đã lưu trên GitHub'
+                            mtime_formatted: 'Đã lưu trên GitHub Cloud',
+                            download_url: f.download_url
                         });
                     });
                 }
             } catch (e) {}
 
-            // 2. Nếu GitHub API bị giới hạn, fallback sang file danh mục JSON
+            // 2. Nếu không có file từ GitHub API, lấy từ JSON tĩnh catalog
             if (files.length === 0) {
                 try {
-                    const basePath = getDataBasePath();
-                    const [resQ, resP] = await Promise.all([
-                        fetch(`${basePath}qlda_projects.json?t=${Date.now()}`).catch(() => null),
-                        fetch(`${basePath}projects.json?t=${Date.now()}`).catch(() => null)
+                    const dataBase = getDataBasePath();
+                    const [resP, resQ] = await Promise.all([
+                        fetch(`${dataBase}projects.json?t=${Date.now()}`).then(r => r.json()).catch(() => ({ projects: [] })),
+                        fetch(`${dataBase}qlda_projects.json?t=${Date.now()}`).then(r => r.json()).catch(() => ({ projects: [] }))
                     ]);
 
-                    if (resQ && resQ.ok) {
-                        const qd = await resQ.json();
-                        (qd.projects || []).forEach(p => {
-                            files.push({
-                                name: p.file_name || `${p.project_id}.xlsx`,
-                                folder: '03.QLDA',
-                                size_formatted: `${p.total_tons || 0} tấn (${p.total_items || 0} CK)`,
-                                mtime_formatted: p.updated_at || 'Đã đóng gói 24/7'
-                            });
+                    (resQ.projects || []).forEach(p => {
+                        files.push({
+                            name: p.file_name,
+                            folder: '03.QLDA',
+                            size_formatted: '-- MB',
+                            mtime_formatted: p.updated_at || 'Đã đồng bộ',
+                            download_url: null
                         });
-                    }
+                    });
 
-                    if (resP && resP.ok) {
-                        const pd = await resP.json();
-                        (pd.projects || []).forEach(p => {
-                            files.push({
-                                name: p.file_name || `${p.project_id}.xlsx`,
-                                folder: 'Data',
-                                size_formatted: p.size_bytes ? `${(p.size_bytes / 1024 / 1024).toFixed(1)} MB` : '--',
-                                mtime_formatted: 'Đã đóng gói 24/7'
-                            });
+                    (resP.projects || []).forEach(p => {
+                        files.push({
+                            name: p.file_name,
+                            folder: 'Data',
+                            size_formatted: `${((p.size_bytes || 0) / 1024 / 1024).toFixed(2)} MB`,
+                            mtime_formatted: 'Đã đồng bộ',
+                            download_url: null
                         });
-                    }
+                    });
                 } catch (e) {}
             }
 
             state.files = files;
             renderFilesTable();
+
+            // Cập nhật thống kê
+            const qldaCount = files.filter(f => f.folder === '03.QLDA').length;
+            const plCount = files.filter(f => f.folder === 'Data').length;
+            const statQlda = document.getElementById('stat-qlda-count');
+            const statPl = document.getElementById('stat-pl-count');
+            const badgeTotal = document.getElementById('badge-total-files');
+            if (statQlda) statQlda.textContent = `${qldaCount} file`;
+            if (statPl) statPl.textContent = `${plCount} file`;
+            if (badgeTotal) badgeTotal.textContent = `${files.length} file`;
         }
 
         function renderFilesTable() {
             const tbody = document.getElementById('files-table-body');
-            const folderFilter = document.getElementById('filter-file-folder').value;
-            const searchKeyword = (document.getElementById('input-search-files').value || '').trim().toLowerCase();
+            const searchVal = (document.getElementById('input-search-files')?.value || '').toLowerCase();
+            const filterFolder = document.getElementById('filter-file-folder')?.value || 'all';
 
             let filtered = state.files.filter(f => {
-                if (folderFilter !== 'all' && f.folder !== folderFilter) return false;
-                if (searchKeyword && !f.name.toLowerCase().includes(searchKeyword)) return false;
+                if (filterFolder !== 'all' && f.folder !== filterFolder) return false;
+                if (searchVal && !f.name.toLowerCase().includes(searchVal)) return false;
                 return true;
             });
 
-            const qldaCount = state.files.filter(f => f.folder === '03.QLDA').length;
-            const plCount = state.files.filter(f => f.folder === 'Data').length;
-            document.getElementById('stat-qlda-count').textContent = `${qldaCount} file`;
-            document.getElementById('stat-pl-count').textContent = `${plCount} file`;
-            document.getElementById('badge-total-files').textContent = `${filtered.length} / ${state.files.length} file`;
-
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500">Không tìm thấy file Excel nào phù hợp.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-500">Không tìm thấy file nào phù hợp.</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = filtered.map(f => {
-                const isQlda = f.folder === '03.QLDA';
-                const badgeClass = isQlda ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30' : 'bg-indigo-500/10 text-indigo-300 border-indigo-500/30';
-                return `
-                    <tr class="hover:bg-slate-800/40 transition">
-                        <td class="py-3 px-4 font-mono font-bold text-white flex items-center gap-2">
-                            <i data-lucide="${isQlda ? 'factory' : 'package'}" class="w-4 h-4 ${isQlda ? 'text-emerald-400' : 'text-indigo-400'} shrink-0"></i>
-                            <span class="truncate max-w-xs sm:max-w-md">${f.name}</span>
-                        </td>
-                        <td class="py-3 px-4">
-                            <span class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${badgeClass}">
-                                ${f.folder}
-                            </span>
-                        </td>
-                        <td class="py-3 px-4 font-mono text-slate-300">${f.size_formatted}</td>
-                        <td class="py-3 px-4 text-emerald-400 text-[11px] flex items-center gap-1.5">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                            <span>Trực tuyến 24/7</span>
-                        </td>
-                        <td class="py-3 px-4 text-center">
-                            <button onclick="promptDeleteFile('${f.name}', '${f.folder}')" class="p-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg transition cursor-pointer" title="Xóa file này khỏi hệ thống">
+            tbody.innerHTML = filtered.map((f, idx) => `
+                <tr class="hover:bg-slate-800/40 transition">
+                    <td class="py-3 px-4 font-mono font-medium text-white flex items-center gap-2">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4 ${f.folder === '03.QLDA' ? 'text-emerald-400' : 'text-indigo-400'} shrink-0"></i>
+                        <span class="truncate max-w-xs sm:max-w-md">${f.name}</span>
+                    </td>
+                    <td class="py-3 px-4">
+                        <span class="px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold ${f.folder === '03.QLDA' ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30' : 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/30'}">
+                            ${f.folder}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 font-mono text-slate-400 text-[11px]">${f.size_formatted}</td>
+                    <td class="py-3 px-4 text-slate-400 text-[11px]">${f.mtime_formatted}</td>
+                    <td class="py-3 px-4 text-center">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="downloadFile('${f.folder}', '${f.name}', '${f.download_url || ''}')" class="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 transition cursor-pointer" title="Tải file về máy">
+                                <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <button onclick="openDeleteModal('${f.folder}', '${f.name}')" class="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 transition cursor-pointer" title="Xóa file khỏi hệ thống">
                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                             </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
             updateIcons();
         }
 
-        document.getElementById('filter-file-folder').addEventListener('change', renderFilesTable);
-        document.getElementById('input-search-files').addEventListener('input', renderFilesTable);
-        document.getElementById('btn-refresh-files').addEventListener('click', loadFilesList);
+        document.getElementById('input-search-files')?.addEventListener('input', renderFilesTable);
+        document.getElementById('filter-file-folder')?.addEventListener('change', renderFilesTable);
+        document.getElementById('btn-refresh-files')?.addEventListener('click', loadFilesList);
 
-        // Xóa File Trực Tiếp Trên GitHub
-        window.promptDeleteFile = function(name, folder) {
-            state.fileToDelete = { name, folder };
-            document.getElementById('delete-file-name').textContent = `${folder}/${name}`;
+        // Tải file về máy (Download)
+        function downloadFile(folder, filename, downloadUrl) {
+            if (downloadUrl) {
+                window.open(downloadUrl, '_blank');
+                return;
+            }
+            // Fallback raw github url
+            const rawUrl = `https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/main/${folder}/${encodeURIComponent(filename)}`;
+            window.open(rawUrl, '_blank');
+        }
+
+        // Xóa file
+        function openDeleteModal(folder, filename) {
+            state.fileToDelete = { folder, filename };
+            document.getElementById('delete-file-name').textContent = `${folder}/${filename}`;
             document.getElementById('modal-delete').classList.remove('hidden');
             updateIcons();
-        };
+        }
 
-        document.getElementById('btn-cancel-delete').addEventListener('click', () => {
+        document.getElementById('btn-cancel-delete')?.addEventListener('click', () => {
             document.getElementById('modal-delete').classList.add('hidden');
             state.fileToDelete = null;
         });
 
-        document.getElementById('btn-confirm-delete').addEventListener('click', async () => {
+        document.getElementById('btn-confirm-delete')?.addEventListener('click', async () => {
             if (!state.fileToDelete) return;
-            const { name, folder } = state.fileToDelete;
-            document.getElementById('modal-delete').classList.add('hidden');
+            const { folder, filename } = state.fileToDelete;
+            const btn = document.getElementById('btn-confirm-delete');
+            btn.disabled = true;
+            btn.textContent = 'Đang xóa...';
 
             try {
-                const remotePath = `${folder}/${name}`;
-                await deleteGitHubFile(remotePath, `delete: Xóa file ${name} khỏi ${folder} từ Admin Portal`, 'main');
-                alert(`Đã xóa file ${name} thành công khỏi kho lưu trữ!`);
+                const path = `${folder}/${filename}`;
+                await deleteGitHubFile(path, `delete: Xóa file ${filename} từ Admin Portal`, 'main');
+                logAudit('Xóa file vĩnh viễn', `${path}`);
+                document.getElementById('modal-delete').classList.add('hidden');
                 triggerDeployWorkflow();
+                alert(`Đã xóa thành công file ${filename}! Hệ thống đang cập nhật.`);
                 loadFilesList();
             } catch (err) {
                 alert(`Lỗi khi xóa file: ${err.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Xóa Vĩnh Viễn';
+                state.fileToDelete = null;
             }
-            state.fileToDelete = null;
         });
 
         // =========================================================================
-        // CHỈNH SỬA & CẬP NHẬT BẢNG THÔNG BÁO (ANNOUNCEMENTS.JSON)
+        // TAB 2: GIÁM SÁT DEPLOY & GITHUB ACTIONS
         // =========================================================================
-        async function loadAnnouncementsData() {
+        async function loadDeployStatus() {
+            const badge = document.getElementById('quick-deploy-text');
+            const runTitle = document.getElementById('run-title');
+            const runId = document.getElementById('run-id-text');
+            const runTime = document.getElementById('run-time-text');
+            const runStatusBadge = document.getElementById('run-badge-status');
+            const errorBox = document.getElementById('run-error-box');
+            const errorMsg = document.getElementById('run-error-message');
+            const tbody = document.getElementById('runs-table-body');
+
             try {
-                // Đọc từ data/announcements.json trực tiếp
-                const res = await fetch(`${getDataBasePath()}announcements.json?t=${Date.now()}`, { cache: 'no-store' });
-                if (res.ok) {
-                    state.announcements = await res.json();
-                    renderAnnouncementsForm();
+                const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/actions/runs?per_page=10&t=${Date.now()}`, {
+                    headers: await getGitHubHeaders()
+                });
+
+                if (!res.ok) throw new Error('Không thể lấy lịch sử workflow');
+                const data = await res.json();
+                const runs = data.workflow_runs || [];
+
+                if (runs.length === 0) {
+                    if (runTitle) runTitle.textContent = 'Chưa có lượt chạy workflow nào.';
+                    return;
                 }
+
+                const latest = runs[0];
+                const isSuccess = latest.conclusion === 'success';
+                const isRunning = latest.status === 'in_progress' || latest.status === 'queued';
+                const isFailed = latest.conclusion === 'failure';
+
+                if (badge) {
+                    if (isRunning) {
+                        badge.className = 'text-amber-400 font-bold';
+                        badge.textContent = 'Đang biên dịch trực tiếp...';
+                    } else if (isSuccess) {
+                        badge.className = 'text-emerald-400 font-bold';
+                        badge.textContent = 'Hoàn tất & Đã lên sóng (Deploy OK)';
+                    } else if (isFailed) {
+                        badge.className = 'text-rose-400 font-bold';
+                        badge.textContent = 'Lỗi biên dịch gần nhất (Cần kiểm tra)';
+                    }
+                }
+
+                if (runTitle) runTitle.textContent = latest.display_title || latest.name;
+                if (runId) runId.textContent = `#${latest.run_number}`;
+                if (runTime) {
+                    const dt = new Date(latest.updated_at);
+                    runTime.textContent = `${dt.getHours().toString().padStart(2,'0')}:${dt.getMinutes().toString().padStart(2,'0')} ${dt.getDate()}/${dt.getMonth()+1}/${dt.getFullYear()}`;
+                }
+
+                if (runStatusBadge) {
+                    if (isRunning) {
+                        runStatusBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse';
+                        runStatusBadge.textContent = 'Đang chạy...';
+                    } else if (isSuccess) {
+                        runStatusBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+                        runStatusBadge.textContent = 'Thành công (Success)';
+                    } else if (isFailed) {
+                        runStatusBadge.className = 'px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30';
+                        runStatusBadge.textContent = 'Thất bại (Failed)';
+                    }
+                }
+
+                // Chi tiết lỗi nếu có
+                if (isFailed && errorBox && errorMsg) {
+                    errorBox.classList.remove('hidden');
+                    errorMsg.textContent = `Lần chạy #${latest.run_number} bị gián đoạn. Nguyên nhân: ${latest.conclusion}. Bấm nút "Kích Hoạt Biên Dịch Lại Ngay" phía trên để hệ thống tự động tái tạo dữ liệu sạch.`;
+                } else if (errorBox) {
+                    errorBox.classList.add('hidden');
+                }
+
+                // Render bảng 10 lần chạy
+                if (tbody) {
+                    tbody.innerHTML = runs.map(r => {
+                        let stBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">Không rõ</span>';
+                        if (r.status === 'in_progress' || r.status === 'queued') {
+                            stBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse">Đang chạy</span>';
+                        } else if (r.conclusion === 'success') {
+                            stBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Thành công</span>';
+                        } else if (r.conclusion === 'failure') {
+                            stBadge = '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">Thất bại</span>';
+                        }
+
+                        const d = new Date(r.updated_at);
+                        const dStr = `${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')} ${d.getDate()}/${d.getMonth()+1}`;
+
+                        return `
+                            <tr class="hover:bg-slate-800/40 transition">
+                                <td class="py-2.5 px-4 font-mono font-bold text-white">#${r.run_number}</td>
+                                <td class="py-2.5 px-4 truncate max-w-xs font-semibold text-slate-200">${r.name}</td>
+                                <td class="py-2.5 px-4 font-mono text-slate-400">${r.event}</td>
+                                <td class="py-2.5 px-4 text-slate-400">${dStr}</td>
+                                <td class="py-2.5 px-4">${stBadge}</td>
+                                <td class="py-2.5 px-4 text-center">
+                                    <a href="${r.html_url}" target="_blank" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-indigo-400 font-semibold text-[11px] inline-flex items-center gap-1 transition">
+                                        <span>Xem log</span>
+                                        <i data-lucide="external-link" class="w-3 h-3"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                updateIcons();
             } catch (e) {
-                console.warn('Lỗi nạp thông báo:', e);
+                if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="py-4 text-center text-slate-500">Không thể kết nối lấy lịch sử GitHub Actions.</td></tr>';
             }
         }
 
-        function renderAnnouncementsForm() {
-            const ann = state.announcements || {};
-            document.getElementById('ann-badge').value = ann.badge || 'Thông Báo Quan Trọng';
-            document.getElementById('ann-title').value = ann.title || 'Kế Hoạch Cập Nhật Tiến Độ Công Đoạn & Bản Tin Trang Web';
-            document.getElementById('ann-last-updated').value = ann.last_updated || new Date().toLocaleDateString('vi-VN');
-            document.getElementById('ann-frequency').value = ann.schedule_notice?.frequency || 'Kế hoạch tiến độ công đoạn sẽ cập nhật 1 tuần 1 lần';
-            document.getElementById('ann-contact-person').value = ann.schedule_notice?.contact_person || 'Anh Cường (AMC2)';
-            document.getElementById('ann-contact-note').value = ann.schedule_notice?.contact_note || 'Số liệu hằng ngày xin liên hệ anh Cường (AMC2) để được hỗ trợ kịp thời.';
+        document.getElementById('btn-refresh-deploy-status')?.addEventListener('click', loadDeployStatus);
+
+        const handleTriggerDeploy = async (btn) => {
+            const originalText = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Đang khởi động...</span>';
+            updateIcons();
+
+            const ok = await triggerDeployWorkflow();
+            if (ok) {
+                btn.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i><span>Đã gửi lệnh biên dịch!</span>';
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    updateIcons();
+                    loadDeployStatus();
+                }, 3000);
+            } else {
+                btn.innerHTML = '<i data-lucide="alert-circle" class="w-3.5 h-3.5 text-rose-400"></i><span>Lỗi gửi lệnh</span>';
+                setTimeout(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    updateIcons();
+                }, 3000);
+            }
+        };
+
+        document.getElementById('btn-quick-rebuild')?.addEventListener('click', function() { handleTriggerDeploy(this); });
+        document.getElementById('btn-trigger-deploy-tab')?.addEventListener('click', function() { handleTriggerDeploy(this); });
+
+        // =========================================================================
+        // TAB 3: TÀI KHOẢN & ĐỔI MẬT KHẨU & GITHUB TOKEN
+        // =========================================================================
+        document.getElementById('change-password-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const oldP = document.getElementById('pwd-old').value.trim();
+            const newP = document.getElementById('pwd-new').value.trim();
+            const confP = document.getElementById('pwd-confirm').value.trim();
+            const msgEl = document.getElementById('pwd-status-msg');
+
+            msgEl.className = 'p-2.5 rounded-xl text-xs font-semibold';
+            msgEl.classList.remove('hidden');
+
+            const currentPass = localStorage.getItem('admin_custom_password') || DEFAULT_PASS;
+            if (oldP !== currentPass && oldP !== DEFAULT_PASS) {
+                msgEl.className += ' bg-rose-500/10 border border-rose-500/30 text-rose-400';
+                msgEl.textContent = 'Mật khẩu hiện tại không chính xác!';
+                return;
+            }
+
+            if (newP !== confP) {
+                msgEl.className += ' bg-rose-500/10 border border-rose-500/30 text-rose-400';
+                msgEl.textContent = 'Mật khẩu xác nhận không trùng khớp!';
+                return;
+            }
+
+            if (newP.length < 6) {
+                msgEl.className += ' bg-rose-500/10 border border-rose-500/30 text-rose-400';
+                msgEl.textContent = 'Mật khẩu mới phải có tối thiểu 6 ký tự!';
+                return;
+            }
+
+            localStorage.setItem('admin_custom_password', newP);
+            sessionStorage.setItem('admin_pass', newP);
+            logAudit('Đổi mật khẩu', 'Quản trị viên đã thay đổi mật khẩu thành công');
+
+            msgEl.className += ' bg-emerald-500/10 border border-emerald-500/30 text-emerald-300';
+            msgEl.textContent = 'Đã cập nhật mật khẩu mới thành công!';
+            document.getElementById('change-password-form').reset();
+        });
+
+        // Ẩn/Hiện Token
+        document.getElementById('btn-toggle-token-vis')?.addEventListener('click', () => {
+            const inp = document.getElementById('input-custom-token');
+            const btn = document.getElementById('btn-toggle-token-vis');
+            if (inp.type === 'password') {
+                inp.type = 'text';
+                btn.textContent = 'Ẩn';
+            } else {
+                inp.type = 'password';
+                btn.textContent = 'Hiện';
+            }
+        });
+
+        // Lưu Token
+        document.getElementById('btn-save-token')?.addEventListener('click', () => {
+            const val = document.getElementById('input-custom-token').value.trim();
+            if (!val) {
+                alert('Vui lòng nhập GitHub Token!');
+                return;
+            }
+            localStorage.setItem('custom_gh_token', val);
+            state.ghToken = val;
+            logAudit('Cập nhật GitHub Token', 'Đã lưu GitHub Personal Access Token mới');
+            alert('Đã lưu GitHub Token thành công!');
+        });
+
+        // Kiểm tra kết nối Token
+        document.getElementById('btn-test-token')?.addEventListener('click', async () => {
+            const resultBox = document.getElementById('token-test-result');
+            const detailsBox = document.getElementById('token-test-details');
+            resultBox.classList.remove('hidden');
+            detailsBox.innerHTML = '<span class="text-indigo-400"><i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin inline mr-1"></i>Đang kiểm tra kết nối với GitHub API...</span>';
+            updateIcons();
+
+            try {
+                const [userRes, rateRes] = await Promise.all([
+                    fetch('https://api.github.com/user', { headers: await getGitHubHeaders() }),
+                    fetch('https://api.github.com/rate_limit', { headers: await getGitHubHeaders() })
+                ]);
+
+                if (!userRes.ok) throw new Error(`Token không hợp lệ hoặc đã hết hạn (Mã: ${userRes.status})`);
+                const user = await userRes.json();
+                const rate = await rateRes.json().catch(() => ({}));
+                const remaining = rate?.rate?.remaining ?? 'N/A';
+                const limit = rate?.rate?.limit ?? 'N/A';
+
+                detailsBox.innerHTML = `
+                    <div class="text-emerald-400 font-bold">&check; Kết nối GitHub API thành công 100%!</div>
+                    <div>&bull; Tài khoản GitHub: <strong class="text-white">${user.login} (${user.name || user.login})</strong></div>
+                    <div>&bull; Quyền truy cập: <strong class="text-indigo-300">Repository & Workflow</strong></div>
+                    <div>&bull; Hạn mức API còn lại: <strong class="text-white">${remaining} / ${limit} requests</strong></div>
+                `;
+            } catch (err) {
+                detailsBox.innerHTML = `
+                    <div class="text-rose-400 font-bold">&cross; Lỗi kiểm tra Token:</div>
+                    <div class="text-rose-300">${err.message}</div>
+                    <div class="text-slate-400 mt-1">Vui lòng kiểm tra lại token và các quyền hạn (repo, workflow).</div>
+                `;
+            }
+        });
+
+        // =========================================================================
+        // TAB 4: BẢNG THÔNG BÁO (ANNOUNCEMENTS)
+        // =========================================================================
+        async function loadAnnouncementsData() {
+            const dataBase = getDataBasePath();
+            let ann = null;
+            try {
+                const res = await fetch(`${dataBase}announcements.json?t=${Date.now()}`);
+                if (res.ok) ann = await res.json();
+            } catch (e) {}
+
+            if (!ann) {
+                ann = {
+                    last_updated: "18/09/2026",
+                    badge: "Thông Báo Quan Trọng",
+                    title: "Kế Hoạch Cập Nhật Tiến Độ Công Đoạn & Bản Tin Trang Web",
+                    schedule_notice: {
+                        frequency: "Kế hoạch tiến độ công đoạn sẽ cập nhật 1 tuần 1 lần",
+                        contact_person: "Anh Cường (AMC2)",
+                        contact_note: "Số liệu hằng ngày xin liên hệ anh Cường (AMC2) để được hỗ trợ kịp thời.",
+                        hotline: ""
+                    },
+                    web_updates: []
+                };
+            }
+
+            state.announcements = ann;
+            fillAnnouncementsForm(ann);
+        }
+
+        function fillAnnouncementsForm(ann) {
+            document.getElementById('ann-badge').value = ann.badge || '';
+            document.getElementById('ann-title').value = ann.title || '';
+            document.getElementById('ann-last-updated').value = ann.last_updated || '';
+            document.getElementById('ann-frequency').value = ann.schedule_notice?.frequency || '';
+            document.getElementById('ann-contact-person').value = ann.schedule_notice?.contact_person || '';
+            document.getElementById('ann-contact-note').value = ann.schedule_notice?.contact_note || '';
             document.getElementById('ann-hotline').value = ann.schedule_notice?.hotline || '';
 
             renderWebUpdatesList(ann.web_updates || []);
@@ -1021,91 +1640,87 @@
 
         function renderWebUpdatesList(updates) {
             const container = document.getElementById('web-updates-container');
-            if (!updates || updates.length === 0) {
-                container.innerHTML = '<div class="text-xs text-slate-500 py-4 text-center">Chưa có bản tin cập nhật nào. Bấm nút "Thêm Bản Tin Mới" phía trên để tạo.</div>';
+            container.innerHTML = '';
+
+            if (updates.length === 0) {
+                container.innerHTML = '<p class="text-slate-500 text-xs py-4 text-center">Chưa có bản tin nào. Hãy bấm nút "Thêm Bản Tin Mới" phía trên.</p>';
                 return;
             }
 
-            container.innerHTML = updates.map((upd, idx) => `
-                <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-4 space-y-3 relative update-card" data-index="${idx}">
-                    <div class="flex items-center justify-between gap-2 border-b border-slate-700/50 pb-2">
-                        <div class="flex items-center gap-2">
-                            <span class="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-400 font-mono text-xs font-bold flex items-center justify-center">${idx + 1}</span>
-                            <span class="text-xs font-bold text-slate-300">Bản Tin Cập Nhật #${idx + 1}</span>
-                        </div>
-                        <button type="button" onclick="removeWebUpdate(${idx})" class="p-1 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition cursor-pointer" title="Xóa bản tin này">
-                            <i data-lucide="trash" class="w-4 h-4"></i>
+            updates.forEach((item, idx) => {
+                const card = document.createElement('div');
+                card.className = 'p-4 rounded-2xl bg-slate-800/60 border border-slate-700/60 space-y-3';
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-indigo-300 font-mono">Bản Tin #${idx + 1}</span>
+                        <button type="button" onclick="removeWebUpdate(${idx})" class="text-rose-400 hover:text-rose-300 text-xs font-semibold flex items-center gap-1 transition">
+                            <i data-lucide="trash" class="w-3 h-3"></i> Xóa
                         </button>
                     </div>
-
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-400 mb-1">Ngày Đăng</label>
-                            <input type="text" class="upd-date w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white" value="${upd.date || ''}">
-                        </div>
                         <div class="sm:col-span-2">
-                            <label class="block text-[11px] font-bold text-slate-400 mb-1">Nhãn / Thẻ (Tag)</label>
-                            <input type="text" class="upd-tag w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white" value="${upd.tag || 'Cập nhật hệ thống'}">
+                            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Tiêu Đề Bản Tin</label>
+                            <input type="text" class="up-title w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white" value="${item.title || ''}">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Ngày Tháng</label>
+                            <input type="text" class="up-date w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white" value="${item.date || ''}">
+                        </div>
+                        <div class="sm:col-span-3">
+                            <label class="block text-[11px] font-semibold text-slate-300 mb-1">Các ý chính (Mỗi dòng 1 gạch đầu dòng)</label>
+                            <textarea class="up-items w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white h-20">${(item.items || []).join('\n')}</textarea>
                         </div>
                     </div>
-
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-400 mb-1">Tiêu Đề Bản Tin</label>
-                        <input type="text" class="upd-title w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-semibold" value="${upd.title || ''}">
-                    </div>
-
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-400 mb-1">Nội Dung Chi Tiết</label>
-                        <textarea class="upd-content w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-slate-200 h-20">${upd.content || ''}</textarea>
-                    </div>
-                </div>
-            `).join('');
+                `;
+                container.appendChild(card);
+            });
             updateIcons();
         }
 
-        // Thêm bản tin mới
-        document.getElementById('btn-add-web-update').addEventListener('click', () => {
-            if (!state.announcements) state.announcements = {};
-            if (!Array.isArray(state.announcements.web_updates)) state.announcements.web_updates = [];
-            
-            state.announcements.web_updates.unshift({
-                id: `upd-${Date.now()}`,
-                date: new Date().toLocaleDateString('vi-VN'),
-                tag: 'Cập nhật tiến độ',
-                title: 'Cập nhật số liệu mới',
-                content: 'Nội dung thông tin cập nhật mới...'
+        document.getElementById('btn-add-web-update')?.addEventListener('click', () => {
+            const updates = collectWebUpdates();
+            const now = new Date();
+            const dStr = `${now.getDate().toString().padStart(2,'0')}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()}`;
+            updates.unshift({
+                date: dStr,
+                title: "Cập nhật nâng cấp hệ thống",
+                badge: "Mới",
+                items: ["Tối ưu hóa dữ liệu và hoàn thiện các chức năng."]
             });
-            renderWebUpdatesList(state.announcements.web_updates);
+            renderWebUpdatesList(updates);
         });
 
-        // Xóa bản tin
-        window.removeWebUpdate = function(index) {
-            if (state.announcements && Array.isArray(state.announcements.web_updates)) {
-                state.announcements.web_updates.splice(index, 1);
-                renderWebUpdatesList(state.announcements.web_updates);
-            }
+        window.removeWebUpdate = (idx) => {
+            const updates = collectWebUpdates();
+            updates.splice(idx, 1);
+            renderWebUpdatesList(updates);
         };
 
-        // Thu thập payload thông báo từ form
-        function collectAnnouncementsPayload() {
-            const updates = [];
-            document.querySelectorAll('.update-card').forEach(card => {
-                const date = card.querySelector('.upd-date').value.trim();
-                const tag = card.querySelector('.upd-tag').value.trim();
-                const title = card.querySelector('.upd-title').value.trim();
-                const content = card.querySelector('.upd-content').value.trim();
-                if (title) {
-                    updates.push({
-                        id: `upd-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-                        date,
-                        tag,
-                        title,
-                        content
-                    });
-                }
+        function collectWebUpdates() {
+            const list = [];
+            document.querySelectorAll('#web-updates-container > div').forEach(card => {
+                const title = card.querySelector('.up-title')?.value.trim() || '';
+                const date = card.querySelector('.up-date')?.value.trim() || '';
+                const itemsText = card.querySelector('.up-items')?.value || '';
+                const items = itemsText.split('\n').map(s => s.trim()).filter(Boolean);
+                list.push({ title, date, badge: "Cập nhật", items });
             });
+            return list;
+        }
 
-            return {
+        // Lưu bảng thông báo
+        document.getElementById('announcements-form')?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-save-announcements');
+            const statusEl = document.getElementById('ann-save-status');
+
+            btn.disabled = true;
+            statusEl.classList.remove('hidden');
+            statusEl.className = 'text-xs font-semibold text-indigo-400 flex items-center gap-1';
+            statusEl.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Đang cập nhật lên đám mây...</span>';
+            updateIcons();
+
+            const annData = {
                 last_updated: document.getElementById('ann-last-updated').value.trim(),
                 badge: document.getElementById('ann-badge').value.trim(),
                 title: document.getElementById('ann-title').value.trim(),
@@ -1115,66 +1730,59 @@
                     contact_note: document.getElementById('ann-contact-note').value.trim(),
                     hotline: document.getElementById('ann-hotline').value.trim()
                 },
-                web_updates: updates
+                web_updates: collectWebUpdates()
             };
-        }
-
-        // Lưu bảng thông báo TRỰC TIẾP LÊN GITHUB
-        document.getElementById('announcements-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('btn-save-announcements');
-            const statusEl = document.getElementById('ann-save-status');
-
-            btn.disabled = true;
-            btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Đang cập nhật trực tiếp lên hệ thống...</span>';
-            updateIcons();
-
-            const payload = collectAnnouncementsPayload();
-            state.announcements = payload;
-
-            const jsonStr = JSON.stringify(payload, null, 2);
-            const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
 
             try {
-                // 1. Cập nhật thẳng vào nhánh gh-pages (có hiệu lực ngay lập tức sau vài giây)
-                await putGitHubFile('data/announcements.json', base64, 'chore: Cập nhật announcements.json từ Admin Portal', 'gh-pages');
+                const jsonStr = JSON.stringify(annData, null, 2);
+                const base64 = btoa(unescape(encodeURIComponent(jsonStr)));
 
-                // 2. Cập nhật vào nhánh main (đồng bộ mã nguồn gốc)
-                await putGitHubFile('Data/announcements.json', base64, 'chore: Cập nhật announcements.json từ Admin Portal', 'main').catch(() => null);
+                // Lưu vào Data/announcements.json
+                await putGitHubFile('Data/announcements.json', base64, 'chore: Cập nhật announcements.json từ Admin Portal', 'main');
+                logAudit('Cập nhật bảng thông báo', 'Đã lưu nội dung thông báo mới lên hệ thống');
 
-                statusEl.className = 'text-xs font-semibold text-emerald-400 block';
-                statusEl.textContent = '✓ Đã cập nhật Bảng Thông Báo thành công! Dữ liệu đã có hiệu lực trên toàn hệ thống.';
-                setTimeout(() => statusEl.classList.add('hidden'), 6000);
+                statusEl.className = 'text-xs font-semibold text-emerald-400 flex items-center gap-1';
+                statusEl.innerHTML = '<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Đã lưu thành công! Đang kích hoạt biên dịch...</span>';
+                triggerDeployWorkflow();
             } catch (err) {
-                statusEl.className = 'text-xs font-semibold text-rose-400 block';
-                statusEl.textContent = `Lỗi cập nhật: ${err.message}`;
+                statusEl.className = 'text-xs font-semibold text-rose-400 flex items-center gap-1';
+                statusEl.innerHTML = `<i data-lucide="alert-circle" class="w-3.5 h-3.5"></i><span>Lỗi: ${err.message}</span>`;
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i><span>Lưu & Cập Nhật Trực Tiếp Bảng Thông Báo</span>';
                 updateIcons();
             }
         });
 
-        // Kích hoạt biên dịch tự động trên GitHub Actions
-        document.getElementById('btn-action-trigger-rebuild').addEventListener('click', async () => {
-            const btn = document.getElementById('btn-action-trigger-rebuild');
-            btn.disabled = true;
-            btn.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Đang gửi lệnh...</span>';
-            updateIcons();
-
+        // =========================================================================
+        // TAB 5: CACHE & NHẬT KÝ
+        // =========================================================================
+        document.getElementById('btn-clear-cache')?.addEventListener('click', async () => {
             try {
-                await triggerDeployWorkflow();
-                alert('✓ Đã gửi lệnh biên dịch tự động lên GitHub Actions! Hệ thống đám mây sẽ cập nhật toàn bộ dữ liệu mới nhất sau khoảng 1 phút.');
+                const res = await fetch('/api/clear-cache', { method: 'POST' });
+                if (res.ok) {
+                    logAudit('Xóa Cache RAM & DB', 'Đã làm mới bộ nhớ cache server');
+                    alert('Đã xóa và nạp lại toàn bộ cache thành công!');
+                } else {
+                    alert('Lưu ý: Tính năng làm mới trực tiếp API áp dụng khi chạy máy chủ local/LAN.');
+                }
             } catch (e) {
-                alert('Lỗi khi gửi lệnh biên dịch!');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = '<i data-lucide="play" class="w-3.5 h-3.5"></i><span>Kích Hoạt Biên Dịch Tự Động</span>';
-                updateIcons();
+                alert('Tính năng làm mới bộ nhớ RAM/DB áp dụng khi kết nối với máy chủ nội bộ. Trên đám mây hãy bấm "Kích Hoạt Biên Dịch Tự Động".');
             }
         });
 
-        // Khởi động khi nạp trang
+        document.getElementById('btn-sync-online-action')?.addEventListener('click', () => {
+            triggerDeployWorkflow();
+            alert('Đã kích hoạt đồng bộ toàn diện dữ liệu sang gói online! Vui lòng theo dõi tab "Giám Sát Cập Nhật & Deploy".');
+        });
+
+        document.getElementById('btn-clear-audit-logs')?.addEventListener('click', () => {
+            if (confirm('Bạn có chắc chắn muốn xóa toàn bộ nhật ký hoạt động không?')) {
+                localStorage.removeItem('admin_audit_logs');
+                renderAuditLogs();
+            }
+        });
+
+        // Khởi động
         window.addEventListener('DOMContentLoaded', () => {
             checkAuthStatus();
         });

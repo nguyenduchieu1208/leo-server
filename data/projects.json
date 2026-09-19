@@ -1,6 +1,6 @@
 {
   "count": 13,
-  "updated_at": "2026-09-19 11:15:37",
+  "updated_at": "2026-09-19 13:12:06",
   "projects": [
     {
       "project_id": "A290",
@@ -30,10 +30,10 @@
       "file_name": "B272PL.xlsx",
       "file_path": "data/B272.json",
       "size_bytes": 6323702,
-      "total_assemblies": 2408,
+      "total_assemblies": 2434,
       "completed_assemblies": 2237,
       "partial_assemblies": 15,
-      "not_received_assemblies": 156
+      "not_received_assemblies": 182
     },
     {
       "project_id": "E307",
@@ -63,10 +63,10 @@
       "file_name": "M291PL.xlsx",
       "file_path": "data/M291.json",
       "size_bytes": 4445418,
-      "total_assemblies": 882,
+      "total_assemblies": 883,
       "completed_assemblies": 832,
       "partial_assemblies": 37,
-      "not_received_assemblies": 13
+      "not_received_assemblies": 14
     },
     {
       "project_id": "M304",
@@ -74,10 +74,10 @@
       "file_name": "M304PL.xlsx",
       "file_path": "data/M304.json",
       "size_bytes": 12229964,
-      "total_assemblies": 1384,
+      "total_assemblies": 1493,
       "completed_assemblies": 1087,
-      "partial_assemblies": 277,
-      "not_received_assemblies": 20
+      "partial_assemblies": 357,
+      "not_received_assemblies": 49
     },
     {
       "project_id": "U284",
