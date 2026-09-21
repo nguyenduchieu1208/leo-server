@@ -1,6 +1,6 @@
 {
-  "count": 13,
-  "updated_at": "2026-09-21 09:08:45",
+  "count": 12,
+  "updated_at": "2026-09-21 09:46:53",
   "projects": [
     {
       "project_id": "A290",
@@ -133,17 +133,6 @@
       "completed_assemblies": 4,
       "partial_assemblies": 21,
       "not_received_assemblies": 42
-    },
-    {
-      "project_id": "V314",
-      "display_name": "V314",
-      "file_name": "V314PL.xlsx",
-      "file_path": "data/V314.json",
-      "size_bytes": 3400621,
-      "total_assemblies": 242,
-      "completed_assemblies": 8,
-      "partial_assemblies": 144,
-      "not_received_assemblies": 90
     }
   ]
 }
