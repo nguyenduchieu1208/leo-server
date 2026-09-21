@@ -25,7 +25,7 @@
         }
     </script>
     <link rel="icon" type="image/png" href="logo.png?v=3.5.0">
-    <link rel="stylesheet" href="style.css?v=1789955968">
+    <link rel="stylesheet" href="style.css?v=1789956468">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- xlsx-js-style Thư Viện Xuất Excel Chuyên Nghiệp (Có Màu Sắc, Viền Kẻ Bảng, In Đậm và Bộ Lọc Tự Động) -->
@@ -160,12 +160,12 @@
                             <span>↺ Đặt Lại</span>
                         </button>
 
-                        <!-- Nút Thu Gọn / Mở Rộng Nổi Bật -->
-                        <button id="btn-toggle-filter" type="button" 
-                            class="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 hover:border-blue-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95 shrink-0"
-                            title="Thu nhỏ hoặc mở rộng bảng lọc">
-                            <i data-lucide="chevrons-up" id="icon-toggle-filter" class="w-3.5 h-3.5 text-blue-600 transition-transform"></i>
-                            <span id="text-toggle-filter">Thu Gọn Bảng Lọc</span>
+                        <!-- Nút Thu Gọn cho màn hình máy tính (Ẩn trên mobile để ưu tiên các nút chức năng) -->
+                        <button id="btn-toggle-filter-top" type="button" 
+                            class="btn-toggle-filter hidden md:flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 hover:border-blue-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95 shrink-0"
+                            title="Thu nhỏ bảng lọc">
+                            <i data-lucide="chevrons-up" class="w-3.5 h-3.5 text-blue-600 transition-transform"></i>
+                            <span>Thu Gọn</span>
                         </button>
                     </div>
                 </div>
@@ -245,10 +245,20 @@
                             </button>
                         </div>
 
-                        <!-- Trạng thái ngày đang chọn -->
-                        <div class="text-xs font-medium text-slate-500 flex items-center gap-1.5">
-                            <span>Đang xem tiến độ:</span>
-                            <span id="current-date-label" class="font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-lg font-mono">Tất cả ngày</span>
+                        <!-- Trạng thái ngày đang chọn & Nút Thu Gọn Bảng Lọc di chuyển xuống vị trí thuận tiện thao tác -->
+                        <div class="flex items-center justify-between sm:justify-end gap-2.5 w-full sm:w-auto pt-1 sm:pt-0">
+                            <div class="text-xs font-medium text-slate-500 flex items-center gap-1.5">
+                                <span>Đang xem tiến độ:</span>
+                                <span id="current-date-label" class="font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-lg font-mono">Tất cả ngày</span>
+                            </div>
+
+                            <!-- Nút Thu Gọn Bảng Lọc di chuyển xuống góc dưới phải dễ thao tác -->
+                            <button id="btn-toggle-filter" type="button" 
+                                class="btn-toggle-filter flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 text-blue-700 hover:text-blue-800 border border-blue-200 hover:border-blue-300 rounded-xl text-xs font-extrabold transition shadow-2xs cursor-pointer active:scale-95 shrink-0"
+                                title="Thu nhỏ bảng lọc để xem danh sách cấu kiện">
+                                <i data-lucide="chevrons-up" id="icon-toggle-filter" class="w-3.5 h-3.5 text-blue-600 transition-transform"></i>
+                                <span id="text-toggle-filter">Thu Gọn Bảng Lọc</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -2138,6 +2148,6 @@
         <i data-lucide="arrow-up" class="w-5 h-5"></i>
     </button>
 
-    <script src="app.js?v=1789955968"></script>
+    <script src="app.js?v=1789956468"></script>
 </body>
 </html>
