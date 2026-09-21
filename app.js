@@ -2709,13 +2709,12 @@ function setupEventListeners() {
     }
 
     // Nút Thu Gọn / Mở Rộng Bảng Lọc
-    const btnToggleFilter = document.getElementById('btn-toggle-filter');
     const btnExpandFilter = document.getElementById('btn-expand-filter');
     const btnCompactCal = document.getElementById('btn-compact-calendar');
 
-    if (btnToggleFilter) {
-        btnToggleFilter.addEventListener('click', () => toggleFilterCollapse());
-    }
+    document.querySelectorAll('.btn-toggle-filter, #btn-toggle-filter, #btn-toggle-filter-top').forEach(btn => {
+        btn.addEventListener('click', () => toggleFilterCollapse());
+    });
     if (btnExpandFilter) {
         btnExpandFilter.addEventListener('click', () => toggleFilterCollapse(false));
     }
