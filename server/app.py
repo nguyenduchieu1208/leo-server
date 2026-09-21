@@ -126,6 +126,55 @@ def get_lan_ip() -> str:
 
 ADMIN_EMAIL = "ndhieu1208@gmail.com"
 ADMIN_PASSWORD = "12082003"
+USERS_FILE = os.path.join(DATA_FOLDER, "users.json")
+
+def load_system_users() -> list:
+    """Tải danh sách tài khoản từ Data/users.json hoặc khởi tạo mặc định"""
+    if os.path.exists(USERS_FILE):
+        try:
+            with open(USERS_FILE, "r", encoding="utf-8") as f:
+                users = json.load(f)
+                if isinstance(users, list) and len(users) > 0:
+                    # Loại bỏ hoàn toàn tài khoản admin@amecc.com.vn nếu còn sót lại
+                    filtered = [u for u in users if u.get("username", "").strip().lower() != "admin@amecc.com.vn"]
+                    if len(filtered) != len(users):
+                        save_system_users(filtered)
+                    return filtered
+        except Exception as e:
+            logger.warning(f"Không thể đọc Data/users.json: {e}")
+            
+    # Mặc định tạo tài khoản Master Owner nếu chưa có
+    default_users = [
+        {
+            "id": "usr_owner",
+            "username": ADMIN_EMAIL,
+            "name": "Nguyễn Đức Hiệu",
+            "role": "owner",
+            "role_name": "Chủ Sở Hữu",
+            "password": ADMIN_PASSWORD,
+            "status": "active",
+            "created_at": "21/09/2026"
+        }
+    ]
+    save_system_users(default_users)
+    return default_users
+
+def save_system_users(users: list):
+    """Lưu danh sách tài khoản vào Data/users.json"""
+    try:
+        os.makedirs(DATA_FOLDER, exist_ok=True)
+        with open(USERS_FILE, "w", encoding="utf-8") as f:
+            json.dump(users, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logger.error(f"Lỗi khi lưu Data/users.json: {e}")
+
+def find_user_by_username(username: str) -> dict | None:
+    users = load_system_users()
+    uname = (username or "").strip().lower()
+    for u in users:
+        if u.get("username", "").strip().lower() == uname:
+            return u
+    return None
 
 SECRET_FILE = os.path.join(BASE_DIR, ".admin_secret")
 if os.path.exists(SECRET_FILE):
@@ -142,10 +191,10 @@ else:
     except Exception:
         pass
 
-def generate_admin_token(email: str) -> str:
-    """Tạo token phiên HMAC có thời hạn 7 ngày"""
+def generate_admin_token(username: str) -> str:
+    """Tạo token phiên HMAC có thời hạn 7 ngày cho tài khoản"""
     expire_ts = int(time.time()) + 7 * 86400
-    msg = f"{email}:{expire_ts}"
+    msg = f"{username}:{expire_ts}"
     sig = hmac.new(ADMIN_SECRET_KEY.encode(), msg.encode(), hashlib.sha256).hexdigest()
     return f"{msg}:{sig}"
 
@@ -156,9 +205,7 @@ def verify_admin_token(token: str) -> bool:
     parts = token.split(":")
     if len(parts) != 3:
         return False
-    email, expire_ts_str, sig = parts
-    if email.lower() != ADMIN_EMAIL.lower():
-        return False
+    username, expire_ts_str, sig = parts
     try:
         expire_ts = int(expire_ts_str)
         import time as _t
@@ -166,9 +213,14 @@ def verify_admin_token(token: str) -> bool:
             return False
     except ValueError:
         return False
-    msg = f"{email}:{expire_ts_str}"
+    msg = f"{username}:{expire_ts_str}"
     expected_sig = hmac.new(ADMIN_SECRET_KEY.encode(), msg.encode(), hashlib.sha256).hexdigest()
-    return hmac.compare_digest(sig, expected_sig)
+    if not hmac.compare_digest(sig, expected_sig):
+        return False
+    user = find_user_by_username(username)
+    if not user or user.get("status") != "active":
+        return False
+    return True
 
 def is_host_admin(request: Request) -> bool:
     """
@@ -186,23 +238,29 @@ def is_host_admin(request: Request) -> bool:
         client_host = client_host.replace("::ffff:", "")
     return client_host in ["127.0.0.1", "localhost", "::1", "testclient"] or client_host.startswith("127.")
 
+def get_current_user_from_request(request: Request) -> dict | None:
+    token = request.cookies.get("admin_session")
+    if not token:
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.lower().startswith("bearer "):
+            token = auth_header[7:].strip()
+    if token and verify_admin_token(token):
+        parts = token.split(":")
+        if len(parts) == 3:
+            return find_user_by_username(parts[0])
+    if is_host_admin(request):
+        return find_user_by_username(ADMIN_EMAIL)
+    return None
+
 def is_authenticated_admin(request: Request) -> bool:
     """
     Kiểm tra quyền Admin:
-    1. Kiểm tra cookie 'admin_session'
-    2. Kiểm tra header 'Authorization: Bearer <token>'
-    3. Hoặc người dùng trực tiếp trên máy chủ localhost
+    1. Kiểm tra cookie 'admin_session' hoặc header Bearer hợp lệ
+    2. Hoặc người dùng trực tiếp trên máy chủ localhost
     """
-    token = request.cookies.get("admin_session")
-    if token and verify_admin_token(token):
+    user = get_current_user_from_request(request)
+    if user and user.get("status") == "active":
         return True
-
-    auth_header = request.headers.get("authorization", "")
-    if auth_header.lower().startswith("bearer "):
-        t = auth_header[7:].strip()
-        if verify_admin_token(t):
-            return True
-
     return is_host_admin(request)
 
 @app.on_event("startup")
@@ -630,37 +688,47 @@ async def save_announcements(request: Request):
 
 @app.post("/api/admin/login")
 async def api_admin_login(request: Request, response: Response):
-    """Đăng nhập tài khoản Quản Trị Viên (ndhieu1208@gmail.com)"""
+    """Đăng nhập tài khoản quản trị viên / người dùng hệ thống"""
     try:
         body = await request.json()
     except Exception:
         raise HTTPException(status_code=400, detail="Dữ liệu JSON đăng nhập không hợp lệ.")
     
-    email = str(body.get("email") or body.get("username") or "").strip().lower()
+    username = str(body.get("email") or body.get("username") or "").strip()
     password = str(body.get("password") or "").strip()
     
-    if email == ADMIN_EMAIL.lower() and password == ADMIN_PASSWORD:
-        token = generate_admin_token(ADMIN_EMAIL)
-        res = JSONResponse({
-            "status": "success",
-            "message": "Đăng nhập thành công!",
-            "token": token,
-            "user": {
-                "email": ADMIN_EMAIL,
-                "role": "admin"
-            }
-        })
-        res.set_cookie(
-            key="admin_session",
-            value=token,
-            max_age=7 * 86400,
-            httponly=True,
-            samesite="lax",
-            path="/"
-        )
-        return res
-    else:
+    user = find_user_by_username(username)
+    if not user:
         raise HTTPException(status_code=401, detail="Tài khoản hoặc mật khẩu không chính xác!")
+        
+    if user.get("status") == "locked":
+        raise HTTPException(status_code=403, detail="Tài khoản này hiện đang bị tạm khóa!")
+        
+    if user.get("password") != password:
+        raise HTTPException(status_code=401, detail="Tài khoản hoặc mật khẩu không chính xác!")
+        
+    token = generate_admin_token(user.get("username"))
+    res = JSONResponse({
+        "status": "success",
+        "message": "Đăng nhập thành công!",
+        "token": token,
+        "user": {
+            "id": user.get("id"),
+            "username": user.get("username"),
+            "name": user.get("name"),
+            "role": user.get("role", "admin"),
+            "role_name": user.get("role_name", "Quản Trị Viên")
+        }
+    })
+    res.set_cookie(
+        key="admin_session",
+        value=token,
+        max_age=7 * 86400,
+        httponly=True,
+        samesite="lax",
+        path="/"
+    )
+    return res
 
 @app.post("/api/admin/logout")
 async def api_admin_logout(response: Response):
@@ -672,12 +740,123 @@ async def api_admin_logout(response: Response):
 @app.get("/api/admin/check")
 async def api_admin_check(request: Request):
     """Kiểm tra trạng thái đăng nhập của Quản Trị Viên"""
-    is_admin = is_authenticated_admin(request)
+    curr = get_current_user_from_request(request)
     return {
-        "authenticated": is_admin,
-        "email": ADMIN_EMAIL if is_admin else None,
+        "authenticated": curr is not None,
+        "email": curr.get("username") if curr else None,
+        "user": {
+            "id": curr.get("id"),
+            "username": curr.get("username"),
+            "name": curr.get("name"),
+            "role": curr.get("role")
+        } if curr else None,
         "is_localhost": is_host_admin(request)
     }
+
+@app.get("/api/admin/users")
+async def get_system_users_api(request: Request):
+    """Lấy danh sách người dùng hệ thống (ẩn mật khẩu)"""
+    curr = get_current_user_from_request(request)
+    if not curr:
+        raise HTTPException(status_code=401, detail="Chưa xác thực.")
+    users = load_system_users()
+    safe_users = []
+    for u in users:
+        safe_users.append({
+            "id": u.get("id"),
+            "username": u.get("username"),
+            "name": u.get("name"),
+            "role": u.get("role"),
+            "role_name": u.get("role_name"),
+            "status": u.get("status"),
+            "created_at": u.get("created_at")
+        })
+    return {"status": "success", "data": safe_users}
+
+@app.post("/api/admin/users")
+async def create_user_api(request: Request):
+    """Cấp tài khoản mới (Chỉ dành cho Chủ sở hữu)"""
+    curr = get_current_user_from_request(request)
+    if not curr or (curr.get("role") != "owner" and not is_host_admin(request)):
+        raise HTTPException(status_code=403, detail="Chỉ Chủ Sở Hữu mới có quyền cấp tài khoản!")
+    
+    body = await request.json()
+    username = str(body.get("username") or "").strip()
+    name = str(body.get("name") or "").strip()
+    password = str(body.get("password") or "").strip()
+    role = str(body.get("role") or "viewer").strip()
+    
+    if not username or len(username) < 3:
+        raise HTTPException(status_code=400, detail="Tên tài khoản tối thiểu 3 ký tự.")
+    if not password or len(password) < 6:
+        raise HTTPException(status_code=400, detail="Mật khẩu tối thiểu 6 ký tự.")
+        
+    users = load_system_users()
+    if any(u.get("username", "").lower() == username.lower() for u in users):
+        raise HTTPException(status_code=400, detail="Tên tài khoản đã tồn tại!")
+        
+    role_map = {"admin": "Quản Trị Viên", "editor": "Biên Tập Viên", "viewer": "Chỉ Xem"}
+    new_user = {
+        "id": f"usr_{int(time.time() * 1000)}",
+        "username": username,
+        "name": name or username,
+        "role": role,
+        "role_name": role_map.get(role, "Người dùng"),
+        "password": password,
+        "status": "active",
+        "created_at": datetime.datetime.now().strftime("%d/%m/%Y")
+    }
+    users.append(new_user)
+    save_system_users(users)
+    return {"status": "success", "message": "Đã cấp tài khoản mới thành công!", "user": new_user}
+
+@app.put("/api/admin/users/{user_id}")
+async def update_user_api(user_id: str, request: Request):
+    """Chỉnh sửa thông tin/mật khẩu tài khoản (Chỉ dành cho Chủ sở hữu)"""
+    curr = get_current_user_from_request(request)
+    if not curr or (curr.get("role") != "owner" and not is_host_admin(request)):
+        raise HTTPException(status_code=403, detail="Chỉ Chủ Sở Hữu mới có quyền chỉnh sửa tài khoản!")
+        
+    body = await request.json()
+    users = load_system_users()
+    target = next((u for u in users if u.get("id") == user_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="Không tìm thấy tài khoản.")
+        
+    if "name" in body and body["name"]:
+        target["name"] = str(body["name"]).strip()
+    if "password" in body and body["password"]:
+        pwd = str(body["password"]).strip()
+        if len(pwd) >= 6:
+            target["password"] = pwd
+    if target.get("role") != "owner":
+        if "role" in body and body["role"]:
+            target["role"] = body["role"]
+            role_map = {"admin": "Quản Trị Viên", "editor": "Biên Tập Viên", "viewer": "Chỉ Xem"}
+            target["role_name"] = role_map.get(body["role"], "Người dùng")
+        if "status" in body and body["status"]:
+            target["status"] = body["status"]
+            
+    save_system_users(users)
+    return {"status": "success", "message": "Đã cập nhật tài khoản thành công!"}
+
+@app.delete("/api/admin/users/{user_id}")
+async def delete_user_api(user_id: str, request: Request):
+    """Xóa tài khoản (Chỉ dành cho Chủ sở hữu, không thể xóa Master Owner)"""
+    curr = get_current_user_from_request(request)
+    if not curr or (curr.get("role") != "owner" and not is_host_admin(request)):
+        raise HTTPException(status_code=403, detail="Chỉ Chủ Sở Hữu mới có quyền xóa tài khoản!")
+        
+    users = load_system_users()
+    target = next((u for u in users if u.get("id") == user_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail="Không tìm thấy tài khoản.")
+    if target.get("role") == "owner":
+        raise HTTPException(status_code=400, detail="Không thể xóa tài khoản Chủ Sở Hữu Tối Cao!")
+        
+    users = [u for u in users if u.get("id") != user_id]
+    save_system_users(users)
+    return {"status": "success", "message": "Đã xóa tài khoản thành công!"}
 
 @app.get("/api/admin/files")
 async def get_admin_files(request: Request):

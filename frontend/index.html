@@ -104,61 +104,65 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-2">
             <section id="filter-panel-card" class="bg-white border border-slate-200 rounded-2xl shadow-sm transition-all overflow-hidden">
                 <!-- Thanh Tiêu Đề Bảng Lọc: Chứa Nút Thu Gọn / Mở Rộng -->
-                <div id="filter-top-bar" class="px-3 sm:px-4 py-1.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2 select-none">
-                    <div class="flex items-center gap-2">
-                        <span class="w-2 h-2 rounded-full bg-blue-600"></span>
-                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1.5">
+                <div id="filter-top-bar" class="px-2.5 sm:px-4 py-2 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-2 select-none">
+                    <div class="flex items-center gap-1.5 sm:gap-2">
+                        <span class="w-2 h-2 rounded-full bg-blue-600 shrink-0"></span>
+                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wide flex items-center gap-1">
                             <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-blue-600"></i> Thanh Lọc & Điều Khiển
                         </span>
-                        <span id="filter-panel-mode-tag" class="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                        <span id="filter-panel-mode-tag" class="text-[11px] text-slate-400 font-medium hidden md:inline">
                             • Bấm thu gọn để tối ưu diện tích xem cấu kiện
                         </span>
                     </div>
 
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center flex-wrap gap-1.5 sm:gap-2">
                         <!-- Nút Chuyển Sang Dashboard DVG -->
                         <button id="btn-switch-to-dvg" type="button" 
-                            class="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
+                            class="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
                             title="Mở Dashboard phân tích khối lượng từng DVG (MCC, KHO, PMC, WTC...)">
                             <i data-lucide="bar-chart-3" class="w-3.5 h-3.5"></i>
-                            <span>📊 Phân Tích DVG</span>
+                            <span class="hidden sm:inline">📊 Phân Tích DVG</span>
+                            <span class="sm:hidden inline">📊 DVG</span>
                         </button>
 
                         <!-- Nút Chuyển Sang Tiến Độ Công Đoạn (QLDA) -->
                         <button id="btn-switch-to-qlda" type="button" 
-                            class="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
+                            class="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
                             title="Mở tab Tiến Độ Công Đoạn (QLDA) - Quản lý 5 công đoạn chế tạo">
                             <i data-lucide="factory" class="w-3.5 h-3.5"></i>
-                            <span>🏭 Tiến Độ Công Đoạn</span>
+                            <span class="hidden sm:inline">🏭 Tiến Độ Công Đoạn</span>
+                            <span class="sm:hidden inline">🏭 QLDA</span>
                         </button>
 
                         <!-- Nút Chuyển Sang Dashboard & Biểu Đồ -->
                         <button id="btn-switch-to-dashboard" type="button" 
-                            class="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
+                            class="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
                             title="Mở Dashboard Phân Tích & Biểu Đồ (Line Chart Gá Hàn, BTP, Gantt)">
                             <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
-                            <span>📈 Dashboard Biểu Đồ</span>
+                            <span class="hidden sm:inline">📈 Dashboard Biểu Đồ</span>
+                            <span class="sm:hidden inline">📈 Biểu Đồ</span>
                         </button>
 
                         <!-- Nút Mở Thông Báo Cập Nhật & Bản Tin -->
                         <button id="btn-open-announcement-modal" type="button" 
-                            class="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
+                            class="flex items-center gap-1 px-2 sm:px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
                             title="Xem Bảng Thông Báo Tiến Độ & Bản Tin Cập Nhật Website">
                             <i data-lucide="megaphone" class="w-3.5 h-3.5"></i>
-                            <span>🔔 Thông Báo</span>
+                            <span class="hidden sm:inline">🔔 Thông Báo</span>
+                            <span class="sm:hidden inline">🔔 Tin</span>
                         </button>
 
                         <!-- Nút Đặt Lại Bộ Lọc khi có lọc -->
                         <button id="btn-reset-filters" type="button" 
-                            class="hidden items-center gap-1.5 px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
+                            class="hidden items-center gap-1 px-2 sm:px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
                             title="Xóa tất cả điều kiện lọc và hiển thị lại toàn bộ">
                             <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-rose-600"></i>
-                            <span>↺ Đặt Lại Bộ Lọc</span>
+                            <span>↺ Đặt Lại</span>
                         </button>
 
                         <!-- Nút Thu Gọn / Mở Rộng Nổi Bật -->
                         <button id="btn-toggle-filter" type="button" 
-                            class="flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 hover:border-blue-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95"
+                            class="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-blue-50 text-slate-700 hover:text-blue-700 border border-slate-300 hover:border-blue-300 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95 shrink-0"
                             title="Thu nhỏ hoặc mở rộng bảng lọc">
                             <i data-lucide="chevrons-up" id="icon-toggle-filter" class="w-3.5 h-3.5 text-blue-600 transition-transform"></i>
                             <span id="text-toggle-filter">Thu Gọn Bảng Lọc</span>
@@ -250,78 +254,77 @@
                 </div>
 
                 <!-- 2. KHỐI THU GỌN (COMPACT BAR - BẤM THAY ĐỔI DỰ ÁN & SHEET NGAY KHI THU GỌN) -->
-                <div id="filter-compact-content" class="hidden px-3 sm:px-4 py-2 bg-white flex flex-wrap items-center justify-between gap-2.5 transition-all">
-                    <div class="flex items-center gap-2 flex-wrap text-xs">
+                <div id="filter-compact-content" class="hidden px-2.5 sm:px-4 py-2 bg-white flex flex-wrap items-center justify-between gap-2 transition-all">
+                    <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap text-xs w-full sm:w-auto">
                         <!-- Chọn File Dự Án (Bấm được ngay khi thu gọn) -->
-                        <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-50 border border-blue-300 text-blue-950 font-bold shadow-2xs hover:border-blue-500 transition shrink-0 min-w-[140px]">
-                            <i data-lucide="folder" class="w-3.5 h-3.5 text-blue-600 flex-shrink-0"></i>
-                            <select id="compact-select-project" class="bg-transparent font-bold text-xs text-blue-950 focus:outline-none cursor-pointer max-w-[180px] sm:max-w-[240px]" title="Thay đổi dự án ngay khi thu gọn">
+                        <div class="flex items-center gap-1.5 px-2 py-1.5 rounded-xl bg-blue-50 border border-blue-300 text-blue-950 font-bold shadow-2xs hover:border-blue-500 transition shrink-0 flex-1 sm:flex-initial min-w-[130px]">
+                            <i data-lucide="folder" class="w-3.5 h-3.5 text-blue-600 shrink-0"></i>
+                            <select id="compact-select-project" class="bg-transparent font-bold text-xs text-blue-950 focus:outline-none cursor-pointer w-full max-w-[180px] sm:max-w-[240px]" title="Thay đổi dự án ngay khi thu gọn">
                                 <option value="">Dự án...</option>
                             </select>
                         </div>
 
                         <!-- Chọn Hạng Mục Sheet (Bấm được ngay khi thu gọn) -->
-                        <div class="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-indigo-50 border border-indigo-300 text-indigo-950 font-bold shadow-2xs hover:border-indigo-500 transition">
-                            <i data-lucide="layers" class="w-3.5 h-3.5 text-indigo-600 flex-shrink-0"></i>
-                            <select id="compact-select-sheet" class="bg-transparent font-bold text-xs text-indigo-950 focus:outline-none cursor-pointer max-w-[130px] sm:max-w-[180px] truncate" title="Thay đổi hạng mục (sheet) ngay khi thu gọn">
+                        <div class="flex items-center gap-1.5 px-2 py-1.5 rounded-xl bg-indigo-50 border border-indigo-300 text-indigo-950 font-bold shadow-2xs hover:border-indigo-500 transition shrink-0 flex-1 sm:flex-initial min-w-[110px]">
+                            <i data-lucide="layers" class="w-3.5 h-3.5 text-indigo-600 shrink-0"></i>
+                            <select id="compact-select-sheet" class="bg-transparent font-bold text-xs text-indigo-950 focus:outline-none cursor-pointer w-full max-w-[130px] sm:max-w-[180px] truncate" title="Thay đổi hạng mục (sheet) ngay khi thu gọn">
                                 <option value="all">📂 Tất cả sheet</option>
                             </select>
                         </div>
 
                         <!-- Nút Lịch & Ngày Đang Chọn (Bấm mở luôn cuốn lịch) -->
-                        <button id="btn-compact-calendar" type="button" class="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 font-bold transition shadow-2xs cursor-pointer active:scale-95" title="Bấm để mở lịch chọn ngày">
+                        <button id="btn-compact-calendar" type="button" class="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 font-bold transition shadow-2xs cursor-pointer active:scale-95 shrink-0" title="Bấm để mở lịch chọn ngày">
                             <i data-lucide="calendar" class="w-3.5 h-3.5 text-amber-600"></i>
                             <span id="compact-date-label">Tất cả ngày</span>
                         </button>
                     </div>
 
                     <!-- Ô Tìm kiếm nhanh trên thanh thu gọn -->
-                    <div class="flex items-center gap-2 flex-1 max-w-sm">
+                    <div class="flex items-center gap-2 w-full sm:w-auto sm:flex-1 sm:max-w-xs">
                         <div class="relative w-full">
                             <input type="text" id="compact-input-search" placeholder="Tìm nhanh cấu kiện, BTP..." 
-                                class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-8 pr-2.5 py-1 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium shadow-2xs">
-                            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1.5"></i>
+                                class="w-full bg-slate-50 border border-slate-300 rounded-xl pl-8 pr-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium shadow-2xs">
+                            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2"></i>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-1.5">
-                        <!-- Nút Chuyển DVG trên thanh thu gọn -->
-                        <button id="btn-compact-switch-to-dvg" type="button" 
-                            class="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
-                            title="Mở Dashboard phân tích DVG">
-                            <i data-lucide="bar-chart-3" class="w-3.5 h-3.5 text-indigo-600"></i>
-                            <span>📊 DVG</span>
-                        </button>
+                    <!-- Cụm nút chuyển tab & NÚT MỞ RỘNG NỔI BẬT: Đảm bảo flex-wrap và nút Mở Rộng luôn hiển thị 100% -->
+                    <div class="flex items-center flex-wrap justify-between sm:justify-end gap-1.5 w-full sm:w-auto pt-1 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                        <div class="flex items-center gap-1 flex-wrap">
+                            <button id="btn-compact-switch-to-dvg" type="button" 
+                                class="flex items-center gap-1 px-2 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
+                                title="Mở Dashboard phân tích DVG">
+                                <i data-lucide="bar-chart-3" class="w-3.5 h-3.5 text-indigo-600"></i>
+                                <span>DVG</span>
+                            </button>
 
-                        <!-- Nút Chuyển QLDA trên thanh thu gọn -->
-                        <button id="btn-compact-switch-to-qlda" type="button" 
-                            class="flex items-center gap-1 px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
-                            title="Mở tab Tiến Độ Công Đoạn (QLDA)">
-                            <i data-lucide="factory" class="w-3.5 h-3.5 text-emerald-600"></i>
-                            <span>🏭 QLDA</span>
-                        </button>
+                            <button id="btn-compact-switch-to-qlda" type="button" 
+                                class="flex items-center gap-1 px-2 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
+                                title="Mở tab Tiến Độ Công Đoạn (QLDA)">
+                                <i data-lucide="factory" class="w-3.5 h-3.5 text-emerald-600"></i>
+                                <span>QLDA</span>
+                            </button>
 
-                        <!-- Nút Chuyển Dashboard trên thanh thu gọn -->
-                        <button id="btn-compact-switch-to-dashboard" type="button" 
-                            class="flex items-center gap-1 px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
-                            title="Mở Dashboard Phân Tích & Biểu Đồ">
-                            <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-purple-600"></i>
-                            <span>📈 Dashboard</span>
-                        </button>
+                            <button id="btn-compact-switch-to-dashboard" type="button" 
+                                class="flex items-center gap-1 px-2 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
+                                title="Mở Dashboard Phân Tích & Biểu Đồ">
+                                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5 text-purple-600"></i>
+                                <span>Biểu Đồ</span>
+                            </button>
 
-                        <!-- Nút Đặt Lại Bộ Lọc trên thanh thu gọn -->
-                        <button id="btn-compact-reset-filters" type="button" 
-                            class="hidden items-center gap-1 px-2.5 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
-                            title="Xóa tất cả điều kiện lọc">
-                            <i data-lucide="rotate-ccw" class="w-3 h-3 text-rose-600"></i>
-                            <span>↺ Xóa Lọc</span>
-                        </button>
+                            <button id="btn-compact-reset-filters" type="button" 
+                                class="hidden items-center gap-1 px-2 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-lg text-xs font-bold transition shadow-2xs cursor-pointer active:scale-95" 
+                                title="Xóa tất cả điều kiện lọc">
+                                <i data-lucide="rotate-ccw" class="w-3 h-3 text-rose-600"></i>
+                                <span>Xóa Lọc</span>
+                            </button>
+                        </div>
 
-                        <!-- Nút Mở Rộng duy nhất khi thu gọn -->
+                        <!-- Nút Mở Rộng Bảng Lọc: ĐẶC BIỆT NỔI BẬT TRÊN MOBILE, KHÔNG BAO GIỜ BỊ CHE -->
                         <button id="btn-expand-filter" type="button" 
-                            class="flex items-center gap-1.5 px-3 py-1 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer active:scale-95" 
+                            class="flex items-center justify-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer active:scale-95 shrink-0 ml-auto sm:ml-0" 
                             title="Mở rộng bảng điều khiển bộ lọc đầy đủ">
-                            <i data-lucide="chevrons-down" class="w-3.5 h-3.5"></i>
+                            <i data-lucide="chevrons-down" class="w-4 h-4"></i>
                             <span>Mở Rộng Bảng Lọc</span>
                         </button>
                     </div>
@@ -499,7 +502,7 @@
         <section id="tab-tree-content" class="tab-pane space-y-3.5">
             <!-- Toolbar Cây Cấu Kiện & Nhóm Nút Xuất BTP -->
             <div class="bg-white border border-slate-200 rounded-2xl p-3 sm:p-3.5 shadow-2xs flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div class="flex items-center gap-3 flex-wrap">
+                <div class="flex items-center gap-2 sm:gap-3 flex-wrap w-full md:w-auto justify-between sm:justify-start">
                     <div class="flex items-center gap-1.5 text-xs text-slate-700 font-bold">
                         <i data-lucide="layers" class="w-4 h-4 text-blue-600"></i>
                         <span>Hiển thị <span id="filtered-assy-count" class="text-sm font-extrabold text-blue-700">0</span> cấu kiện</span>
@@ -509,20 +512,20 @@
                         <span>Phạm vi:</span>
                         <span id="export-scope-badge" class="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-800 font-mono font-semibold text-[11px]">Tất cả các sheet</span>
                     </div>
-                    <div class="flex items-center gap-1.5">
-                        <button id="btn-expand-all" type="button" class="hover:text-blue-700 hover:bg-blue-50 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 transition shadow-2xs cursor-pointer active:scale-95">
+                    <div class="flex items-center gap-1.5 w-full sm:w-auto">
+                        <button id="btn-expand-all" type="button" class="flex-1 sm:flex-initial text-center justify-center hover:text-blue-700 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 transition shadow-2xs cursor-pointer active:scale-95">
                             [+] Mở rộng tất cả
                         </button>
-                        <button id="btn-collapse-all" type="button" class="hover:text-blue-700 hover:bg-blue-50 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 transition shadow-2xs cursor-pointer active:scale-95">
+                        <button id="btn-collapse-all" type="button" class="flex-1 sm:flex-initial text-center justify-center hover:text-blue-700 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-semibold text-slate-700 transition shadow-2xs cursor-pointer active:scale-95">
                             [-] Thu gọn tất cả
                         </button>
                     </div>
                 </div>
 
                 <!-- Cụm Xuất Dữ Liệu BTP -->
-                <div class="flex items-center flex-wrap gap-2">
+                <div class="flex items-center flex-wrap gap-2 w-full md:w-auto">
                     <!-- Chọn định dạng xuất: Excel hoặc CSV -->
-                    <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1">
+                    <div class="flex items-center gap-1 bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5 shrink-0">
                         <span class="text-[11px] font-bold text-slate-600">Định dạng:</span>
                         <select id="select-export-format" class="bg-transparent text-xs font-bold text-slate-800 focus:outline-none cursor-pointer">
                             <option value="xlsx">📊 Excel (.xlsx)</option>
@@ -531,13 +534,13 @@
                     </div>
 
                     <!-- Nút Xuất Chi Tiết Còn Thiếu -->
-                    <button id="btn-export-missing" type="button" title="Chỉ xuất các chi tiết BTP có Số Lượng Còn Thiếu > 0" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95">
+                    <button id="btn-export-missing" type="button" title="Chỉ xuất các chi tiết BTP có Số Lượng Còn Thiếu &gt; 0" class="flex-1 sm:flex-initial justify-center flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95">
                         <i data-lucide="file-minus" class="w-3.5 h-3.5"></i>
                         <span>Xuất Chi Tiết Còn Thiếu</span>
                     </button>
 
                     <!-- Nút Xuất Full Tier (Toàn Bộ) -->
-                    <button id="btn-export-full" type="button" title="Xuất toàn bộ cây phân tầng: Tất cả cấu kiện và 100% linh kiện con" class="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95">
+                    <button id="btn-export-full" type="button" title="Xuất toàn bộ cây phân tầng: Tất cả cấu kiện và 100% linh kiện con" class="flex-1 sm:flex-initial justify-center flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer active:scale-95">
                         <i data-lucide="download" class="w-3.5 h-3.5"></i>
                         <span>Xuất Full Tier (Toàn Bộ)</span>
                     </button>

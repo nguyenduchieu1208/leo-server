@@ -116,3 +116,37 @@ code, .font-mono {
     color: #ffffff !important;
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
 }
+
+/* Tối ưu hóa hiển thị và vùng chạm trên điện thoại di động (Mobile Optimization) */
+@media (max-width: 640px) {
+    #sticky-control-panel {
+        padding-top: 4px !important;
+        padding-bottom: 4px !important;
+    }
+    
+    #sticky-control-panel .max-w-7xl {
+        padding-left: 8px !important;
+        padding-right: 8px !important;
+        padding-top: 2px !important;
+    }
+
+    /* Đảm bảo các nút điều hướng và mở rộng bảng lọc dễ chạm trên màn hình cảm ứng */
+    #filter-compact-content button,
+    #filter-top-bar button {
+        min-height: 34px;
+    }
+
+    /* Nút Mở Rộng Bảng Lọc: nổi bật, chạm cực nhạy, không bị cắt */
+    #btn-expand-filter {
+        min-height: 36px;
+        font-weight: 700;
+        letter-spacing: 0.01em;
+    }
+
+    /* Nút Lên Đầu Trang: căn chỉnh an toàn trên màn hình nhỏ */
+    #btn-back-to-top {
+        bottom: 1rem !important;
+        right: 0.75rem !important;
+    }
+}
+

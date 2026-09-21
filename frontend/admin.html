@@ -86,10 +86,10 @@
             <form id="login-form" class="space-y-4">
                 <div>
                     <label class="block text-xs font-bold text-slate-300 mb-1.5 flex items-center gap-1.5">
-                        <i data-lucide="mail" class="w-3.5 h-3.5 text-indigo-400"></i>
-                        <span>Email Quản Trị</span>
+                        <i data-lucide="user" class="w-3.5 h-3.5 text-indigo-400"></i>
+                        <span>Tài Khoản Quản Trị</span>
                     </label>
-                    <input type="email" id="login-email" required value="ndhieu1208@gmail.com" 
+                    <input type="text" id="login-email" required value="ndhieu1208@gmail.com" placeholder="Nhập tên tài khoản hoặc email..."
                         class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
                 </div>
 
@@ -536,23 +536,59 @@
                             </div>
                         </div>
 
-                        <!-- Danh sách tài khoản phụ được phép truy cập -->
-                        <div class="pt-4 border-t border-slate-800">
-                            <div class="flex items-center justify-between mb-2">
-                                <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider">Danh Sách Tài Khoản Được Cấp Quyền</h4>
-                                <span class="text-[10px] text-slate-400">Tự động đồng bộ</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KHỐI QUẢN LÝ TÀI KHOẢN & PHÂN QUYỀN HỆ THỐNG -->
+                <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300">
+                                <i data-lucide="users" class="w-5 h-5"></i>
                             </div>
-                            <div class="space-y-1.5 text-xs">
-                                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
-                                    <span class="font-mono text-slate-200">ndhieu1208@gmail.com</span>
-                                    <span class="text-[10px] px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold">Chủ sở hữu</span>
-                                </div>
-                                <div class="flex items-center justify-between p-2 rounded-lg bg-slate-800/40 border border-slate-700/50">
-                                    <span class="font-mono text-slate-200">admin@amecc.com.vn</span>
-                                    <span class="text-[10px] px-2 py-0.5 rounded bg-slate-700 text-slate-300 font-bold">Quản trị viên</span>
-                                </div>
+                            <div>
+                                <h3 class="text-base font-bold text-white flex items-center gap-2 flex-wrap">
+                                    <span>Quản Lý & Cấp Quyền Tài Khoản</span>
+                                    <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">Chủ Sở Hữu Toàn Quyền</span>
+                                </h3>
+                                <p class="text-xs text-slate-400 mt-0.5">Bạn có toàn quyền cấp mới, phân vai trò, đổi mật khẩu và xóa tài khoản người dùng.</p>
                             </div>
                         </div>
+
+                        <!-- Nút Cấp Tài Khoản Mới -->
+                        <button type="button" id="btn-open-create-user-modal" class="flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white rounded-xl text-xs font-bold transition shadow-md shadow-blue-600/20 cursor-pointer shrink-0">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i>
+                            <span>+ Cấp Tài Khoản Mới</span>
+                        </button>
+                    </div>
+
+                    <!-- Ghi chú định dạng tài khoản tự do -->
+                    <div class="p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 text-xs text-slate-300 flex items-start gap-2.5">
+                        <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5"></i>
+                        <div>
+                            <span class="font-bold text-white">Linh hoạt & Không ràng buộc đuôi email:</span>
+                            <span class="text-slate-300"> Tên tài khoản có thể đặt tự do theo tên người dùng (ví dụ: <code class="text-indigo-300 bg-slate-800 px-1.5 py-0.5 rounded font-mono">admin</code>, <code class="text-indigo-300 bg-slate-800 px-1.5 py-0.5 rounded font-mono">leonguyen</code>, <code class="text-indigo-300 bg-slate-800 px-1.5 py-0.5 rounded font-mono">ql_duan</code>) hoặc bất kỳ email nào bạn chọn. Đã xóa bỏ hoàn toàn tài khoản thừa amecc.</span>
+                        </div>
+                    </div>
+
+                    <!-- Bảng danh sách tài khoản -->
+                    <div class="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/40">
+                        <table class="w-full text-left text-xs text-slate-300 border-collapse">
+                            <thead class="bg-slate-800/70 text-slate-400 uppercase text-[10px] tracking-wider font-bold border-b border-slate-800">
+                                <tr>
+                                    <th class="py-3 px-4">Tài Khoản (Username)</th>
+                                    <th class="py-3 px-4">Người Sử Dụng</th>
+                                    <th class="py-3 px-4">Vai Trò Phân Quyền</th>
+                                    <th class="py-3 px-4">Trạng Thái</th>
+                                    <th class="py-3 px-4">Ngày Cấp</th>
+                                    <th class="py-3 px-4 text-right">Thao Tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="users-table-body" class="divide-y divide-slate-800/60 font-medium">
+                                <!-- Render tự động từ JS -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -724,6 +760,159 @@
         </div>
     </div>
 
+    <!-- Modal 1: Cấp Tài Khoản Mới -->
+    <div id="modal-create-user" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                        <i data-lucide="user-plus" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm sm:text-base font-bold text-white">Cấp Tài Khoản Mới</h4>
+                        <p class="text-[11px] text-slate-400">Tạo tài khoản truy cập mới cho nhân sự</p>
+                    </div>
+                </div>
+                <button type="button" id="btn-close-create-user" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="form-create-user" class="space-y-3.5 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-300 mb-1">Tên tài khoản / Username <span class="text-rose-400">*</span></label>
+                    <input type="text" id="new-user-username" required placeholder="Ví dụ: admin, leonguyen, qlda_01..."
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <span class="text-[10px] text-slate-400 block mt-0.5">Không bắt buộc đuôi email. Có thể dùng bất kỳ tên đăng nhập nào.</span>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-300 mb-1">Họ tên / Người sử dụng <span class="text-rose-400">*</span></label>
+                    <input type="text" id="new-user-name" required placeholder="Ví dụ: Nguyễn Văn A (Kỹ sư dự án)..."
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-300 mb-1">Mật khẩu khởi tạo <span class="text-rose-400">*</span></label>
+                    <div class="relative">
+                        <input type="password" id="new-user-password" required minlength="4" placeholder="Tối thiểu 4 ký tự..."
+                            class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 pr-16 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="button" id="btn-toggle-new-user-pwd" class="absolute right-2 top-1.5 px-2 py-0.5 text-[10px] text-slate-400 hover:text-white rounded bg-slate-700">Hiện</button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-300 mb-1">Vai trò phân quyền <span class="text-rose-400">*</span></label>
+                    <select id="new-user-role" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                        <option value="admin">⭐ Quản Trị Viên (Toàn quyền quản trị, upload file, sửa thông báo)</option>
+                        <option value="editor">✏️ Biên Tập Viên (Tải lên Excel, làm mới cache, cập nhật dữ liệu)</option>
+                        <option value="viewer">👁️ Chỉ Xem (Tra cứu dữ liệu, xem báo cáo, xuất Excel)</option>
+                    </select>
+                </div>
+
+                <div id="create-user-error" class="hidden p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold"></div>
+
+                <div class="flex items-center gap-2 pt-2 border-t border-slate-800">
+                    <button type="button" id="btn-cancel-create-user" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition cursor-pointer">Hủy Bỏ</button>
+                    <button type="submit" id="btn-submit-create-user" class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition shadow-md shadow-blue-600/20 cursor-pointer flex items-center justify-center gap-1.5">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        <span>Cấp Tài Khoản</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Chỉnh Sửa Tài Khoản -->
+    <div id="modal-edit-user" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
+                        <i data-lucide="user-cog" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h4 class="text-sm sm:text-base font-bold text-white">Chỉnh Sửa Tài Khoản</h4>
+                        <p class="text-[11px] text-slate-400">Cập nhật thông tin hoặc đặt lại mật khẩu</p>
+                    </div>
+                </div>
+                <button type="button" id="btn-close-edit-user" class="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="form-edit-user" class="space-y-3.5 text-xs">
+                <input type="hidden" id="edit-user-id">
+
+                <div>
+                    <label class="block font-bold text-slate-300 mb-1">Tên tài khoản</label>
+                    <input type="text" id="edit-user-username" disabled
+                        class="w-full bg-slate-800/60 border border-slate-700/60 rounded-xl px-3 py-2 text-slate-400 cursor-not-allowed font-mono">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-300 mb-1">Họ tên / Người sử dụng <span class="text-rose-400">*</span></label>
+                    <input type="text" id="edit-user-name" required
+                        class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-300 mb-1">Mật khẩu mới (Để trống nếu không đổi)</label>
+                    <div class="relative">
+                        <input type="password" id="edit-user-password" placeholder="Nhập mật khẩu mới nếu muốn đổi..."
+                            class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 pr-16 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500">
+                        <button type="button" id="btn-toggle-edit-user-pwd" class="absolute right-2 top-1.5 px-2 py-0.5 text-[10px] text-slate-400 hover:text-white rounded bg-slate-700">Hiện</button>
+                    </div>
+                </div>
+
+                <div id="edit-user-role-container">
+                    <label class="block font-bold text-slate-300 mb-1">Vai trò phân quyền</label>
+                    <select id="edit-user-role" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer">
+                        <option value="admin">⭐ Quản Trị Viên (Toàn quyền quản trị)</option>
+                        <option value="editor">✏️ Biên Tập Viên (Tải lên Excel, làm mới dữ liệu)</option>
+                        <option value="viewer">👁️ Chỉ Xem (Tra cứu và xuất Excel)</option>
+                    </select>
+                </div>
+
+                <div id="edit-user-status-container">
+                    <label class="block font-bold text-slate-300 mb-1">Trạng thái tài khoản</label>
+                    <select id="edit-user-status" class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500 cursor-pointer">
+                        <option value="active">🟢 Đang Hoạt Động (Được phép đăng nhập)</option>
+                        <option value="locked">🔴 Tạm Khóa (Không thể đăng nhập)</option>
+                    </select>
+                </div>
+
+                <div id="edit-user-error" class="hidden p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold"></div>
+
+                <div class="flex items-center gap-2 pt-2 border-t border-slate-800">
+                    <button type="button" id="btn-cancel-edit-user" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl font-bold transition cursor-pointer">Hủy Bỏ</button>
+                    <button type="submit" id="btn-submit-edit-user" class="flex-1 py-2.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-bold transition shadow-md shadow-amber-600/20 cursor-pointer flex items-center justify-center gap-1.5">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        <span>Lưu Thay Đổi</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 3: Xác Nhận Xóa Tài Khoản -->
+    <div id="modal-delete-user" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4">
+            <div class="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+                <i data-lucide="user-x" class="w-6 h-6"></i>
+            </div>
+            <div class="text-center">
+                <h4 class="text-base font-bold text-white">Xác nhận xóa tài khoản?</h4>
+                <p class="text-xs text-slate-400 mt-1">Bạn có chắc chắn muốn xóa tài khoản <strong id="delete-user-name-display" class="text-rose-400 font-mono"></strong> khỏi hệ thống không? Người dùng này sẽ bị thu hồi toàn bộ quyền truy cập.</p>
+                <input type="hidden" id="delete-target-user-id">
+            </div>
+            <div class="flex items-center gap-2">
+                <button type="button" id="btn-cancel-delete-user" class="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition cursor-pointer">Hủy Bỏ</button>
+                <button type="button" id="btn-confirm-delete-user" class="flex-1 py-2.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition cursor-pointer">Xác Nhận Xóa</button>
+            </div>
+        </div>
+    </div>
+
     <!-- SCRIPT XỬ LÝ TOÀN BỘ LOGIC ADMIN PORTAL CHUYÊN NGHIỆP -->
     <script>
         const REPO_OWNER = 'nguyenduchieu1208';
@@ -823,16 +1012,376 @@
             return decryptToken(ENC_KEY, savedEmail, savedPass) || '';
         }
 
+        // =========================================================================
+        // HỆ THỐNG QUẢN LÝ TÀI KHOẢN & PHÂN QUYỀN CHỦ SỞ HỮU (USER MANAGEMENT)
+        // =========================================================================
+
+        function getSystemUsers() {
+            let users = null;
+            try {
+                users = JSON.parse(localStorage.getItem('amecc_system_users') || 'null');
+            } catch (e) {
+                users = null;
+            }
+            const customPass = localStorage.getItem('admin_custom_password') || DEFAULT_PASS;
+
+            if (!users || !Array.isArray(users) || users.length === 0) {
+                users = [
+                    {
+                        id: 'usr_owner',
+                        username: 'ndhieu1208@gmail.com',
+                        name: 'Nguyễn Đức Hiệu',
+                        role: 'owner',
+                        role_name: 'Chủ Sở Hữu',
+                        password: customPass,
+                        status: 'active',
+                        created_at: '21/09/2026'
+                    }
+                ];
+                localStorage.setItem('amecc_system_users', JSON.stringify(users));
+            } else {
+                // Loại bỏ hoàn toàn tài khoản thừa amecc nếu còn lưu trong trình duyệt cũ
+                const beforeLen = users.length;
+                users = users.filter(u => u.username.toLowerCase() !== 'admin@amecc.com.vn');
+                // Đồng bộ mật khẩu Chủ sở hữu nếu có thay đổi
+                const owner = users.find(u => u.role === 'owner');
+                if (owner && customPass && owner.password !== customPass && customPass !== DEFAULT_PASS) {
+                    owner.password = customPass;
+                }
+                if (users.length !== beforeLen || (owner && owner.password === customPass)) {
+                    localStorage.setItem('amecc_system_users', JSON.stringify(users));
+                }
+            }
+            return users;
+        }
+
+        function saveSystemUsers(users) {
+            localStorage.setItem('amecc_system_users', JSON.stringify(users));
+            renderUsersTable();
+        }
+
+        function renderUsersTable() {
+            const tbody = document.getElementById('users-table-body');
+            if (!tbody) return;
+            const users = getSystemUsers();
+
+            const roleBadges = {
+                owner: '<span class="px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-bold flex items-center gap-1 w-fit"><i data-lucide="crown" class="w-3 h-3 text-amber-400"></i>Chủ Sở Hữu</span>',
+                admin: '<span class="px-2.5 py-1 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[11px] font-bold flex items-center gap-1 w-fit"><i data-lucide="shield" class="w-3 h-3 text-blue-400"></i>Quản Trị Viên</span>',
+                editor: '<span class="px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-bold flex items-center gap-1 w-fit"><i data-lucide="edit-3" class="w-3 h-3 text-amber-400"></i>Biên Tập Viên</span>',
+                viewer: '<span class="px-2.5 py-1 rounded-full bg-slate-700 text-slate-300 border border-slate-600 text-[11px] font-bold flex items-center gap-1 w-fit"><i data-lucide="eye" class="w-3 h-3 text-slate-400"></i>Chỉ Xem</span>'
+            };
+
+            const statusBadges = {
+                active: '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 text-[10px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>Hoạt động</span>',
+                locked: '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20 text-[10px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>Tạm khóa</span>'
+            };
+
+            tbody.innerHTML = users.map(u => {
+                const isOwner = u.role === 'owner';
+                const actionHtml = isOwner ? `
+                    <span class="text-[11px] text-indigo-400 font-semibold italic flex items-center justify-end gap-1">
+                        <i data-lucide="lock" class="w-3 h-3"></i> Tối cao
+                    </span>
+                ` : `
+                    <div class="flex items-center justify-end gap-1.5">
+                        <button type="button" onclick="openEditUserModal('${u.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 transition cursor-pointer" title="Chỉnh sửa tài khoản">
+                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                        </button>
+                        <button type="button" onclick="openDeleteUserModal('${u.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition cursor-pointer" title="Xóa tài khoản">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                `;
+
+                return `
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3 px-4 font-mono font-bold text-white flex items-center gap-2">
+                            <div class="w-7 h-7 rounded-lg ${isOwner ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-300'} flex items-center justify-center shrink-0">
+                                <i data-lucide="${isOwner ? 'crown' : 'user'}" class="w-3.5 h-3.5"></i>
+                            </div>
+                            <span class="break-all">${u.username}</span>
+                        </td>
+                        <td class="py-3 px-4 text-slate-200">${u.name || '-'}</td>
+                        <td class="py-3 px-4">${roleBadges[u.role] || roleBadges.viewer}</td>
+                        <td class="py-3 px-4">${statusBadges[u.status] || statusBadges.active}</td>
+                        <td class="py-3 px-4 font-mono text-[11px] text-slate-400">${u.created_at || '-'}</td>
+                        <td class="py-3 px-4 text-right">${actionHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            updateIcons();
+        }
+
+        // -------------------------------------------------------------------------
+        // MODAL VÀ THAO TÁC CẤP / SỬA / XÓA TÀI KHOẢN (USER CRUD ACTIONS)
+        // -------------------------------------------------------------------------
+
+        // 1. Mở / Đóng Modal Cấp Tài Khoản Mới
+        const modalCreateUser = document.getElementById('modal-create-user');
+        const formCreateUser = document.getElementById('form-create-user');
+        const createErrBox = document.getElementById('create-user-error');
+
+        document.getElementById('btn-open-create-user-modal')?.addEventListener('click', () => {
+            if (modalCreateUser) {
+                formCreateUser?.reset();
+                if (createErrBox) createErrBox.classList.add('hidden');
+                modalCreateUser.classList.remove('hidden');
+                document.getElementById('new-user-username')?.focus();
+                updateIcons();
+            }
+        });
+
+        document.getElementById('btn-cancel-create-user')?.addEventListener('click', () => {
+            if (modalCreateUser) modalCreateUser.classList.add('hidden');
+        });
+
+        document.getElementById('btn-toggle-new-user-pwd')?.addEventListener('click', () => {
+            const pwdInp = document.getElementById('new-user-password');
+            const btn = document.getElementById('btn-toggle-new-user-pwd');
+            if (pwdInp) {
+                const isPwd = pwdInp.type === 'password';
+                pwdInp.type = isPwd ? 'text' : 'password';
+                btn.textContent = isPwd ? 'Ẩn' : 'Hiện';
+            }
+        });
+
+        formCreateUser?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('new-user-username').value.trim();
+            const name = document.getElementById('new-user-name').value.trim();
+            const password = document.getElementById('new-user-password').value.trim();
+            const role = document.getElementById('new-user-role').value;
+
+            if (createErrBox) createErrBox.classList.add('hidden');
+
+            if (!username) {
+                showCreateUserError('Tên tài khoản không được để trống!');
+                return;
+            }
+            if (username.length < 3) {
+                showCreateUserError('Tên tài khoản phải có tối thiểu 3 ký tự!');
+                return;
+            }
+            if (/\s/.test(username)) {
+                showCreateUserError('Tên tài khoản không được chứa khoảng trắng!');
+                return;
+            }
+            if (password.length < 6) {
+                showCreateUserError('Mật khẩu phải có tối thiểu 6 ký tự!');
+                return;
+            }
+
+            const users = getSystemUsers();
+            const isExist = users.some(u => u.username.toLowerCase() === username.toLowerCase());
+            if (isExist) {
+                showCreateUserError(`Tên tài khoản "${username}" đã tồn tại! Vui lòng chọn tên khác.`);
+                return;
+            }
+
+            const now = new Date();
+            const createdDate = `${now.getDate().toString().padStart(2,'0')}/${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()}`;
+            const roleMap = {
+                admin: 'Quản Trị Viên',
+                editor: 'Biên Tập Viên',
+                viewer: 'Chỉ Xem'
+            };
+
+            const newUser = {
+                id: 'usr_' + Date.now(),
+                username: username,
+                name: name,
+                role: role,
+                role_name: roleMap[role] || 'Người dùng',
+                password: password,
+                status: 'active',
+                created_at: createdDate
+            };
+
+            users.push(newUser);
+            saveSystemUsers(users);
+            logAudit('Cấp tài khoản mới', `Tài khoản: ${username} | Người dùng: ${name} | Vai trò: ${newUser.role_name}`);
+            modalCreateUser.classList.add('hidden');
+        });
+
+        function showCreateUserError(msg) {
+            if (createErrBox) {
+                createErrBox.textContent = msg;
+                createErrBox.classList.remove('hidden');
+            }
+        }
+
+        // 2. Mở / Đóng Modal Chỉnh Sửa Tài Khoản
+        const modalEditUser = document.getElementById('modal-edit-user');
+        const formEditUser = document.getElementById('form-edit-user');
+        const editErrBox = document.getElementById('edit-user-error');
+
+        window.openEditUserModal = function(userId) {
+            const users = getSystemUsers();
+            const user = users.find(u => u.id === userId);
+            if (!user) return;
+
+            document.getElementById('edit-user-id').value = user.id;
+            document.getElementById('edit-user-username').value = user.username;
+            document.getElementById('edit-user-name').value = user.name || '';
+            document.getElementById('edit-user-password').value = '';
+            document.getElementById('edit-user-role').value = user.role || 'viewer';
+            document.getElementById('edit-user-status').value = user.status || 'active';
+
+            const roleContainer = document.getElementById('edit-user-role-container');
+            const statusContainer = document.getElementById('edit-user-status-container');
+            if (user.role === 'owner') {
+                if (roleContainer) roleContainer.classList.add('hidden');
+                if (statusContainer) statusContainer.classList.add('hidden');
+            } else {
+                if (roleContainer) roleContainer.classList.remove('hidden');
+                if (statusContainer) statusContainer.classList.remove('hidden');
+            }
+
+            if (editErrBox) editErrBox.classList.add('hidden');
+            if (modalEditUser) modalEditUser.classList.remove('hidden');
+            updateIcons();
+        };
+
+        document.getElementById('btn-close-edit-user')?.addEventListener('click', () => {
+            if (modalEditUser) modalEditUser.classList.add('hidden');
+        });
+        document.getElementById('btn-cancel-edit-user')?.addEventListener('click', () => {
+            if (modalEditUser) modalEditUser.classList.add('hidden');
+        });
+
+        document.getElementById('btn-toggle-edit-user-pwd')?.addEventListener('click', () => {
+            const pwdInp = document.getElementById('edit-user-password');
+            const btn = document.getElementById('btn-toggle-edit-user-pwd');
+            if (pwdInp) {
+                const isPwd = pwdInp.type === 'password';
+                pwdInp.type = isPwd ? 'text' : 'password';
+                btn.textContent = isPwd ? 'Ẩn' : 'Hiện';
+            }
+        });
+
+        formEditUser?.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const userId = document.getElementById('edit-user-id').value;
+            const name = document.getElementById('edit-user-name').value.trim();
+            const newPassword = document.getElementById('edit-user-password').value.trim();
+            const role = document.getElementById('edit-user-role').value;
+            const status = document.getElementById('edit-user-status').value;
+
+            if (editErrBox) editErrBox.classList.add('hidden');
+
+            const users = getSystemUsers();
+            const user = users.find(u => u.id === userId);
+            if (!user) {
+                showEditUserError('Không tìm thấy tài khoản cần cập nhật!');
+                return;
+            }
+
+            if (!name) {
+                showEditUserError('Họ tên người sử dụng không được để trống!');
+                return;
+            }
+
+            if (newPassword && newPassword.length < 6) {
+                showEditUserError('Mật khẩu mới nếu đổi phải có tối thiểu 6 ký tự!');
+                return;
+            }
+
+            user.name = name;
+            if (newPassword) {
+                user.password = newPassword;
+                if (user.role === 'owner') {
+                    localStorage.setItem('admin_custom_password', newPassword);
+                    sessionStorage.setItem('admin_pass', newPassword);
+                }
+            }
+
+            if (user.role !== 'owner') {
+                const roleMap = { admin: 'Quản Trị Viên', editor: 'Biên Tập Viên', viewer: 'Chỉ Xem' };
+                user.role = role;
+                user.role_name = roleMap[role] || 'Người dùng';
+                user.status = status;
+            }
+
+            saveSystemUsers(users);
+            logAudit('Cập nhật tài khoản', `Tài khoản: ${user.username} | Trạng thái: ${user.status} | Vai trò: ${user.role_name}`);
+            modalEditUser.classList.add('hidden');
+        });
+
+        function showEditUserError(msg) {
+            if (editErrBox) {
+                editErrBox.textContent = msg;
+                editErrBox.classList.remove('hidden');
+            }
+        }
+
+        // 3. Mở / Xác Nhận Xóa Tài Khoản
+        const modalDeleteUser = document.getElementById('modal-delete-user');
+        window.openDeleteUserModal = function(userId) {
+            const users = getSystemUsers();
+            const user = users.find(u => u.id === userId);
+            if (!user) return;
+
+            if (user.role === 'owner') {
+                alert('Tài khoản Chủ Sở Hữu Tối Cao được bảo vệ và không thể xóa!');
+                return;
+            }
+
+            document.getElementById('delete-target-user-id').value = user.id;
+            const displaySpan = document.getElementById('delete-user-name-display');
+            if (displaySpan) {
+                displaySpan.textContent = `${user.username} (${user.name || 'Người dùng'})`;
+            }
+
+            if (modalDeleteUser) modalDeleteUser.classList.remove('hidden');
+            updateIcons();
+        };
+
+        document.getElementById('btn-cancel-delete-user')?.addEventListener('click', () => {
+            if (modalDeleteUser) modalDeleteUser.classList.add('hidden');
+        });
+
+        document.getElementById('btn-confirm-delete-user')?.addEventListener('click', () => {
+            const targetId = document.getElementById('delete-target-user-id').value;
+            let users = getSystemUsers();
+            const target = users.find(u => u.id === targetId);
+            if (!target) {
+                if (modalDeleteUser) modalDeleteUser.classList.add('hidden');
+                return;
+            }
+            if (target.role === 'owner') {
+                alert('Tài khoản Chủ Sở Hữu Tối Cao được bảo vệ và không thể xóa!');
+                return;
+            }
+
+            users = users.filter(u => u.id !== targetId);
+            saveSystemUsers(users);
+            logAudit('Xóa tài khoản', `Đã xóa tài khoản: ${target.username} (${target.name || ''})`);
+            if (modalDeleteUser) modalDeleteUser.classList.add('hidden');
+        });
+
         // Kiểm tra phiên đăng nhập
         function checkAuthStatus() {
             applyHomeLinks();
-            const savedEmail = sessionStorage.getItem('admin_email');
+            const savedUsername = sessionStorage.getItem('admin_email');
             const savedPass = sessionStorage.getItem('admin_pass');
-            const storedPass = localStorage.getItem('admin_custom_password') || DEFAULT_PASS;
+            const users = getSystemUsers();
+            const storedOwnerPass = localStorage.getItem('admin_custom_password') || DEFAULT_PASS;
 
-            if (savedEmail && (savedPass === storedPass || savedPass === DEFAULT_PASS)) {
+            const user = users.find(u => {
+                if (u.username.toLowerCase() !== (savedUsername || '').toLowerCase()) return false;
+                if (u.status !== 'active') return false;
+                if (u.role === 'owner') {
+                    return savedPass === u.password || savedPass === storedOwnerPass || savedPass === DEFAULT_PASS;
+                }
+                return savedPass === u.password;
+            });
+
+            if (user) {
                 state.authenticated = true;
-                state.email = savedEmail;
+                state.email = user.username;
+                state.currentUser = user;
                 if (!state.ghToken) {
                     state.ghToken = decryptToken(ENC_KEY, 'ndhieu1208@gmail.com', DEFAULT_PASS) || '';
                 }
@@ -865,13 +1414,14 @@
             loadFilesList();
             loadDeployStatus();
             loadAnnouncementsData();
+            renderUsersTable();
             renderAuditLogs();
         }
 
         // Đăng nhập
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = document.getElementById('login-email').value.trim().toLowerCase();
+            const username = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value.trim();
             const btn = document.getElementById('btn-submit-login');
             const alertBox = document.getElementById('login-error-alert');
@@ -882,17 +1432,36 @@
             updateIcons();
             alertBox.classList.add('hidden');
 
-            const storedPass = localStorage.getItem('admin_custom_password') || DEFAULT_PASS;
+            const users = getSystemUsers();
+            const storedOwnerPass = localStorage.getItem('admin_custom_password') || DEFAULT_PASS;
 
-            if ((email === 'ndhieu1208@gmail.com' || email === 'admin@amecc.com.vn') && (password === storedPass || password === DEFAULT_PASS)) {
+            const matchedUser = users.find(u => {
+                if (u.username.toLowerCase() !== username.toLowerCase()) return false;
+                if (u.role === 'owner') {
+                    return password === u.password || password === storedOwnerPass || password === DEFAULT_PASS;
+                }
+                return password === u.password;
+            });
+
+            if (matchedUser) {
+                if (matchedUser.status === 'locked') {
+                    alertBox.classList.remove('hidden');
+                    alertMsg.textContent = 'Tài khoản này hiện đang bị tạm khóa! Vui lòng liên hệ Chủ sở hữu.';
+                    btn.disabled = false;
+                    btn.innerHTML = '<i data-lucide="log-in" class="w-4 h-4"></i><span>Đăng Nhập Quản Trị</span>';
+                    updateIcons();
+                    return;
+                }
+
                 state.authenticated = true;
-                state.email = email;
-                sessionStorage.setItem('admin_email', email);
+                state.email = matchedUser.username;
+                state.currentUser = matchedUser;
+                sessionStorage.setItem('admin_email', matchedUser.username);
                 sessionStorage.setItem('admin_pass', password);
                 if (!state.ghToken) {
                     state.ghToken = decryptToken(ENC_KEY, 'ndhieu1208@gmail.com', DEFAULT_PASS) || '';
                 }
-                logAudit('Đăng nhập thành công', `Tài khoản: ${email}`);
+                logAudit('Đăng nhập thành công', `Tài khoản: ${matchedUser.username} (${matchedUser.name || 'Người dùng'})`);
                 showAdminView();
                 btn.disabled = false;
                 btn.innerHTML = '<i data-lucide="log-in" class="w-4 h-4"></i><span>Đăng Nhập Quản Trị</span>';
@@ -1528,6 +2097,13 @@
 
             localStorage.setItem('admin_custom_password', newP);
             sessionStorage.setItem('admin_pass', newP);
+            const users = getSystemUsers();
+            const currentEmail = state.email || sessionStorage.getItem('admin_email');
+            const currentUser = users.find(u => u.username.toLowerCase() === (currentEmail || '').toLowerCase());
+            if (currentUser) {
+                currentUser.password = newP;
+                saveSystemUsers(users);
+            }
             logAudit('Đổi mật khẩu', 'Quản trị viên đã thay đổi mật khẩu thành công');
 
             msgEl.className += ' bg-emerald-500/10 border border-emerald-500/30 text-emerald-300';
