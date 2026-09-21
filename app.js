@@ -2712,7 +2712,7 @@ function setupEventListeners() {
     const btnExpandFilter = document.getElementById('btn-expand-filter');
     const btnCompactCal = document.getElementById('btn-compact-calendar');
 
-    document.querySelectorAll('.btn-toggle-filter, #btn-toggle-filter, #btn-toggle-filter-top').forEach(btn => {
+    document.querySelectorAll('.btn-toggle-filter, #btn-toggle-filter').forEach(btn => {
         btn.addEventListener('click', () => toggleFilterCollapse());
     });
     if (btnExpandFilter) {
