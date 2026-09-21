@@ -777,7 +777,9 @@ async def get_system_users_api(request: Request):
 async def create_user_api(request: Request):
     """Cấp tài khoản mới (Chỉ dành cho Chủ sở hữu)"""
     curr = get_current_user_from_request(request)
-    if not curr or (curr.get("role") != "owner" and not is_host_admin(request)):
+    is_owner = curr and curr.get("role") == "owner"
+    is_local = (not curr) and is_host_admin(request)
+    if not (is_owner or is_local):
         raise HTTPException(status_code=403, detail="Chỉ Chủ Sở Hữu mới có quyền cấp tài khoản!")
     
     body = await request.json()
@@ -814,7 +816,9 @@ async def create_user_api(request: Request):
 async def update_user_api(user_id: str, request: Request):
     """Chỉnh sửa thông tin/mật khẩu tài khoản (Chỉ dành cho Chủ sở hữu)"""
     curr = get_current_user_from_request(request)
-    if not curr or (curr.get("role") != "owner" and not is_host_admin(request)):
+    is_owner = curr and curr.get("role") == "owner"
+    is_local = (not curr) and is_host_admin(request)
+    if not (is_owner or is_local):
         raise HTTPException(status_code=403, detail="Chỉ Chủ Sở Hữu mới có quyền chỉnh sửa tài khoản!")
         
     body = await request.json()
@@ -844,7 +848,9 @@ async def update_user_api(user_id: str, request: Request):
 async def delete_user_api(user_id: str, request: Request):
     """Xóa tài khoản (Chỉ dành cho Chủ sở hữu, không thể xóa Master Owner)"""
     curr = get_current_user_from_request(request)
-    if not curr or (curr.get("role") != "owner" and not is_host_admin(request)):
+    is_owner = curr and curr.get("role") == "owner"
+    is_local = (not curr) and is_host_admin(request)
+    if not (is_owner or is_local):
         raise HTTPException(status_code=403, detail="Chỉ Chủ Sở Hữu mới có quyền xóa tài khoản!")
         
     users = load_system_users()
