@@ -1,27 +1,27 @@
 {
-  "count": 12,
-  "updated_at": "2026-09-21 09:46:53",
+  "count": 13,
+  "updated_at": "2026-09-21 10:43:48",
   "projects": [
     {
       "project_id": "A290",
       "display_name": "A290",
       "file_name": "A290PL.xlsx",
       "file_path": "data/A290.json",
-      "size_bytes": 9852799,
+      "size_bytes": 9862018,
       "total_assemblies": 2621,
-      "completed_assemblies": 2127,
-      "partial_assemblies": 316,
-      "not_received_assemblies": 178
+      "completed_assemblies": 2131,
+      "partial_assemblies": 323,
+      "not_received_assemblies": 167
     },
     {
       "project_id": "A320",
       "display_name": "A320",
       "file_name": "A320PL.xlsx",
       "file_path": "data/A320.json",
-      "size_bytes": 889529,
+      "size_bytes": 891033,
       "total_assemblies": 170,
-      "completed_assemblies": 19,
-      "partial_assemblies": 46,
+      "completed_assemblies": 20,
+      "partial_assemblies": 45,
       "not_received_assemblies": 105
     },
     {
@@ -73,7 +73,7 @@
       "display_name": "M304",
       "file_name": "M304PL.xlsx",
       "file_path": "data/M304.json",
-      "size_bytes": 12229964,
+      "size_bytes": 12242047,
       "total_assemblies": 1493,
       "completed_assemblies": 1087,
       "partial_assemblies": 357,
@@ -95,11 +95,11 @@
       "display_name": "U285",
       "file_name": "U285PL.xlsx",
       "file_path": "data/U285.json",
-      "size_bytes": 4700997,
+      "size_bytes": 4719157,
       "total_assemblies": 271,
       "completed_assemblies": 150,
-      "partial_assemblies": 112,
-      "not_received_assemblies": 9
+      "partial_assemblies": 115,
+      "not_received_assemblies": 6
     },
     {
       "project_id": "U298",
@@ -133,6 +133,17 @@
       "completed_assemblies": 4,
       "partial_assemblies": 21,
       "not_received_assemblies": 42
+    },
+    {
+      "project_id": "V314",
+      "display_name": "V314",
+      "file_name": "V314PL.xlsx",
+      "file_path": "data/V314.json",
+      "size_bytes": 3407104,
+      "total_assemblies": 242,
+      "completed_assemblies": 8,
+      "partial_assemblies": 144,
+      "not_received_assemblies": 90
     }
   ]
 }
