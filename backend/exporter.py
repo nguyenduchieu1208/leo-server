@@ -23,22 +23,27 @@ def clean_sheet_title(title: str) -> str:
 EXPORT_HEADERS = [
     ("STT", 6, "center"),
     ("Hạng Mục (Sheet)", 16, "left"),
-    ("Cấu Kiện (Assembly)", 22, "left"),
+    ("Cấu Kiện Mẹ (Assembly)", 22, "left"),
+    ("Tên Cấu Kiện", 20, "left"),
     ("Bản Vẽ (Drawing)", 22, "left"),
+    ("Số Lượng Mẹ", 12, "right"),
     ("Tình Trạng Cấu Kiện", 18, "center"),
     ("Mã BTP (Part No)", 18, "left"),
     ("Mã Cắt (Cutting Mark)", 24, "left"),
+    ("Tên Chi Tiết (Description)", 24, "left"),
     ("Chủng Loại", 14, "center"),
     ("Quy Cách (Size)", 20, "left"),
     ("Chiều Dài (mm)", 14, "right"),
     ("Vật Liệu", 14, "center"),
     ("Đơn Vị (DVG)", 12, "center"),
-    ("SL Thiết Kế", 13, "right"),
+    ("Đơn Vị Giao (Tổ)", 16, "left"),
+    ("SL Cấu Kiện (Qty/Assy)", 14, "right"),
+    ("SL Thiết Kế (Total Qty)", 14, "right"),
     ("Đã Nhận", 12, "right"),
     ("Còn Thiếu", 14, "right"),
     ("Đơn Trọng (kg)", 13, "right"),
     ("KL Thiếu (kg)", 14, "right"),
-    ("Ktra Nối", 12, "center"),
+    ("Kiểm Tra Nối (Ktra Nối)", 14, "center"),
     ("Kế Hoạch Cắt (CP No)", 22, "left"),
     ("Tình Trạng BTP", 25, "left"),
     ("Ghi Chú", 40, "left"),
@@ -154,19 +159,28 @@ def export_project_excel(
         for assy_group in assy_list:
             assy = assy_group["assembly"]
             p_list = assy_group["parts"]
-            assy_no = assy.get("assembly_no", "")
+            assy_no = assy.get("assembly_no") or assy.get("as_symbol", "")
+            assy_name = assy.get("description") or assy.get("as_name", "")
+            assy_qty = assy.get("as_qty") or assy.get("assembly_qty") or 1
             dwg = assy.get("dwg", "")
             assy_status = "ĐỦ 100%" if assy.get("status") == "completed" else f"THIẾU ({assy.get('completion_rate', 0)}%)"
 
             for p in p_list:
                 ws.row_dimensions[cur_row].height = 20
                 sa = p.get("shape_analysis", {})
-                tqty_val = p.get("tqty", 0)
+                p_qty = p.get("qty") or p.get("qty_per_assy") or 0
+                tqty_val = p.get("tqty") or p.get("total_qty") or 0
                 da_nhan_val = p.get("da_nhan", 0)
-                con_thieu_val = p.get("con_thieu", 0)
+                con_thieu_val = p.get("con_thieu") if p.get("con_thieu") is not None else max(0, tqty_val - da_nhan_val)
                 uweight_val = round(float(p.get("uweight") or 0), 2)
                 con_thieu_weight = round(float(p.get("con_thieu_weight") or (con_thieu_val * uweight_val)), 1)
                 dvg_val = p.get("dvg") or ""
+                giao_val = p.get("don_vi_giao") or ""
+                desc_val = p.get("description") or p.get("desc") or ""
+                chung_loai_val = p.get("chung_loai") or p.get("part_type") or ""
+                size_val = p.get("size") or p.get("spec") or ""
+                cut_val = p.get("part_cut") or p.get("display_name") or ""
+                ktra_noi_val = p.get("ktra_noi") or ""
 
                 total_tqty_sheet += tqty_val
                 total_danhan_sheet += da_nhan_val
@@ -190,8 +204,8 @@ def export_project_excel(
                 ghi_chu_val = p.get("ghi_chu") or ""
                 if not ghi_chu_val:
                     notes = []
-                    if p.get("ktra_noi"):
-                        notes.append(f"Ktra nối: {p['ktra_noi']}")
+                    if ktra_noi_val:
+                        notes.append(f"Ktra nối: {ktra_noi_val}")
                     if sa.get("has_length_issue"):
                         notes.append("Chưa đủ chiều dài")
                     if p.get("remark"):
@@ -202,21 +216,26 @@ def export_project_excel(
                     (stt_counter, alignments["center"], font_data, None),
                     (sheet_name, alignments["left"], font_data, None),
                     (assy_no, alignments["left"], font_data, None),
+                    (assy_name, alignments["left"], font_data, None),
                     (dwg, alignments["left"], font_data, None),
+                    (assy_qty, alignments["right"], font_data, None),
                     (assy_status, alignments["center"], font_data, None),
                     (p.get("part_no", ""), alignments["left"], font_data, None),
-                    (p.get("part_cut", ""), alignments["left"], font_data, None),
-                    (p.get("chung_loai", ""), alignments["center"], font_data, None),
-                    (p.get("size", ""), alignments["left"], font_data, None),
+                    (cut_val, alignments["left"], font_data, None),
+                    (desc_val, alignments["left"], font_data, None),
+                    (chung_loai_val, alignments["center"], font_data, None),
+                    (size_val, alignments["left"], font_data, None),
                     (p.get("length", ""), alignments["right"], font_data, None),
                     (p.get("material", ""), alignments["center"], font_data, None),
                     (dvg_val, alignments["center"], font_data, None),
+                    (giao_val, alignments["left"], font_data, None),
+                    (p_qty, alignments["right"], font_data, None),
                     (tqty_val, alignments["right"], font_data, None),
                     (da_nhan_val, alignments["right"], font_data, None),
                     (con_thieu_val, alignments["right"], font_thieu, fill_thieu),
                     (uweight_val if uweight_val > 0 else "-", alignments["right"], font_data, None),
                     (con_thieu_weight if con_thieu_val > 0 else "-", alignments["right"], font_thieu if con_thieu_val > 0 else font_data, fill_thieu if con_thieu_val > 0 else None),
-                    (p.get("ktra_noi", ""), alignments["center"], font_data, None),
+                    (ktra_noi_val, alignments["center"], font_data, None),
                     (sa.get("cutting_no", "") or p.get("cutting_no", "") or "", alignments["left"], font_data, None),
                     (status_text, alignments["left"], font_data, None),
                     (ghi_chu_val, alignments["left"], font_data, None),
@@ -240,52 +259,52 @@ def export_project_excel(
         ws.freeze_panes = "A2"
 
         # 4. Dòng tổng kết ở cuối sheet
-        ws.merge_cells(start_row=cur_row, start_column=1, end_row=cur_row, end_column=12)
+        ws.merge_cells(start_row=cur_row, start_column=1, end_row=cur_row, end_column=17)
         tot_label_cell = ws.cell(cur_row, 1, "TỔNG CỘNG HẠNG MỤC:")
         tot_label_cell.font = font_total
         tot_label_cell.alignment = Alignment(horizontal="right", vertical="center")
         tot_label_cell.fill = fill_total
 
-        for c in range(1, 13):
+        for c in range(1, 18):
             ws.cell(cur_row, c).border = border_thin
             ws.cell(cur_row, c).fill = fill_total
 
-        # Tổng SL Thiết kế (cột 13)
-        c_tqty = ws.cell(cur_row, 13, total_tqty_sheet)
+        # Tổng SL Thiết kế (cột 18)
+        c_tqty = ws.cell(cur_row, 18, total_tqty_sheet)
         c_tqty.font = font_total
         c_tqty.alignment = alignments["right"]
         c_tqty.fill = fill_total
         c_tqty.border = border_thin
 
-        # Tổng Đã nhận (cột 14)
-        c_dn = ws.cell(cur_row, 14, total_danhan_sheet)
+        # Tổng Đã nhận (cột 19)
+        c_dn = ws.cell(cur_row, 19, total_danhan_sheet)
         c_dn.font = Font(name="Times New Roman", size=11, bold=True, color="166534")
         c_dn.alignment = alignments["right"]
         c_dn.fill = fill_total
         c_dn.border = border_thin
 
-        # Tổng Còn thiếu (cột 15)
-        tot_val_cell = ws.cell(cur_row, 15, total_missing_sheet)
+        # Tổng Còn thiếu (cột 20)
+        tot_val_cell = ws.cell(cur_row, 20, total_missing_sheet)
         tot_val_cell.font = Font(name="Times New Roman", size=11, bold=True, color="DC2626")
         tot_val_cell.alignment = alignments["right"]
         tot_val_cell.fill = fill_total
         tot_val_cell.border = border_thin
 
-        # Cột 16 (Đơn Trọng): để trống ở dòng tổng
-        c_u = ws.cell(cur_row, 16, "-")
+        # Cột 21 (Đơn Trọng): để trống ở dòng tổng
+        c_u = ws.cell(cur_row, 21, "-")
         c_u.font = font_total
         c_u.alignment = alignments["center"]
         c_u.fill = fill_total
         c_u.border = border_thin
 
-        # Cột 17 (Tổng KL Thiếu):
-        c_w = ws.cell(cur_row, 17, round(total_missing_weight_sheet, 1))
+        # Cột 22 (Tổng KL Thiếu):
+        c_w = ws.cell(cur_row, 22, round(total_missing_weight_sheet, 1))
         c_w.font = Font(name="Times New Roman", size=11, bold=True, color="DC2626")
         c_w.alignment = alignments["right"]
         c_w.fill = fill_total
         c_w.border = border_thin
 
-        for c in range(18, len(EXPORT_HEADERS) + 1):
+        for c in range(23, len(EXPORT_HEADERS) + 1):
             ws.cell(cur_row, c).border = border_thin
             ws.cell(cur_row, c).fill = fill_total
 
@@ -336,26 +355,30 @@ def export_project_csv(
         for assy_group in assy_list:
             assy = assy_group["assembly"]
             p_list = assy_group["parts"]
-            assy_no = assy.get("assembly_no", "")
+            assy_no = assy.get("assembly_no") or assy.get("as_symbol", "")
+            assy_name = assy.get("description") or assy.get("as_name", "")
+            assy_qty = assy.get("as_qty") or assy.get("assembly_qty") or 1
             dwg = assy.get("dwg", "")
             assy_status = "ĐỦ 100%" if assy.get("status") == "completed" else f"THIẾU ({assy.get('completion_rate', 0)}%)"
 
             for p in p_list:
                 sa = p.get("shape_analysis", {})
-                tqty_val = p.get("tqty", 0)
+                p_qty = p.get("qty") or p.get("qty_per_assy") or 0
+                tqty_val = p.get("tqty") or p.get("total_qty") or 0
                 da_nhan_val = p.get("da_nhan", 0)
-                con_thieu_val = p.get("con_thieu", 0)
+                con_thieu_val = p.get("con_thieu") if p.get("con_thieu") is not None else max(0, tqty_val - da_nhan_val)
 
                 if con_thieu_val > 0:
                     status_text = "Chưa đủ chiều dài" if sa.get("has_length_issue") else f"Còn thiếu {con_thieu_val}"
                 else:
                     status_text = "Đã nhận đủ"
 
+                ktra_noi_val = p.get("ktra_noi") or ""
                 ghi_chu_val = p.get("ghi_chu") or ""
                 if not ghi_chu_val:
                     notes = []
-                    if p.get("ktra_noi"):
-                        notes.append(f"Ktra nối: {p['ktra_noi']}")
+                    if ktra_noi_val:
+                        notes.append(f"Ktra nối: {ktra_noi_val}")
                     if sa.get("has_length_issue"):
                         notes.append("Chưa đủ chiều dài")
                     if p.get("remark"):
@@ -365,26 +388,36 @@ def export_project_csv(
                 uweight_val = round(float(p.get("uweight") or 0), 2)
                 con_thieu_weight = round(float(p.get("con_thieu_weight") or (con_thieu_val * uweight_val)), 1)
                 dvg_val = p.get("dvg") or ""
+                giao_val = p.get("don_vi_giao") or ""
+                desc_val = p.get("description") or p.get("desc") or ""
+                chung_loai_val = p.get("chung_loai") or p.get("part_type") or ""
+                size_val = p.get("size") or p.get("spec") or ""
+                cut_val = p.get("part_cut") or p.get("display_name") or ""
 
                 row = [
                     stt_counter,
                     sheet_name,
                     assy_no,
+                    assy_name,
                     dwg,
+                    assy_qty,
                     assy_status,
                     p.get("part_no", ""),
-                    p.get("part_cut", ""),
-                    p.get("chung_loai", ""),
-                    p.get("size", ""),
+                    cut_val,
+                    desc_val,
+                    chung_loai_val,
+                    size_val,
                     p.get("length", ""),
                     p.get("material", ""),
                     dvg_val,
+                    giao_val,
+                    p_qty,
                     tqty_val,
                     da_nhan_val,
                     con_thieu_val,
                     uweight_val if uweight_val > 0 else "",
                     con_thieu_weight if con_thieu_val > 0 else "",
-                    p.get("ktra_noi", ""),
+                    ktra_noi_val,
                     sa.get("cutting_no", "") or p.get("cutting_no", "") or "",
                     status_text,
                     ghi_chu_val

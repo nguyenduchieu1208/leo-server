@@ -193,6 +193,10 @@ def detect_bom_columns(ws, max_scan_rows: int = 15) -> Tuple[int, Dict[str, int]
                 temp_map["remark"] = c
             elif any(kw in cell_val for kw in ["as symbol", "as symble", "as_symbol", "as_sym"]) or cell_val == "symbol" or "symbol" in cell_val:
                 temp_map["as_symbol"] = c
+            elif cell_val in ["set", "bộ", "bo", "số lượng mẹ", "sl me", "sl mẹ", "assy qty", "qty assy"]:
+                temp_map["set"] = c
+            elif any(kw in cell_val for kw in ["ktra nối", "ktra noi", "kiểm tra nối", "kiem tra noi", "kt nối", "nối"]):
+                temp_map["ktra_noi"] = c
 
         if len(temp_map) > max_matches:
             max_matches = len(temp_map)
@@ -209,6 +213,7 @@ def detect_bom_columns(ws, max_scan_rows: int = 15) -> Tuple[int, Dict[str, int]
         "length": 8,
         "material": 9,
         "qty": 10,
+        "set": 11,
         "tqty": 12,
         "uweight": 13,
         "tweight": 14,
@@ -596,6 +601,10 @@ def _parse_bom_part_entry(ws_bom, r: int, col_map: Dict[str, int], btp_data: Opt
     chung_loai = btp_info.get("chung_loai", "") if btp_info else ""
     dates_received = btp_info.get("dates_received", {}) if btp_info else {}
     ktra_noi = btp_info.get("ktra_noi", "") if btp_info else ""
+    bom_ktra = clean_str(ws_bom.cell(r, col_map["ktra_noi"]).value) if "ktra_noi" in col_map else ""
+    if not ktra_noi and bom_ktra and bom_ktra not in ["-", "0", "NONE", "NULL"]:
+        ktra_noi = bom_ktra
+
     bom_remark = clean_str(ws_bom.cell(r, col_map.get("remark", 30)).value)
 
     note_items = []
@@ -640,12 +649,17 @@ def _parse_bom_part_entry(ws_bom, r: int, col_map: Dict[str, int], btp_data: Opt
         "part_cut": part_cut,
         "display_name": part_cut if part_cut else part_no,
         "description": desc_str,
+        "desc": desc_str,
         "chung_loai": chung_loai,
+        "part_type": chung_loai,
         "size": size_str,
+        "spec": size_str,
         "length": len_val,
         "material": mat_val,
         "qty": qty_val,
+        "qty_per_assy": qty_val,
         "tqty": tqty_val,
+        "total_qty": tqty_val,
         "uweight": uweight,
         "tweight": tweight,
         "da_nhan_weight": da_nhan_weight,
@@ -746,12 +760,21 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
                     if assy_don_vi_giao in ["-", "0", "NONE", "NULL"]:
                         assy_don_vi_giao = ""
 
+                    set_val = ws_bom.cell(r, col_map.get("set", 11)).value if "set" in col_map else ws_bom.cell(r, 11).value
+                    qty_val = ws_bom.cell(r, col_map.get("qty", 10)).value
+                    tqty_val = ws_bom.cell(r, col_map.get("tqty", 12)).value
+                    as_qty = parse_number(set_val, is_int=True) or parse_number(qty_val, is_int=True) or parse_number(tqty_val, is_int=True) or 1
+
                     current_assy = {
                         "id": f"{b_sheet}_{assy_no_str}_{r}",
                         "sheet": b_sheet,
                         "btp_sheet": btp_sheet_name or "Không có",
                         "row_index": r,
                         "assembly_no": assy_no_str,
+                        "as_symbol": assy_no_str,
+                        "as_name": desc_str,
+                        "as_qty": as_qty,
+                        "assembly_qty": as_qty,
                         "dwg": dwg_str,
                         "description": desc_str,
                         "size": size_str,
@@ -811,6 +834,10 @@ def parse_project_details(file_path: str) -> Dict[str, Any]:
                             "btp_sheet": btp_sheet_name or "Không có",
                             "row_index": r,
                             "assembly_no": eff_assy_no,
+                            "as_symbol": eff_assy_no,
+                            "as_name": desc_str,
+                            "as_qty": 1,
+                            "assembly_qty": 1,
                             "dwg": dwg_str,
                             "description": desc_str,
                             "size": size_str,
@@ -1051,3 +1078,16 @@ def _finalize_assembly_metrics(assy: Dict[str, Any], shape_warnings_list: List[D
     assy["daily_received"] = daily_rec
     assy["has_shape_issue"] = shape_issues_count > 0
     assy["shape_issues_count"] = shape_issues_count
+
+    # Tính toán chuẩn hóa số lượng cấu kiện mẹ và các bí danh tương thích
+    curr_as_qty = assy.get("as_qty") or assy.get("assembly_qty") or 0
+    if curr_as_qty <= 1 and parts:
+        computed_qty = max((p["tqty"] // p["qty"] for p in parts if p.get("qty", 0) > 0 and p.get("tqty", 0) > 0), default=1)
+        if computed_qty > curr_as_qty:
+            curr_as_qty = computed_qty
+    if curr_as_qty <= 0:
+        curr_as_qty = 1
+    assy["as_qty"] = curr_as_qty
+    assy["assembly_qty"] = curr_as_qty
+    assy["as_symbol"] = assy.get("assembly_no", "")
+    assy["as_name"] = assy.get("description", "")

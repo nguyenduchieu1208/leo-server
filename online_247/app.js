@@ -1382,13 +1382,18 @@ function computeDvgAnalyticsData() {
                     dvg: partDvg || 'KHÁC',
                     don_vi_giao: partGiao || 'CHƯA PHÂN GIAO',
                     sheet: assy.sheet || '',
-                    assembly_no: assy.assembly_no || '',
+                    assembly_no: assy.assembly_no || assy.as_symbol || '',
+                    assembly_name: assy.description || assy.as_name || '',
                     dwg: assy.dwg || '',
                     part_no: p.part_no || '',
                     part_cut: p.part_cut || '',
                     display_name: p.display_name || p.part_cut || p.part_no,
-                    size: p.size || '',
+                    description: p.description || p.desc || '',
+                    chung_loai: p.chung_loai || p.part_type || '',
+                    size: p.size || p.spec || '',
+                    length: p.length || '',
                     material: p.material || '',
+                    qty: p.qty || p.qty_per_assy || 0,
                     tqty: tqty,
                     da_nhan: daNhan,
                     con_thieu: conThieu,
@@ -2455,10 +2460,16 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
         "Đơn Vị Giao (Tổ)",
         "Hạng Mục (Sheet)",
         "Cấu Kiện (Assembly No)",
+        "Tên Cấu Kiện",
         "Bản Vẽ (Drawing)",
-        "Mã BTP (Chi Tiết)",
+        "Mã BTP (Part No)",
+        "Mã Cắt (Marking)",
+        "Tên Chi Tiết (Description)",
+        "Chủng Loại",
         "Quy Cách (Size)",
+        "Chiều Dài (mm)",
         "Vật Liệu",
+        "SL Cấu Kiện (Qty/Assy)",
         "SL Thiết Kế",
         "SL Đã Nhận",
         "SL Còn Thiếu",
@@ -2490,10 +2501,16 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
         p.don_vi_giao,
         p.sheet,
         p.assembly_no,
+        p.assembly_name || "",
         p.dwg,
-        p.display_name,
+        p.part_no,
+        p.part_cut || p.display_name,
+        p.description || "",
+        p.chung_loai || "",
         p.size,
+        p.length || "",
         p.material,
+        p.qty || 0,
         p.tqty,
         p.da_nhan,
         p.con_thieu,
@@ -2513,7 +2530,13 @@ function exportDvgMissingPartsExcel(dvgFilter = 'all') {
         "-",
         "-",
         "-",
+        "-",
+        "-",
         `Tổng cộng ${allMissing.length} chi tiết thiếu`,
+        "-",
+        "-",
+        "-",
+        "-",
         "-",
         "-",
         subTotalQty,
@@ -2923,18 +2946,29 @@ function setupEventListeners() {
             return;
         }
         const headers = [
+            "STT",
             "Hạng Mục (Sheet)",
             "Cấu Kiện Mẹ (Assembly)",
             "Tên Cấu Kiện",
+            "Bản Vẽ (Drawing)",
             "Số Lượng Mẹ",
-            "Part No BTP (Marking)",
+            "Tình Trạng Cấu Kiện",
+            "Mã BTP (Part No)",
+            "Mã Cắt (Cutting Mark)",
+            "Tên Chi Tiết (Description)",
             "Chủng Loại",
-            "Quy Cách / Chiều Dài",
-            "SL Cấu Kiện (Qty / Assy)",
+            "Quy Cách (Size)",
+            "Chiều Dài (mm)",
+            "Vật Liệu",
+            "Đơn Vị (DVG)",
+            "Đơn Vị Giao (Tổ)",
+            "SL Cấu Kiện (Qty/Assy)",
             "SL Thiết Kế (Total Qty)",
             "Đã Nhận",
             "Còn Thiếu",
-            "Ktra Nối",
+            "Đơn Trọng (kg)",
+            "KL Thiếu (kg)",
+            "Kiểm Tra Nối (Ktra Nối)",
             "Kế Hoạch Cắt (CP No)",
             "Tình Trạng BTP",
             "Ghi Chú"
@@ -2942,11 +2976,20 @@ function setupEventListeners() {
 
         const rows = [];
         const targetSheet = state.selectedSheet;
+        let sttCounter = 1;
 
         state.projectData.assemblies.forEach(assy => {
             if (targetSheet && targetSheet !== 'all' && assy.sheet !== targetSheet) return;
+            const assyNo = assy.assembly_no || assy.as_symbol || "";
+            const assyName = assy.description || assy.as_name || "";
+            const assyQty = assy.as_qty || assy.assembly_qty || 1;
+            const dwg = assy.dwg || "";
+            const assyStatus = assy.status === 'completed' ? "ĐỦ 100%" : `THIẾU (${assy.completion_rate || 0}%)`;
+
             (assy.parts || []).forEach(p => {
-                const conThieu = p.con_thieu !== undefined ? p.con_thieu : (p.total_qty - p.da_nhan);
+                const tqtyVal = p.tqty !== undefined ? p.tqty : (p.total_qty || 0);
+                const daNhanVal = p.da_nhan || 0;
+                const conThieu = p.con_thieu !== undefined ? p.con_thieu : Math.max(0, tqtyVal - daNhanVal);
                 if (mode === 'missing' && conThieu <= 0) return;
 
                 const sa = p.shape_analysis || {};
@@ -2955,25 +2998,41 @@ function setupEventListeners() {
                     statusText = sa.has_length_issue ? "Chưa đủ chiều dài" : `Còn thiếu ${conThieu}`;
                 }
 
+                const uweightVal = p.uweight !== undefined && p.uweight > 0 ? (Math.round(p.uweight * 100) / 100) : "-";
+                const conThieuWeight = conThieu > 0 ? (Math.round((p.con_thieu_weight !== undefined ? p.con_thieu_weight : (conThieu * (p.uweight || 0))) * 10) / 10) : "-";
+
+                const ktraNoiVal = p.ktra_noi || "";
                 const notes = [];
-                if (p.ktra_noi) notes.push(`Ktra nối: ${p.ktra_noi}`);
+                if (ktraNoiVal) notes.push(`Ktra nối: ${ktraNoiVal}`);
                 if (sa.has_length_issue) notes.push("Chưa đủ chiều dài");
                 if (p.remark) notes.push(p.remark);
+                if (p.ghi_chu && !notes.includes(p.ghi_chu)) notes.push(p.ghi_chu);
                 const ghiChu = notes.join(" | ");
 
                 rows.push([
+                    sttCounter++,
                     assy.sheet || "",
-                    assy.as_symbol || "",
-                    assy.as_name || "",
-                    assy.as_qty || 0,
+                    assyNo,
+                    assyName,
+                    dwg,
+                    assyQty,
+                    assyStatus,
                     p.part_no || "",
-                    p.part_type || "",
-                    p.spec || p.length || "",
-                    p.qty_per_assy || 0,
-                    p.total_qty || 0,
-                    p.da_nhan || 0,
+                    p.part_cut || p.display_name || "",
+                    p.description || p.desc || "",
+                    p.chung_loai || p.part_type || "",
+                    p.size || p.spec || "",
+                    p.length || "",
+                    p.material || "",
+                    p.dvg || "",
+                    p.don_vi_giao || "",
+                    p.qty !== undefined ? p.qty : (p.qty_per_assy || 0),
+                    tqtyVal,
+                    daNhanVal,
                     conThieu,
-                    p.ktra_noi || "",
+                    uweightVal,
+                    conThieuWeight,
+                    ktraNoiVal,
                     sa.cutting_no || p.cutting_no || "",
                     statusText,
                     ghiChu
@@ -3013,19 +3072,20 @@ function setupEventListeners() {
                 const isEven = (r % 2 === 0);
                 const rowBg = isEven ? 'F8FAFC' : 'FFFFFF';
                 const rowData = rows[r - 1];
-                const conThieuVal = rowData[10];
+                const conThieuVal = rowData[19];
 
                 for (let c = 0; c < headers.length; c++) {
                     const addr = XLSX.utils.encode_cell({ r, c });
                     if (!ws[addr]) ws[addr] = { t: 's', v: '' };
 
                     const isNum = typeof ws[addr].v === 'number';
-                    const isCenter = [5, 11].includes(c);
+                    const isRight = [5, 12, 16, 17, 18, 19, 20, 21].includes(c) || isNum;
+                    const isCenter = [0, 6, 10, 13, 14, 22].includes(c);
                     let cellFill = rowBg;
                     let cellFont = { name: 'Arial', sz: 10, color: { rgb: '1E293B' } };
 
                     // Nổi bật cột còn thiếu bằng màu đỏ cảnh báo
-                    if (c === 10 && conThieuVal > 0) {
+                    if (c === 19 && typeof conThieuVal === 'number' && conThieuVal > 0) {
                         cellFill = 'FEE2E2';
                         cellFont = { name: 'Arial', sz: 10, bold: true, color: { rgb: 'DC2626' } };
                     }
@@ -3034,7 +3094,7 @@ function setupEventListeners() {
                         fill: { fgColor: { rgb: cellFill } },
                         font: cellFont,
                         alignment: { 
-                            horizontal: isNum ? 'right' : (isCenter ? 'center' : 'left'), 
+                            horizontal: isRight ? 'right' : (isCenter ? 'center' : 'left'), 
                             vertical: 'center' 
                         },
                         border: borderThin,
@@ -3043,13 +3103,36 @@ function setupEventListeners() {
                 }
             }
 
-            ws['!autofilter'] = { ref: `A1:O${rows.length + 1}` };
+            ws['!autofilter'] = { ref: `A1:Z${rows.length + 1}` };
             ws['!freeze'] = { ySplit: 1 };
             ws['!rows'] = [{ hpt: 28 }, ...rows.map(() => ({ hpt: 20 }))];
             ws['!cols'] = [
-                { wch: 18 }, { wch: 22 }, { wch: 22 }, { wch: 14 }, { wch: 20 },
-                { wch: 16 }, { wch: 22 }, { wch: 16 }, { wch: 16 }, { wch: 14 },
-                { wch: 14 }, { wch: 16 }, { wch: 18 }, { wch: 18 }, { wch: 28 }
+                { wch: 6 },  // STT
+                { wch: 16 }, // Sheet
+                { wch: 22 }, // Assembly No
+                { wch: 20 }, // Assembly Name
+                { wch: 22 }, // Dwg
+                { wch: 12 }, // Qty Assy
+                { wch: 18 }, // Status Assy
+                { wch: 18 }, // Part No
+                { wch: 24 }, // Cutting Mark
+                { wch: 24 }, // Description (Tên chi tiết)
+                { wch: 14 }, // Chủng Loại
+                { wch: 20 }, // Size
+                { wch: 14 }, // Length
+                { wch: 14 }, // Material
+                { wch: 12 }, // DVG
+                { wch: 16 }, // Don vi giao
+                { wch: 14 }, // Qty/Assy
+                { wch: 14 }, // Total Qty
+                { wch: 12 }, // Da nhan
+                { wch: 14 }, // Con thieu
+                { wch: 13 }, // U.Weight
+                { wch: 14 }, // Con thieu weight
+                { wch: 14 }, // Ktra noi
+                { wch: 22 }, // Cutting No
+                { wch: 22 }, // Status BTP
+                { wch: 35 }  // Ghi chu
             ];
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "ChiTietBTP");

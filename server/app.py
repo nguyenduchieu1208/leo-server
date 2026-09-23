@@ -491,17 +491,19 @@ async def export_data_endpoint(
     project_id: Optional[str] = Query(None),
     mode: str = Query("missing"), # 'missing' hoặc 'full'
     sheet_name: Optional[str] = Query(None), # Tên sheet cụ thể (vd: T5P1) hoặc None (tất cả)
+    target_sheet: Optional[str] = Query(None), # Bí danh tương thích
     format: str = Query("xlsx") # 'xlsx' hoặc 'csv'
 ):
     """
     Xuất file Excel (.xlsx) hoặc CSV (.csv):
     - format: 'xlsx' hoặc 'csv' (nếu gọi /api/export-csv thì tự động là csv)
     - mode: 'full' (Toàn bộ tầng bậc) hoặc 'missing' (Chỉ chi tiết còn thiếu)
-    - sheet_name: Lọc riêng theo hạng mục hoặc xuất toàn bộ
+    - sheet_name / target_sheet: Lọc riêng theo hạng mục hoặc xuất toàn bộ
     """
     if request.url.path.endswith("export-csv"):
         format = "csv"
 
+    eff_sheet = target_sheet or sheet_name
     target_path = None
     if file_path:
         if not is_safe_path(file_path, [DATA_FOLDER]):
@@ -525,11 +527,11 @@ async def export_data_endpoint(
     try:
         data = get_cached_project(target_path)
         proj_code = data.get("project_id", "DuAn")
-        sheet_suffix = f"_{sheet_name}" if sheet_name and sheet_name.lower() != "all" else "_TatCaHangMuc"
+        sheet_suffix = f"_{eff_sheet}" if eff_sheet and eff_sheet.lower() != "all" else "_TatCaHangMuc"
         mode_prefix = "BTP_FullTier" if mode == "full" else "BTP_ConThieu"
 
         if format.lower() == "csv":
-            csv_stream = export_project_csv(data, mode=mode, target_sheet=sheet_name)
+            csv_stream = export_project_csv(data, mode=mode, target_sheet=eff_sheet)
             filename = f"{mode_prefix}_{proj_code}{sheet_suffix}.csv"
             encoded_filename = urllib.parse.quote(filename)
             headers = {
@@ -541,7 +543,7 @@ async def export_data_endpoint(
                 headers=headers
             )
         else:
-            excel_stream = export_project_excel(data, mode=mode, target_sheet=sheet_name)
+            excel_stream = export_project_excel(data, mode=mode, target_sheet=eff_sheet)
             filename = f"{mode_prefix}_{proj_code}{sheet_suffix}.xlsx"
             encoded_filename = urllib.parse.quote(filename)
             headers = {
