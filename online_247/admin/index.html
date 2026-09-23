@@ -145,6 +145,7 @@
                     <div class="hidden md:flex items-center gap-1.5 px-3 py-1 bg-slate-800/80 border border-slate-700/80 rounded-xl text-xs text-slate-300">
                         <i data-lucide="user-check" class="w-3.5 h-3.5 text-emerald-400"></i>
                         <span id="user-email-badge" class="font-semibold font-mono">ndhieu1208@gmail.com</span>
+                        <span id="user-name-badge" class="text-slate-400 font-sans ml-1 hidden lg:inline"></span>
                     </div>
 
                     <a href="./" target="_blank" class="link-home flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition cursor-pointer" title="Mở trang chủ người dùng trong tab mới">
@@ -430,24 +431,34 @@
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Khối 1: Thông tin tài khoản Admin & Đổi Mật Khẩu -->
                     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm space-y-5">
-                        <div class="flex items-center gap-3 border-b border-slate-800 pb-3">
-                            <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300">
-                                <i data-lucide="user-check" class="w-5 h-5"></i>
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300">
+                                    <i data-lucide="user-check" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-base font-bold text-white">Thông Tin Tài Khoản Của Tôi</h3>
+                                    <p class="text-xs text-slate-400">Xem và chỉnh sửa thông tin tài khoản đang đăng nhập</p>
+                                </div>
                             </div>
-                            <div>
-                                <h3 class="text-base font-bold text-white">Thông Tin Quản Trị Viên</h3>
-                                <p class="text-xs text-slate-400">Tài khoản quản trị cao cấp nhất của hệ thống</p>
-                            </div>
+                            <button type="button" id="btn-edit-my-profile" class="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-300 rounded-xl text-xs font-bold transition cursor-pointer">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                <span>Sửa Thông Tin</span>
+                            </button>
                         </div>
 
                         <div class="space-y-3 text-xs">
                             <div class="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
-                                <span class="text-slate-400">Email quản trị:</span>
+                                <span class="text-slate-400">Tài khoản / Email:</span>
                                 <span id="acc-email-display" class="font-bold text-white font-mono">ndhieu1208@gmail.com</span>
                             </div>
                             <div class="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
+                                <span class="text-slate-400">Họ và tên:</span>
+                                <span id="acc-name-display" class="font-bold text-white">Nguyễn Đức Hiếu</span>
+                            </div>
+                            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
                                 <span class="text-slate-400">Vai trò phân quyền:</span>
-                                <span class="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-bold font-mono">Super Administrator</span>
+                                <span id="acc-role-display" class="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 font-bold font-mono">Chủ Sở Hữu</span>
                             </div>
                             <div class="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/60">
                                 <span class="text-slate-400">Phiên làm việc:</span>
@@ -552,7 +563,7 @@
                                     <span>Quản Lý & Cấp Quyền Tài Khoản</span>
                                     <span class="text-[10px] px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">Chủ Sở Hữu Toàn Quyền</span>
                                 </h3>
-                                <p class="text-xs text-slate-400 mt-0.5">Bạn có toàn quyền cấp mới, phân vai trò, đổi mật khẩu và xóa tài khoản người dùng.</p>
+                                <p class="text-xs text-slate-400 mt-0.5">Tài khoản vẫn đang có trên hệ thống được bảo lưu an toàn (không được xóa). Bạn có thể cấp mới, phân vai trò, đổi mật khẩu hoặc tạm khóa tài khoản.</p>
                             </div>
                         </div>
 
@@ -1016,6 +1027,29 @@
         // HỆ THỐNG QUẢN LÝ TÀI KHOẢN & PHÂN QUYỀN CHỦ SỞ HỮU (USER MANAGEMENT)
         // =========================================================================
 
+        const BASE_SYSTEM_USERS = [
+            {
+                id: 'usr_owner',
+                username: 'ndhieu1208@gmail.com',
+                name: 'Nguyễn Đức Hiếu',
+                role: 'owner',
+                role_name: 'Chủ Sở Hữu',
+                password: DEFAULT_PASS,
+                status: 'active',
+                created_at: '21/09/2026'
+            },
+            {
+                id: 'usr_admin',
+                username: 'admin',
+                name: 'Nguyễn Đức Hiếu',
+                role: 'admin',
+                role_name: 'Quản Trị Viên',
+                password: DEFAULT_PASS,
+                status: 'active',
+                created_at: '21/09/2026'
+            }
+        ];
+
         function getSystemUsers() {
             let users = null;
             try {
@@ -1026,31 +1060,56 @@
             const customPass = localStorage.getItem('admin_custom_password') || DEFAULT_PASS;
 
             if (!users || !Array.isArray(users) || users.length === 0) {
-                users = [
-                    {
-                        id: 'usr_owner',
-                        username: 'ndhieu1208@gmail.com',
-                        name: 'Nguyễn Đức Hiệu',
-                        role: 'owner',
-                        role_name: 'Chủ Sở Hữu',
-                        password: customPass,
-                        status: 'active',
-                        created_at: '21/09/2026'
-                    }
-                ];
+                users = BASE_SYSTEM_USERS.map(u => ({
+                    ...u,
+                    password: u.role === 'owner' ? customPass : u.password
+                }));
                 localStorage.setItem('amecc_system_users', JSON.stringify(users));
-            } else {
-                // Loại bỏ hoàn toàn tài khoản thừa amecc nếu còn lưu trong trình duyệt cũ
-                const beforeLen = users.length;
-                users = users.filter(u => u.username.toLowerCase() !== 'admin@amecc.com.vn');
-                // Đồng bộ mật khẩu Chủ sở hữu nếu có thay đổi
-                const owner = users.find(u => u.role === 'owner');
-                if (owner && customPass && owner.password !== customPass && customPass !== DEFAULT_PASS) {
-                    owner.password = customPass;
+                return users;
+            }
+
+            let modified = false;
+
+            // Loại bỏ hoàn toàn tài khoản thừa amecc nếu còn lưu trong trình duyệt cũ
+            const beforeLen = users.length;
+            users = users.filter(u => u.username.toLowerCase() !== 'admin@amecc.com.vn');
+            if (users.length !== beforeLen) modified = true;
+
+            // Đảm bảo các tài khoản hệ thống chuẩn luôn hiện diện và tên chính xác "Nguyễn Đức Hiếu"
+            BASE_SYSTEM_USERS.forEach(baseUser => {
+                let existing = users.find(u => 
+                    (u.id && u.id === baseUser.id) || 
+                    (u.username && u.username.toLowerCase() === baseUser.username.toLowerCase())
+                );
+                if (!existing) {
+                    users.push({
+                        ...baseUser,
+                        password: baseUser.role === 'owner' ? customPass : baseUser.password
+                    });
+                    modified = true;
+                } else {
+                    // Cập nhật chuẩn tên tiếng Việt có dấu đúng chính tả "Nguyễn Đức Hiếu"
+                    if (existing.name === 'Nguyễn Đức Hiệu' || !existing.name) {
+                        existing.name = 'Nguyễn Đức Hiếu';
+                        modified = true;
+                    }
+                    if (baseUser.role === 'owner' && customPass && customPass !== DEFAULT_PASS && existing.password !== customPass) {
+                        existing.password = customPass;
+                        modified = true;
+                    }
                 }
-                if (users.length !== beforeLen || (owner && owner.password === customPass)) {
-                    localStorage.setItem('amecc_system_users', JSON.stringify(users));
+            });
+
+            // Sửa mọi nơi còn vướng "Nguyễn Đức Hiệu" thành "Nguyễn Đức Hiếu"
+            users.forEach(u => {
+                if (u.name === 'Nguyễn Đức Hiệu') {
+                    u.name = 'Nguyễn Đức Hiếu';
+                    modified = true;
                 }
+            });
+
+            if (modified) {
+                localStorage.setItem('amecc_system_users', JSON.stringify(users));
             }
             return users;
         }
@@ -1077,32 +1136,50 @@
                 locked: '<span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-300 border border-rose-500/20 text-[10px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>Tạm khóa</span>'
             };
 
+            const current = state.currentUser;
+            const isOwner = current && current.role === 'owner';
+
             tbody.innerHTML = users.map(u => {
-                const isOwner = u.role === 'owner';
-                const actionHtml = isOwner ? `
-                    <span class="text-[11px] text-indigo-400 font-semibold italic flex items-center justify-end gap-1">
-                        <i data-lucide="lock" class="w-3 h-3"></i> Tối cao
-                    </span>
-                ` : `
-                    <div class="flex items-center justify-end gap-1.5">
-                        <button type="button" onclick="openEditUserModal('${u.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 transition cursor-pointer" title="Chỉnh sửa tài khoản">
-                            <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-                        </button>
-                        <button type="button" onclick="openDeleteUserModal('${u.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-rose-400 hover:text-rose-300 transition cursor-pointer" title="Xóa tài khoản">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-                        </button>
-                    </div>
-                `;
+                const isSelf = current && (current.id === u.id || (current.username && u.username && current.username.toLowerCase() === u.username.toLowerCase()));
+
+                let actionHtml = '';
+                if (isSelf) {
+                    actionHtml = `
+                        <div class="flex items-center justify-end gap-1.5">
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 font-bold">(Bạn)</span>
+                            <button type="button" onclick="openEditUserModal('${u.id}')" class="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 transition cursor-pointer flex items-center gap-1 text-[11px] font-semibold" title="Sửa thông tin tài khoản của bạn">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                <span>Sửa thông tin</span>
+                            </button>
+                        </div>
+                    `;
+                } else if (isOwner) {
+                    actionHtml = `
+                        <div class="flex items-center justify-end gap-1.5">
+                            <button type="button" onclick="openEditUserModal('${u.id}')" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-amber-200 transition cursor-pointer flex items-center gap-1 text-[11px] font-semibold" title="Chỉnh sửa tài khoản / Phân quyền">
+                                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                                <span>Chỉnh sửa</span>
+                            </button>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700 font-mono" title="Tài khoản trên hệ thống được bảo lưu an toàn (không được xóa)">Bảo lưu</span>
+                        </div>
+                    `;
+                } else {
+                    actionHtml = `
+                        <span class="text-[11px] text-slate-400 font-mono flex items-center justify-end gap-1">
+                            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i> Được bảo lưu
+                        </span>
+                    `;
+                }
 
                 return `
                     <tr class="hover:bg-slate-800/40 transition">
                         <td class="py-3 px-4 font-mono font-bold text-white flex items-center gap-2">
-                            <div class="w-7 h-7 rounded-lg ${isOwner ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-300'} flex items-center justify-center shrink-0">
-                                <i data-lucide="${isOwner ? 'crown' : 'user'}" class="w-3.5 h-3.5"></i>
+                            <div class="w-7 h-7 rounded-lg ${u.role === 'owner' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-slate-800 text-slate-300'} flex items-center justify-center shrink-0">
+                                <i data-lucide="${u.role === 'owner' ? 'crown' : 'user'}" class="w-3.5 h-3.5"></i>
                             </div>
                             <span class="break-all">${u.username}</span>
                         </td>
-                        <td class="py-3 px-4 text-slate-200">${u.name || '-'}</td>
+                        <td class="py-3 px-4 text-slate-200 font-semibold">${u.name || '-'}</td>
                         <td class="py-3 px-4">${roleBadges[u.role] || roleBadges.viewer}</td>
                         <td class="py-3 px-4">${statusBadges[u.status] || statusBadges.active}</td>
                         <td class="py-3 px-4 font-mono text-[11px] text-slate-400">${u.created_at || '-'}</td>
@@ -1115,7 +1192,7 @@
         }
 
         // -------------------------------------------------------------------------
-        // MODAL VÀ THAO TÁC CẤP / SỬA / XÓA TÀI KHOẢN (USER CRUD ACTIONS)
+        // MODAL VÀ THAO TÁC CẤP / SỬA / BẢO LƯU TÀI KHOẢN (USER CRUD ACTIONS)
         // -------------------------------------------------------------------------
 
         // 1. Mở / Đóng Modal Cấp Tài Khoản Mới
@@ -1136,6 +1213,9 @@
         document.getElementById('btn-cancel-create-user')?.addEventListener('click', () => {
             if (modalCreateUser) modalCreateUser.classList.add('hidden');
         });
+        document.getElementById('btn-close-create-user')?.addEventListener('click', () => {
+            if (modalCreateUser) modalCreateUser.classList.add('hidden');
+        });
 
         document.getElementById('btn-toggle-new-user-pwd')?.addEventListener('click', () => {
             const pwdInp = document.getElementById('new-user-password');
@@ -1147,7 +1227,7 @@
             }
         });
 
-        formCreateUser?.addEventListener('submit', (e) => {
+        formCreateUser?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('new-user-username').value.trim();
             const name = document.getElementById('new-user-name').value.trim();
@@ -1168,8 +1248,8 @@
                 showCreateUserError('Tên tài khoản không được chứa khoảng trắng!');
                 return;
             }
-            if (password.length < 6) {
-                showCreateUserError('Mật khẩu phải có tối thiểu 6 ký tự!');
+            if (password.length < 4) {
+                showCreateUserError('Mật khẩu phải có tối thiểu 4 ký tự!');
                 return;
             }
 
@@ -1201,6 +1281,22 @@
 
             users.push(newUser);
             saveSystemUsers(users);
+
+            // Đồng bộ lên backend API nếu máy chủ Python đang chạy
+            try {
+                await fetch('/api/admin/users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': sessionStorage.getItem('admin_pass') || DEFAULT_PASS,
+                        'X-Admin-Username': sessionStorage.getItem('admin_email') || ''
+                    },
+                    body: JSON.stringify(newUser)
+                });
+            } catch (syncErr) {
+                console.warn('Backend sync API POST user skipped/failed:', syncErr);
+            }
+
             logAudit('Cấp tài khoản mới', `Tài khoản: ${username} | Người dùng: ${name} | Vai trò: ${newUser.role_name}`);
             modalCreateUser.classList.add('hidden');
         });
@@ -1219,8 +1315,17 @@
 
         window.openEditUserModal = function(userId) {
             const users = getSystemUsers();
-            const user = users.find(u => u.id === userId);
+            const user = users.find(u => u.id === userId || u.username.toLowerCase() === (userId || '').toLowerCase());
             if (!user) return;
+
+            const current = state.currentUser;
+            const isOwner = current && current.role === 'owner';
+            const isSelf = current && (current.id === user.id || (current.username && user.username && current.username.toLowerCase() === user.username.toLowerCase()));
+
+            if (!isOwner && !isSelf) {
+                alert('Bạn chỉ có quyền chỉnh sửa thông tin tài khoản của chính mình!');
+                return;
+            }
 
             document.getElementById('edit-user-id').value = user.id;
             document.getElementById('edit-user-username').value = user.username;
@@ -1231,7 +1336,8 @@
 
             const roleContainer = document.getElementById('edit-user-role-container');
             const statusContainer = document.getElementById('edit-user-status-container');
-            if (user.role === 'owner') {
+            // Nếu không phải owner hoặc đang sửa chính tài khoản owner thì ẩn chọn role / status
+            if (!isOwner || user.role === 'owner') {
                 if (roleContainer) roleContainer.classList.add('hidden');
                 if (statusContainer) statusContainer.classList.add('hidden');
             } else {
@@ -1261,7 +1367,7 @@
             }
         });
 
-        formEditUser?.addEventListener('submit', (e) => {
+        formEditUser?.addEventListener('submit', async (e) => {
             e.preventDefault();
             const userId = document.getElementById('edit-user-id').value;
             const name = document.getElementById('edit-user-name').value.trim();
@@ -1272,7 +1378,7 @@
             if (editErrBox) editErrBox.classList.add('hidden');
 
             const users = getSystemUsers();
-            const user = users.find(u => u.id === userId);
+            const user = users.find(u => u.id === userId || u.username.toLowerCase() === (userId || '').toLowerCase());
             if (!user) {
                 showEditUserError('Không tìm thấy tài khoản cần cập nhật!');
                 return;
@@ -1283,21 +1389,27 @@
                 return;
             }
 
-            if (newPassword && newPassword.length < 6) {
-                showEditUserError('Mật khẩu mới nếu đổi phải có tối thiểu 6 ký tự!');
+            if (newPassword && newPassword.length < 4) {
+                showEditUserError('Mật khẩu mới nếu đổi phải có tối thiểu 4 ký tự!');
                 return;
             }
+
+            const current = state.currentUser;
+            const isOwner = current && current.role === 'owner';
+            const isSelf = current && (current.id === user.id || (current.username && user.username && current.username.toLowerCase() === user.username.toLowerCase()));
 
             user.name = name;
             if (newPassword) {
                 user.password = newPassword;
+                if (isSelf) {
+                    sessionStorage.setItem('admin_pass', newPassword);
+                }
                 if (user.role === 'owner') {
                     localStorage.setItem('admin_custom_password', newPassword);
-                    sessionStorage.setItem('admin_pass', newPassword);
                 }
             }
 
-            if (user.role !== 'owner') {
+            if (isOwner && user.role !== 'owner') {
                 const roleMap = { admin: 'Quản Trị Viên', editor: 'Biên Tập Viên', viewer: 'Chỉ Xem' };
                 user.role = role;
                 user.role_name = roleMap[role] || 'Người dùng';
@@ -1305,8 +1417,42 @@
             }
 
             saveSystemUsers(users);
-            logAudit('Cập nhật tài khoản', `Tài khoản: ${user.username} | Trạng thái: ${user.status} | Vai trò: ${user.role_name}`);
+
+            if (isSelf) {
+                state.currentUser = user;
+                const accName = document.getElementById('acc-name-display');
+                if (accName) accName.textContent = name;
+                const badgeName = document.getElementById('user-name-badge');
+                if (badgeName) {
+                    badgeName.textContent = `(${name})`;
+                    badgeName.classList.remove('hidden');
+                }
+            }
+
+            // Đồng bộ lên backend API nếu máy chủ Python đang chạy
+            try {
+                const payload = { name: name };
+                if (newPassword) payload.password = newPassword;
+                if (isOwner && user.role !== 'owner') {
+                    payload.role = role;
+                    payload.status = status;
+                }
+                await fetch('/api/admin/users/' + encodeURIComponent(user.id), {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': sessionStorage.getItem('admin_pass') || DEFAULT_PASS,
+                        'X-Admin-Username': sessionStorage.getItem('admin_email') || ''
+                    },
+                    body: JSON.stringify(payload)
+                });
+            } catch (syncErr) {
+                console.warn('Backend sync API PUT user skipped/failed:', syncErr);
+            }
+
+            logAudit('Cập nhật tài khoản', `Tài khoản: ${user.username} | Tên: ${user.name} | Vai trò: ${user.role_name || user.role}`);
             modalEditUser.classList.add('hidden');
+            renderUsersTable();
         });
 
         function showEditUserError(msg) {
@@ -1316,26 +1462,10 @@
             }
         }
 
-        // 3. Mở / Xác Nhận Xóa Tài Khoản
+        // 3. Quy định bảo lưu: Tài khoản vẫn đang có trên hệ thống thì không được xóa
         const modalDeleteUser = document.getElementById('modal-delete-user');
         window.openDeleteUserModal = function(userId) {
-            const users = getSystemUsers();
-            const user = users.find(u => u.id === userId);
-            if (!user) return;
-
-            if (user.role === 'owner') {
-                alert('Tài khoản Chủ Sở Hữu Tối Cao được bảo vệ và không thể xóa!');
-                return;
-            }
-
-            document.getElementById('delete-target-user-id').value = user.id;
-            const displaySpan = document.getElementById('delete-user-name-display');
-            if (displaySpan) {
-                displaySpan.textContent = `${user.username} (${user.name || 'Người dùng'})`;
-            }
-
-            if (modalDeleteUser) modalDeleteUser.classList.remove('hidden');
-            updateIcons();
+            alert('Tài khoản vẫn đang có trên hệ thống thì không được xóa! Bạn chỉ có thể chỉnh sửa thông tin hoặc chuyển trạng thái sang "Tạm Khóa" nếu muốn ngưng cấp quyền.');
         };
 
         document.getElementById('btn-cancel-delete-user')?.addEventListener('click', () => {
@@ -1343,23 +1473,76 @@
         });
 
         document.getElementById('btn-confirm-delete-user')?.addEventListener('click', () => {
-            const targetId = document.getElementById('delete-target-user-id').value;
-            let users = getSystemUsers();
-            const target = users.find(u => u.id === targetId);
-            if (!target) {
-                if (modalDeleteUser) modalDeleteUser.classList.add('hidden');
-                return;
-            }
-            if (target.role === 'owner') {
-                alert('Tài khoản Chủ Sở Hữu Tối Cao được bảo vệ và không thể xóa!');
-                return;
-            }
-
-            users = users.filter(u => u.id !== targetId);
-            saveSystemUsers(users);
-            logAudit('Xóa tài khoản', `Đã xóa tài khoản: ${target.username} (${target.name || ''})`);
+            alert('Tài khoản vẫn đang có trên hệ thống thì không được xóa! Vui lòng chuyển trạng thái sang "Tạm Khóa" nếu muốn ngưng cấp quyền.');
             if (modalDeleteUser) modalDeleteUser.classList.add('hidden');
         });
+
+        // 4. Đồng bộ danh sách tài khoản từ Backend (nếu có API)
+        async function syncUsersFromBackend() {
+            try {
+                const res = await fetch('/api/admin/users', {
+                    headers: {
+                        'X-Admin-Password': sessionStorage.getItem('admin_pass') || DEFAULT_PASS,
+                        'X-Admin-Username': sessionStorage.getItem('admin_email') || ''
+                    }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                if (data && data.success && Array.isArray(data.users)) {
+                    let localUsers = getSystemUsers();
+                    let changed = false;
+                    data.users.forEach(bUser => {
+                        let lUser = localUsers.find(u => (u.id && u.id === bUser.id) || (u.username && u.username.toLowerCase() === bUser.username.toLowerCase()));
+                        if (lUser) {
+                            if (bUser.name && lUser.name !== bUser.name) {
+                                lUser.name = bUser.name;
+                                changed = true;
+                            }
+                            if (bUser.role && lUser.role !== bUser.role) {
+                                lUser.role = bUser.role;
+                                lUser.role_name = bUser.role_name;
+                                changed = true;
+                            }
+                            if (bUser.status && lUser.status !== bUser.status) {
+                                lUser.status = bUser.status;
+                                changed = true;
+                            }
+                        } else {
+                            localUsers.push(bUser);
+                            changed = true;
+                        }
+                    });
+
+                    // Sửa triệt để mọi hiển thị sai chính tả thành "Nguyễn Đức Hiếu"
+                    localUsers.forEach(u => {
+                        if (u.name === 'Nguyễn Đức Hiệu') {
+                            u.name = 'Nguyễn Đức Hiếu';
+                            changed = true;
+                        }
+                    });
+
+                    if (changed) {
+                        localStorage.setItem('amecc_system_users', JSON.stringify(localUsers));
+                        if (state.currentUser) {
+                            const updatedCurrent = localUsers.find(u => u.id === state.currentUser.id || u.username.toLowerCase() === state.currentUser.username.toLowerCase());
+                            if (updatedCurrent) {
+                                state.currentUser = updatedCurrent;
+                                const accName = document.getElementById('acc-name-display');
+                                if (accName) accName.textContent = updatedCurrent.name || 'Nguyễn Đức Hiếu';
+                                const badgeName = document.getElementById('user-name-badge');
+                                if (badgeName) {
+                                    badgeName.textContent = `(${updatedCurrent.name || 'Nguyễn Đức Hiếu'})`;
+                                    badgeName.classList.remove('hidden');
+                                }
+                            }
+                        }
+                        renderUsersTable();
+                    }
+                }
+            } catch (e) {
+                // Chế độ GitHub Pages offline hoặc backend không chạy
+            }
+        }
 
         // Kiểm tra phiên đăng nhập
         function checkAuthStatus() {
@@ -1401,10 +1584,29 @@
         function showAdminView() {
             document.getElementById('login-view').classList.add('hidden');
             document.getElementById('admin-view').classList.remove('hidden');
+
+            const current = state.currentUser;
+            const currentEmail = (current ? current.username : state.email) || 'ndhieu1208@gmail.com';
+            const currentName = (current ? current.name : 'Nguyễn Đức Hiếu') || 'Nguyễn Đức Hiếu';
+            const currentRole = (current ? current.role_name : 'Quản Trị Viên') || 'Quản Trị Viên';
+
             const badge = document.getElementById('user-email-badge');
-            if (badge) badge.textContent = state.email;
+            if (badge) badge.textContent = currentEmail;
+
+            const nameBadge = document.getElementById('user-name-badge');
+            if (nameBadge) {
+                nameBadge.textContent = `(${currentName})`;
+                nameBadge.classList.remove('hidden');
+            }
+
             const accBadge = document.getElementById('acc-email-display');
-            if (accBadge) accBadge.textContent = state.email;
+            if (accBadge) accBadge.textContent = currentEmail;
+
+            const accName = document.getElementById('acc-name-display');
+            if (accName) accName.textContent = currentName;
+
+            const accRole = document.getElementById('acc-role-display');
+            if (accRole) accRole.textContent = currentRole;
             
             // Cập nhật ô token
             const tokenInput = document.getElementById('input-custom-token');
@@ -1416,7 +1618,17 @@
             loadAnnouncementsData();
             renderUsersTable();
             renderAuditLogs();
+            syncUsersFromBackend();
         }
+
+        // Sự kiện click nút Sửa Thông Tin Của Tôi
+        document.getElementById('btn-edit-my-profile')?.addEventListener('click', () => {
+            const users = getSystemUsers();
+            const current = state.currentUser || users.find(u => u.username.toLowerCase() === (state.email || '').toLowerCase()) || users[0];
+            if (current) {
+                openEditUserModal(current.id);
+            }
+        });
 
         // Đăng nhập
         document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -1527,59 +1739,145 @@
         }
 
         async function getFileSha(path, branch = 'main') {
+            const cleanPath = encodeURIComponent(path).replace(/%2F/g, '/');
+            // Cách 1: Thử lấy trực tiếp từ GitHub Contents API với cache-busting triệt để
             try {
-                const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${encodeURIComponent(path).replace(/%2F/g, '/')}?ref=${branch}&t=${Date.now()}`, {
-                    headers: await getGitHubHeaders()
+                const headers = await getGitHubHeaders();
+                headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+                headers['Pragma'] = 'no-cache';
+                const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${cleanPath}?ref=${branch}&_ts=${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, {
+                    headers: headers,
+                    cache: 'no-store'
                 });
                 if (res.ok) {
                     const data = await res.json();
-                    return data.sha;
+                    if (data && data.sha) return data.sha;
                 }
-            } catch (e) {}
+            } catch (e) {
+                console.warn('getFileSha contents warning:', e);
+            }
+
+            // Cách 2: Dự phòng truy vấn Git Tree để lấy blob SHA chuẩn xác nhất (không bao giờ bị cache)
+            try {
+                const headers = await getGitHubHeaders();
+                headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+                headers['Pragma'] = 'no-cache';
+                const resTree = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/trees/${branch}?recursive=1&_ts=${Date.now()}`, {
+                    headers: headers,
+                    cache: 'no-store'
+                });
+                if (resTree.ok) {
+                    const treeData = await resTree.json();
+                    const targetNorm = path.replace(/\\/g, '/').toLowerCase();
+                    const found = (treeData.tree || []).find(item => item.path && item.path.toLowerCase() === targetNorm);
+                    if (found && found.sha) return found.sha;
+                }
+            } catch (e) {
+                console.warn('getFileSha tree warning:', e);
+            }
+
             return null;
         }
 
-        async function putGitHubFile(path, contentBase64, commitMessage, branch = 'main') {
-            const sha = await getFileSha(path, branch);
-            const body = {
-                message: commitMessage,
-                content: contentBase64,
-                branch: branch
-            };
-            if (sha) body.sha = sha;
+        async function putGitHubFile(path, contentBase64, commitMessage, branch = 'main', maxRetries = 3) {
+            const cleanPath = encodeURIComponent(path).replace(/%2F/g, '/');
+            let sha = await getFileSha(path, branch);
 
-            const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${encodeURIComponent(path).replace(/%2F/g, '/')}`, {
-                method: 'PUT',
-                headers: await getGitHubHeaders(),
-                body: JSON.stringify(body)
-            });
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                const body = {
+                    message: commitMessage,
+                    content: contentBase64,
+                    branch: branch
+                };
+                if (sha) body.sha = sha;
 
-            if (!res.ok) {
+                const headers = await getGitHubHeaders();
+                headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+                headers['Pragma'] = 'no-cache';
+
+                const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${cleanPath}`, {
+                    method: 'PUT',
+                    headers: headers,
+                    cache: 'no-store',
+                    body: JSON.stringify(body)
+                });
+
+                if (res.ok) {
+                    return await res.json();
+                }
+
                 const err = await res.json().catch(() => ({}));
-                throw new Error(err.message || `Lỗi GitHub API: ${res.status}`);
+                const errMsg = err.message || `Lỗi GitHub API: ${res.status}`;
+
+                // Xử lý tự động khi gặp lỗi xung đột SHA (HTTP 409 Conflict):
+                // Ví dụ: "... is at 56e9f15b371aac7b6cd74c0a97a435643dcf6fdc but expected e614adc99c0e02a47f9435a00c71585a517f0ac6"
+                if (res.status === 409 || errMsg.includes('is at') || errMsg.includes('does not match') || errMsg.includes('blob SHA')) {
+                    const match = errMsg.match(/is at ([0-9a-f]{40})/i);
+                    if (match && match[1]) {
+                        console.warn(`[GitHub Upload Auto-Recover] Lần ${attempt}: Bắt được SHA thực tế: ${match[1]}, tự động đẩy lại ngay...`);
+                        sha = match[1];
+                        await new Promise(r => setTimeout(r, 400));
+                        continue;
+                    }
+
+                    // Nếu không có chuỗi "is at", chờ 800ms rồi truy vấn Git Trees lấy SHA mới nhất
+                    console.warn(`[GitHub Upload Auto-Recover] Lần ${attempt}: SHA mismatch, lấy lại SHA mới nhất từ Git Trees...`);
+                    await new Promise(r => setTimeout(r, 800));
+                    sha = await getFileSha(path, branch);
+                    continue;
+                }
+
+                // Nếu lỗi khác (như 401 token sai, 403 giới hạn, 422 cấu hình) thì throw
+                throw new Error(errMsg);
             }
-            return await res.json();
+
+            throw new Error(`Lỗi cập nhật file ${path}: Xung đột phiên bản trên GitHub sau ${maxRetries} lần thử.`);
         }
 
-        async function deleteGitHubFile(path, commitMessage, branch = 'main') {
-            const sha = await getFileSha(path, branch);
+        async function deleteGitHubFile(path, commitMessage, branch = 'main', maxRetries = 3) {
+            const cleanPath = encodeURIComponent(path).replace(/%2F/g, '/');
+            let sha = await getFileSha(path, branch);
             if (!sha) throw new Error('Không tìm thấy file trên hệ thống để xóa!');
 
-            const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${encodeURIComponent(path).replace(/%2F/g, '/')}`, {
-                method: 'DELETE',
-                headers: await getGitHubHeaders(),
-                body: JSON.stringify({
-                    message: commitMessage,
-                    sha: sha,
-                    branch: branch
-                })
-            });
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                const headers = await getGitHubHeaders();
+                headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+                headers['Pragma'] = 'no-cache';
 
-            if (!res.ok) {
+                const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${cleanPath}`, {
+                    method: 'DELETE',
+                    headers: headers,
+                    cache: 'no-store',
+                    body: JSON.stringify({
+                        message: commitMessage,
+                        sha: sha,
+                        branch: branch
+                    })
+                });
+
+                if (res.ok) {
+                    return await res.json();
+                }
+
                 const err = await res.json().catch(() => ({}));
-                throw new Error(err.message || `Lỗi khi xóa file trên GitHub: ${res.status}`);
+                const errMsg = err.message || `Lỗi khi xóa file trên GitHub: ${res.status}`;
+
+                if (res.status === 409 || errMsg.includes('is at') || errMsg.includes('does not match')) {
+                    const match = errMsg.match(/is at ([0-9a-f]{40})/i);
+                    if (match && match[1]) {
+                        sha = match[1];
+                        await new Promise(r => setTimeout(r, 400));
+                        continue;
+                    }
+                    await new Promise(r => setTimeout(r, 800));
+                    sha = await getFileSha(path, branch);
+                    continue;
+                }
+
+                throw new Error(errMsg);
             }
-            return await res.json();
+
+            throw new Error(`Lỗi xóa file ${path} trên GitHub sau ${maxRetries} lần thử.`);
         }
 
         async function triggerDeployWorkflow() {
@@ -1689,6 +1987,7 @@
             updateIcons();
 
             let successCount = 0;
+            const failedFiles = [];
 
             for (let i = 0; i < validFiles.length; i++) {
                 const file = validFiles[i];
@@ -1698,6 +1997,11 @@
                 statusEl.className = 'item-status text-indigo-400 flex items-center gap-1 shrink-0 font-semibold';
                 statusEl.innerHTML = '<i data-lucide="loader-2" class="w-3 h-3 animate-spin"></i> Đang nạp...';
                 updateIcons();
+
+                if (i > 0) {
+                    // Chờ 600ms giữa các file để GitHub đồng bộ nhánh ref ổn định
+                    await new Promise(r => setTimeout(r, 600));
+                }
 
                 try {
                     const base64 = await readFileAsBase64(file);
@@ -1713,6 +2017,7 @@
                 } catch (err) {
                     statusEl.className = 'item-status text-rose-400 flex items-center gap-1 shrink-0 font-bold';
                     statusEl.innerHTML = `<i data-lucide="alert-circle" class="w-3 h-3"></i> ${err.message || 'Lỗi'}`;
+                    failedFiles.push(file);
                 }
                 updateIcons();
 
@@ -1721,13 +2026,32 @@
                 progressText.textContent = `${i + 1} / ${validFiles.length}`;
             }
 
-            triggerDeployWorkflow();
+            if (successCount > 0) {
+                triggerDeployWorkflow();
+            }
 
             const finalMsg = document.createElement('div');
-            finalMsg.className = 'pt-2 text-center text-xs font-bold text-emerald-300 flex items-center justify-center gap-1.5';
-            finalMsg.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> Đã đẩy thành công ${successCount}/${validFiles.length} file! Hệ thống đang tự động biên dịch.`;
+            finalMsg.className = 'pt-2 text-center text-xs font-bold flex flex-col items-center justify-center gap-2';
+            if (failedFiles.length === 0) {
+                finalMsg.innerHTML = `<span class="text-emerald-300 flex items-center gap-1.5"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> Đã đẩy thành công toàn bộ ${successCount}/${validFiles.length} file! Hệ thống đang tự động biên dịch.</span>`;
+            } else {
+                finalMsg.innerHTML = `
+                    <span class="text-amber-300 flex items-center gap-1.5">
+                        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
+                        Đã tải thành công ${successCount}/${validFiles.length} file (${failedFiles.length} file gặp sự cố mạng/xung đột).
+                    </span>
+                    <button type="button" id="btn-retry-failed-uploads" class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-rose-600/20 cursor-pointer">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                        <span>Thử Đẩy Lại ${failedFiles.length} File Lỗi</span>
+                    </button>
+                `;
+            }
             fileListEl.appendChild(finalMsg);
             updateIcons();
+
+            document.getElementById('btn-retry-failed-uploads')?.addEventListener('click', () => {
+                handleBatchUpload(failedFiles, targetFolder, container);
+            });
 
             setTimeout(() => {
                 loadFilesList();
@@ -2076,7 +2400,11 @@
             msgEl.className = 'p-2.5 rounded-xl text-xs font-semibold';
             msgEl.classList.remove('hidden');
 
-            const currentPass = localStorage.getItem('admin_custom_password') || DEFAULT_PASS;
+            const users = getSystemUsers();
+            const currentEmail = state.email || sessionStorage.getItem('admin_email');
+            const currentUser = state.currentUser || users.find(u => u.username.toLowerCase() === (currentEmail || '').toLowerCase());
+            const currentPass = (currentUser && currentUser.password) || localStorage.getItem('admin_custom_password') || DEFAULT_PASS;
+
             if (oldP !== currentPass && oldP !== DEFAULT_PASS) {
                 msgEl.className += ' bg-rose-500/10 border border-rose-500/30 text-rose-400';
                 msgEl.textContent = 'Mật khẩu hiện tại không chính xác!';
@@ -2089,22 +2417,41 @@
                 return;
             }
 
-            if (newP.length < 6) {
+            if (newP.length < 4) {
                 msgEl.className += ' bg-rose-500/10 border border-rose-500/30 text-rose-400';
-                msgEl.textContent = 'Mật khẩu mới phải có tối thiểu 6 ký tự!';
+                msgEl.textContent = 'Mật khẩu mới phải có tối thiểu 4 ký tự!';
                 return;
             }
 
-            localStorage.setItem('admin_custom_password', newP);
             sessionStorage.setItem('admin_pass', newP);
-            const users = getSystemUsers();
-            const currentEmail = state.email || sessionStorage.getItem('admin_email');
-            const currentUser = users.find(u => u.username.toLowerCase() === (currentEmail || '').toLowerCase());
             if (currentUser) {
                 currentUser.password = newP;
-                saveSystemUsers(users);
+                state.currentUser = currentUser;
             }
-            logAudit('Đổi mật khẩu', 'Quản trị viên đã thay đổi mật khẩu thành công');
+            if (!currentUser || currentUser.role === 'owner') {
+                localStorage.setItem('admin_custom_password', newP);
+            }
+            saveSystemUsers(users);
+
+            // Đồng bộ đổi mật khẩu lên backend API
+            try {
+                await fetch('/api/admin/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': oldP,
+                        'X-Admin-Username': currentEmail || ''
+                    },
+                    body: JSON.stringify({
+                        old_password: oldP,
+                        new_password: newP
+                    })
+                });
+            } catch (apiErr) {
+                console.warn('Backend change-password sync skipped/failed:', apiErr);
+            }
+
+            logAudit('Đổi mật khẩu', `Tài khoản ${currentEmail || 'admin'} đã thay đổi mật khẩu thành công`);
 
             msgEl.className += ' bg-emerald-500/10 border border-emerald-500/30 text-emerald-300';
             msgEl.textContent = 'Đã cập nhật mật khẩu mới thành công!';

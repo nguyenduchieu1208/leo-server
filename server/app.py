@@ -148,9 +148,19 @@ def load_system_users() -> list:
         {
             "id": "usr_owner",
             "username": ADMIN_EMAIL,
-            "name": "Nguyễn Đức Hiệu",
+            "name": "Nguyễn Đức Hiếu",
             "role": "owner",
             "role_name": "Chủ Sở Hữu",
+            "password": ADMIN_PASSWORD,
+            "status": "active",
+            "created_at": "21/09/2026"
+        },
+        {
+            "id": "usr_admin",
+            "username": "admin",
+            "name": "Nguyễn Đức Hiếu",
+            "role": "admin",
+            "role_name": "Quản Trị Viên",
             "password": ADMIN_PASSWORD,
             "status": "active",
             "created_at": "21/09/2026"
@@ -750,7 +760,8 @@ async def api_admin_check(request: Request):
             "id": curr.get("id"),
             "username": curr.get("username"),
             "name": curr.get("name"),
-            "role": curr.get("role")
+            "role": curr.get("role"),
+            "role_name": curr.get("role_name", "Quản Trị Viên" if curr and curr.get("role") == "admin" else "Chủ Sở Hữu" if curr and curr.get("role") == "owner" else "Người dùng")
         } if curr else None,
         "is_localhost": is_host_admin(request)
     }
@@ -816,55 +827,81 @@ async def create_user_api(request: Request):
 
 @app.put("/api/admin/users/{user_id}")
 async def update_user_api(user_id: str, request: Request):
-    """Chỉnh sửa thông tin/mật khẩu tài khoản (Chỉ dành cho Chủ sở hữu)"""
+    """Chỉnh sửa thông tin/mật khẩu tài khoản (Chủ sở hữu hoặc tài khoản tự sửa thông tin của mình)"""
     curr = get_current_user_from_request(request)
-    is_owner = curr and curr.get("role") == "owner"
-    is_local = (not curr) and is_host_admin(request)
-    if not (is_owner or is_local):
-        raise HTTPException(status_code=403, detail="Chỉ Chủ Sở Hữu mới có quyền chỉnh sửa tài khoản!")
+    if not curr and not is_host_admin(request):
+        raise HTTPException(status_code=401, detail="Chưa xác thực.")
         
-    body = await request.json()
     users = load_system_users()
     target = next((u for u in users if u.get("id") == user_id), None)
     if not target:
         raise HTTPException(status_code=404, detail="Không tìm thấy tài khoản.")
         
+    is_owner = curr and curr.get("role") == "owner"
+    is_local = (not curr) and is_host_admin(request)
+    is_self = curr and (curr.get("id") == user_id or str(curr.get("username", "")).strip().lower() == str(target.get("username", "")).strip().lower())
+    
+    if not (is_owner or is_local or is_self):
+        raise HTTPException(status_code=403, detail="Chỉ Chủ Sở Hữu mới có quyền chỉnh sửa tài khoản người khác!")
+        
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="Dữ liệu JSON không hợp lệ.")
+        
     if "name" in body and body["name"]:
         target["name"] = str(body["name"]).strip()
+        
     if "password" in body and body["password"]:
         pwd = str(body["password"]).strip()
         if len(pwd) >= 6:
             target["password"] = pwd
-    if target.get("role") != "owner":
-        if "role" in body and body["role"]:
-            target["role"] = body["role"]
-            role_map = {"admin": "Quản Trị Viên", "editor": "Biên Tập Viên", "viewer": "Chỉ Xem"}
-            target["role_name"] = role_map.get(body["role"], "Người dùng")
-        if "status" in body and body["status"]:
-            target["status"] = body["status"]
+            if target.get("role") == "owner":
+                global ADMIN_PASSWORD
+                ADMIN_PASSWORD = pwd
+        elif len(pwd) > 0:
+            raise HTTPException(status_code=400, detail="Mật khẩu phải có tối thiểu 6 ký tự.")
+            
+    # Chỉ Chủ Sở Hữu hoặc máy chủ localhost mới có quyền đổi vai trò hoặc trạng thái
+    if is_owner or is_local:
+        if target.get("role") != "owner":
+            if "role" in body and body["role"]:
+                target["role"] = body["role"]
+                role_map = {"admin": "Quản Trị Viên", "editor": "Biên Tập Viên", "viewer": "Chỉ Xem"}
+                target["role_name"] = role_map.get(body["role"], "Người dùng")
+            if "status" in body and body["status"]:
+                target["status"] = body["status"]
             
     save_system_users(users)
-    return {"status": "success", "message": "Đã cập nhật tài khoản thành công!"}
+    return {
+        "status": "success",
+        "message": "Đã cập nhật tài khoản thành công!",
+        "user": {
+            "id": target.get("id"),
+            "username": target.get("username"),
+            "name": target.get("name"),
+            "role": target.get("role"),
+            "role_name": target.get("role_name"),
+            "status": target.get("status")
+        }
+    }
 
 @app.delete("/api/admin/users/{user_id}")
 async def delete_user_api(user_id: str, request: Request):
-    """Xóa tài khoản (Chỉ dành cho Chủ sở hữu, không thể xóa Master Owner)"""
+    """Xóa tài khoản - Hệ thống bảo lưu các tài khoản, không cho phép xóa tài khoản đang có trên hệ thống"""
     curr = get_current_user_from_request(request)
-    is_owner = curr and curr.get("role") == "owner"
-    is_local = (not curr) and is_host_admin(request)
-    if not (is_owner or is_local):
-        raise HTTPException(status_code=403, detail="Chỉ Chủ Sở Hữu mới có quyền xóa tài khoản!")
+    if not curr and not is_host_admin(request):
+        raise HTTPException(status_code=401, detail="Chưa xác thực.")
         
     users = load_system_users()
     target = next((u for u in users if u.get("id") == user_id), None)
     if not target:
         raise HTTPException(status_code=404, detail="Không tìm thấy tài khoản.")
-    if target.get("role") == "owner":
-        raise HTTPException(status_code=400, detail="Không thể xóa tài khoản Chủ Sở Hữu Tối Cao!")
         
-    users = [u for u in users if u.get("id") != user_id]
-    save_system_users(users)
-    return {"status": "success", "message": "Đã xóa tài khoản thành công!"}
+    raise HTTPException(
+        status_code=400,
+        detail="Tài khoản vẫn đang có trên hệ thống thì không được xóa! Vui lòng chuyển trạng thái sang 'Tạm Khóa' nếu muốn ngưng cấp quyền truy cập."
+    )
 
 @app.get("/api/admin/files")
 async def get_admin_files(request: Request):
@@ -973,10 +1010,11 @@ async def download_admin_file(request: Request, name: str = Query(...), folder: 
 
 @app.post("/api/admin/change-password")
 async def change_admin_password(request: Request):
-    """Đổi mật khẩu Quản Trị Viên"""
+    """Đổi mật khẩu tài khoản đang đăng nhập"""
     global ADMIN_PASSWORD
-    if not is_authenticated_admin(request):
-        raise HTTPException(status_code=403, detail="Yêu cầu quyền Quản Trị Viên.")
+    curr = get_current_user_from_request(request)
+    if not curr and not is_host_admin(request):
+        raise HTTPException(status_code=401, detail="Chưa xác thực.")
     
     try:
         body = await request.json()
@@ -986,13 +1024,28 @@ async def change_admin_password(request: Request):
     old_pwd = str(body.get("old_password") or "").strip()
     new_pwd = str(body.get("new_password") or "").strip()
 
-    if old_pwd != ADMIN_PASSWORD:
+    users = load_system_users()
+    target = None
+    if curr:
+        target = next((u for u in users if u.get("id") == curr.get("id") or str(u.get("username", "")).lower() == str(curr.get("username", "")).lower()), None)
+    elif is_host_admin(request):
+        target = next((u for u in users if u.get("role") == "owner"), None)
+        
+    if not target:
+        raise HTTPException(status_code=404, detail="Không tìm thấy thông tin tài khoản.")
+        
+    target_pwd = target.get("password") or ADMIN_PASSWORD
+    if old_pwd != target_pwd and not (target.get("role") == "owner" and old_pwd == ADMIN_PASSWORD):
         raise HTTPException(status_code=400, detail="Mật khẩu hiện tại không chính xác.")
     if len(new_pwd) < 6:
         raise HTTPException(status_code=400, detail="Mật khẩu mới phải có tối thiểu 6 ký tự.")
 
-    ADMIN_PASSWORD = new_pwd
-    return {"status": "success", "message": "Đã đổi mật khẩu quản trị viên thành công."}
+    target["password"] = new_pwd
+    if target.get("role") == "owner":
+        ADMIN_PASSWORD = new_pwd
+        
+    save_system_users(users)
+    return {"status": "success", "message": "Đã đổi mật khẩu thành công."}
 
 @app.post("/api/admin/sync-online")
 async def admin_sync_online(request: Request):
