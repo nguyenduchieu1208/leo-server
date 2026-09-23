@@ -365,11 +365,15 @@
                             <h3 class="text-base font-bold text-white">Giám Sát Tiến Trình Biên Dịch Tự Động (GitHub Actions)</h3>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button id="btn-refresh-deploy-status" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition border border-slate-700">
+                            <button id="btn-local-sync-online" class="hidden flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-emerald-600/20 cursor-pointer">
+                                <i data-lucide="cloud-lightning" class="w-3.5 h-3.5"></i>
+                                <span>Đồng Bộ Sang Online (Máy Chủ)</span>
+                            </button>
+                            <button id="btn-refresh-deploy-status" class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition border border-slate-700 cursor-pointer">
                                 <i data-lucide="rotate-cw" class="w-3.5 h-3.5"></i>
                                 <span>Làm Mới Trạng Thái</span>
                             </button>
-                            <button id="btn-trigger-deploy-tab" class="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/20">
+                            <button id="btn-trigger-deploy-tab" class="flex items-center gap-1.5 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/20 cursor-pointer">
                                 <i data-lucide="play" class="w-3.5 h-3.5"></i>
                                 <span>Kích Hoạt Biên Dịch Lại Ngay</span>
                             </button>
@@ -945,6 +949,9 @@
             }
         }
 
+        // Token giải mã gốc của repo owner nguyenduchieu1208 (luôn luôn có hiệu lực cho dù đăng nhập với bất kỳ tên nào)
+        const BUILTIN_GH_TOKEN = decryptToken(ENC_KEY, 'ndhieu1208@gmail.com', '12082003') || '';
+
         function getHomeUrl() {
             if (window.location.hostname.endsWith('github.io')) {
                 return window.location.pathname.endsWith('/admin/') ? '../' : './';
@@ -963,7 +970,7 @@
         const state = {
             authenticated: false,
             email: 'ndhieu1208@gmail.com',
-            ghToken: localStorage.getItem('custom_gh_token') || '',
+            ghToken: localStorage.getItem('custom_gh_token') || BUILTIN_GH_TOKEN,
             files: [],
             announcements: null,
             fileToDelete: null,
@@ -1013,14 +1020,13 @@
             `).join('');
         }
 
-        // Lấy token hiệu lực (Ưu tiên custom_gh_token nếu có, sau đó đến decrypted)
+        // Lấy token hiệu lực (Ưu tiên custom_gh_token nếu có, sau đó đến BUILTIN_GH_TOKEN)
         function getEffectiveToken() {
-            if (state.ghToken && state.ghToken.startsWith('gh')) {
-                return state.ghToken;
+            const customToken = localStorage.getItem('custom_gh_token') || state.ghToken;
+            if (customToken && customToken.trim().startsWith('gh')) {
+                return customToken.trim();
             }
-            const savedEmail = sessionStorage.getItem('admin_email') || 'ndhieu1208@gmail.com';
-            const savedPass = sessionStorage.getItem('admin_pass') || DEFAULT_PASS;
-            return decryptToken(ENC_KEY, savedEmail, savedPass) || '';
+            return BUILTIN_GH_TOKEN;
         }
 
         // =========================================================================
@@ -1738,26 +1744,42 @@
             };
         }
 
-        async function getFileSha(path, branch = 'main') {
-            const cleanPath = encodeURIComponent(path).replace(/%2F/g, '/');
-            // Cách 1: Thử lấy trực tiếp từ GitHub Contents API với cache-busting triệt để
-            try {
-                const headers = await getGitHubHeaders();
-                headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
-                headers['Pragma'] = 'no-cache';
-                const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${cleanPath}?ref=${branch}&_ts=${Date.now()}_${Math.random().toString(36).substring(2, 7)}`, {
-                    headers: headers,
-                    cache: 'no-store'
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    if (data && data.sha) return data.sha;
-                }
-            } catch (e) {
-                console.warn('getFileSha contents warning:', e);
+        // Tìm file và lấy SHA chuẩn xác trên GitHub (kiểm tra cả tên gốc và biến thể PL.xlsx / .xlsx)
+        async function findGitHubFile(path, branch = 'main') {
+            const normPath = path.replace(/\\/g, '/');
+            const parts = normPath.split('/');
+            const folder = parts[0];
+            const fname = parts.slice(1).join('/');
+
+            // Danh sách các tên khả dĩ
+            const candidates = [normPath];
+            if (fname.toLowerCase().endsWith('pl.xlsx')) {
+                candidates.push(`${folder}/${fname.replace(/pl\.xlsx$/i, '.xlsx')}`);
+            } else if (fname.toLowerCase().endsWith('.xlsx')) {
+                candidates.push(`${folder}/${fname.replace(/\.xlsx$/i, 'PL.xlsx')}`);
             }
 
-            // Cách 2: Dự phòng truy vấn Git Tree để lấy blob SHA chuẩn xác nhất (không bao giờ bị cache)
+            // Cách 1: Thử Contents API cho từng ứng viên
+            for (const cand of candidates) {
+                try {
+                    const cleanPath = cand.split('/').map(encodeURIComponent).join('/');
+                    const headers = await getGitHubHeaders();
+                    headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
+                    headers['Pragma'] = 'no-cache';
+                    const res = await fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${cleanPath}?ref=${branch}&_ts=${Date.now()}_${Math.random().toString(36).substring(2, 6)}`, {
+                        headers: headers,
+                        cache: 'no-store'
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data && data.sha) return { sha: data.sha, actualPath: cand };
+                    }
+                } catch (e) {
+                    console.warn(`findGitHubFile contents warning for ${cand}:`, e);
+                }
+            }
+
+            // Cách 2: Truy vấn toàn bộ Git Tree (chắc chắn tìm ra nếu file có trên repo)
             try {
                 const headers = await getGitHubHeaders();
                 headers['Cache-Control'] = 'no-cache, no-store, must-revalidate';
@@ -1768,19 +1790,46 @@
                 });
                 if (resTree.ok) {
                     const treeData = await resTree.json();
-                    const targetNorm = path.replace(/\\/g, '/').toLowerCase();
-                    const found = (treeData.tree || []).find(item => item.path && item.path.toLowerCase() === targetNorm);
-                    if (found && found.sha) return found.sha;
+                    const treeItems = treeData.tree || [];
+
+                    // Thử khớp chính xác trước
+                    for (const cand of candidates) {
+                        const candLower = cand.toLowerCase();
+                        const found = treeItems.find(item => item.path && item.path.toLowerCase() === candLower);
+                        if (found && found.sha) {
+                            return { sha: found.sha, actualPath: found.path };
+                        }
+                    }
+
+                    // Thử khớp theo tên file thuần túy trong đúng thư mục
+                    const fnameLower = fname.toLowerCase();
+                    const foundByFile = treeItems.find(item => {
+                        if (!item.path) return false;
+                        const itemLower = item.path.toLowerCase();
+                        return itemLower.startsWith(folder.toLowerCase() + '/') && (
+                            itemLower.endsWith('/' + fnameLower) ||
+                            itemLower.endsWith('/' + fnameLower.replace(/pl\.xlsx$/i, '.xlsx')) ||
+                            itemLower.endsWith('/' + fnameLower.replace(/\.xlsx$/i, 'pl.xlsx'))
+                        );
+                    });
+                    if (foundByFile && foundByFile.sha) {
+                        return { sha: foundByFile.sha, actualPath: foundByFile.path };
+                    }
                 }
             } catch (e) {
-                console.warn('getFileSha tree warning:', e);
+                console.warn('findGitHubFile tree warning:', e);
             }
 
             return null;
         }
 
-        async function putGitHubFile(path, contentBase64, commitMessage, branch = 'main', maxRetries = 3) {
-            const cleanPath = encodeURIComponent(path).replace(/%2F/g, '/');
+        async function getFileSha(path, branch = 'main') {
+            const found = await findGitHubFile(path, branch);
+            return found ? found.sha : null;
+        }
+
+        async function putGitHubFile(path, contentBase64, commitMessage, branch = 'main', maxRetries = 6) {
+            const cleanPath = path.split('/').map(encodeURIComponent).join('/');
             let sha = await getFileSha(path, branch);
 
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -1809,35 +1858,46 @@
                 const err = await res.json().catch(() => ({}));
                 const errMsg = err.message || `Lỗi GitHub API: ${res.status}`;
 
-                // Xử lý tự động khi gặp lỗi xung đột SHA (HTTP 409 Conflict):
-                // Ví dụ: "... is at 56e9f15b371aac7b6cd74c0a97a435643dcf6fdc but expected e614adc99c0e02a47f9435a00c71585a517f0ac6"
-                if (res.status === 409 || errMsg.includes('is at') || errMsg.includes('does not match') || errMsg.includes('blob SHA')) {
+                // Tự động xử lý khi gặp xung đột phiên bản (409 Conflict hoặc 422 Unprocessable)
+                if (res.status === 409 || res.status === 422 || errMsg.includes('is at') || errMsg.includes('does not match') || errMsg.includes('blob SHA')) {
                     const match = errMsg.match(/is at ([0-9a-f]{40})/i);
                     if (match && match[1]) {
                         console.warn(`[GitHub Upload Auto-Recover] Lần ${attempt}: Bắt được SHA thực tế: ${match[1]}, tự động đẩy lại ngay...`);
                         sha = match[1];
-                        await new Promise(r => setTimeout(r, 400));
+                        await new Promise(r => setTimeout(r, 400 * attempt));
                         continue;
                     }
 
-                    // Nếu không có chuỗi "is at", chờ 800ms rồi truy vấn Git Trees lấy SHA mới nhất
                     console.warn(`[GitHub Upload Auto-Recover] Lần ${attempt}: SHA mismatch, lấy lại SHA mới nhất từ Git Trees...`);
-                    await new Promise(r => setTimeout(r, 800));
+                    await new Promise(r => setTimeout(r, 600 * attempt));
                     sha = await getFileSha(path, branch);
                     continue;
                 }
 
-                // Nếu lỗi khác (như 401 token sai, 403 giới hạn, 422 cấu hình) thì throw
                 throw new Error(errMsg);
             }
 
             throw new Error(`Lỗi cập nhật file ${path}: Xung đột phiên bản trên GitHub sau ${maxRetries} lần thử.`);
         }
 
-        async function deleteGitHubFile(path, commitMessage, branch = 'main', maxRetries = 3) {
-            const cleanPath = encodeURIComponent(path).replace(/%2F/g, '/');
-            let sha = await getFileSha(path, branch);
-            if (!sha) throw new Error('Không tìm thấy file trên hệ thống để xóa!');
+        async function deleteGitHubFile(path, commitMessage, branch = 'main', initialSha = null, maxRetries = 5) {
+            let foundInfo = null;
+            let targetPath = path;
+            let sha = initialSha;
+
+            if (!sha) {
+                foundInfo = await findGitHubFile(path, branch);
+                if (foundInfo) {
+                    sha = foundInfo.sha;
+                    targetPath = foundInfo.actualPath;
+                }
+            }
+
+            if (!sha) {
+                throw new Error(`Không tìm thấy file ${path} trên GitHub để xóa!`);
+            }
+
+            const cleanPath = targetPath.split('/').map(encodeURIComponent).join('/');
 
             for (let attempt = 1; attempt <= maxRetries; attempt++) {
                 const headers = await getGitHubHeaders();
@@ -1862,15 +1922,19 @@
                 const err = await res.json().catch(() => ({}));
                 const errMsg = err.message || `Lỗi khi xóa file trên GitHub: ${res.status}`;
 
-                if (res.status === 409 || errMsg.includes('is at') || errMsg.includes('does not match')) {
+                if (res.status === 409 || res.status === 422 || errMsg.includes('is at') || errMsg.includes('does not match') || errMsg.includes('blob SHA')) {
                     const match = errMsg.match(/is at ([0-9a-f]{40})/i);
                     if (match && match[1]) {
                         sha = match[1];
-                        await new Promise(r => setTimeout(r, 400));
+                        await new Promise(r => setTimeout(r, 400 * attempt));
                         continue;
                     }
-                    await new Promise(r => setTimeout(r, 800));
-                    sha = await getFileSha(path, branch);
+                    await new Promise(r => setTimeout(r, 600 * attempt));
+                    const refreshed = await findGitHubFile(targetPath, branch);
+                    if (refreshed) {
+                        sha = refreshed.sha;
+                        targetPath = refreshed.actualPath;
+                    }
                     continue;
                 }
 
@@ -1999,10 +2063,28 @@
                 updateIcons();
 
                 if (i > 0) {
-                    // Chờ 600ms giữa các file để GitHub đồng bộ nhánh ref ổn định
-                    await new Promise(r => setTimeout(r, 600));
+                    // Chờ 700ms giữa các file để GitHub ref đồng bộ ổn định
+                    await new Promise(r => setTimeout(r, 700));
                 }
 
+                // 1. Tải lên máy chủ cục bộ nếu Python backend đang chạy
+                try {
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    const localEndpoint = targetFolder === '03.QLDA' ? '/api/upload-qlda-excel' : '/api/upload-excel';
+                    await fetch(localEndpoint, {
+                        method: 'POST',
+                        headers: {
+                            'X-Admin-Password': sessionStorage.getItem('admin_pass') || DEFAULT_PASS,
+                            'X-Admin-Username': sessionStorage.getItem('admin_email') || ''
+                        },
+                        body: formData
+                    });
+                } catch (e) {
+                    // Đang chạy độc lập trên GitHub Pages tĩnh
+                }
+
+                // 2. Tải lên GitHub Cloud
                 try {
                     const base64 = await readFileAsBase64(file);
                     const remotePath = `${targetFolder}/${file.name}`;
@@ -2038,7 +2120,7 @@
                 finalMsg.innerHTML = `
                     <span class="text-amber-300 flex items-center gap-1.5">
                         <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i>
-                        Đã tải thành công ${successCount}/${validFiles.length} file (${failedFiles.length} file gặp sự cố mạng/xung đột).
+                        Đã tải thành công ${successCount}/${validFiles.length} file (${failedFiles.length} file cần thử lại).
                     </span>
                     <button type="button" id="btn-retry-failed-uploads" class="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-rose-600/20 cursor-pointer">
                         <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
@@ -2069,41 +2151,70 @@
 
             const files = [];
 
-            // 1. Thử lấy từ GitHub API
+            // 0. Thử lấy từ Backend API cục bộ nếu server Python đang chạy
             try {
-                const [resQlda, resData] = await Promise.all([
-                    fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/03.QLDA?ref=main&t=${Date.now()}`, { headers: await getGitHubHeaders() }).catch(() => null),
-                    fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/Data?ref=main&t=${Date.now()}`, { headers: await getGitHubHeaders() }).catch(() => null)
-                ]);
-
-                if (resQlda && resQlda.ok) {
-                    const qFiles = await resQlda.json();
-                    qFiles.filter(f => f.name.endsWith('.xlsx') || f.name.endsWith('.xlsm')).forEach(f => {
-                        files.push({
-                            name: f.name,
-                            folder: '03.QLDA',
-                            size_formatted: `${(f.size / 1024 / 1024).toFixed(2)} MB`,
-                            mtime_formatted: 'Đã lưu trên GitHub Cloud',
-                            download_url: f.download_url
+                const resLocal = await fetch('/api/admin/files', {
+                    headers: {
+                        'X-Admin-Password': sessionStorage.getItem('admin_pass') || DEFAULT_PASS,
+                        'X-Admin-Username': sessionStorage.getItem('admin_email') || ''
+                    }
+                });
+                if (resLocal.ok) {
+                    const dataLocal = await resLocal.json();
+                    if (dataLocal && dataLocal.files && dataLocal.files.length > 0) {
+                        dataLocal.files.forEach(f => {
+                            files.push({
+                                name: f.name,
+                                folder: f.folder,
+                                size_formatted: f.size_formatted,
+                                mtime_formatted: f.mtime_formatted || 'Máy chủ cục bộ',
+                                download_url: `/api/admin/download-file?name=${encodeURIComponent(f.name)}&folder=${encodeURIComponent(f.folder)}`,
+                                is_local: true
+                            });
                         });
-                    });
-                }
-
-                if (resData && resData.ok) {
-                    const dFiles = await resData.json();
-                    dFiles.filter(f => f.name.endsWith('.xlsx') || f.name.endsWith('.xlsm')).forEach(f => {
-                        files.push({
-                            name: f.name,
-                            folder: 'Data',
-                            size_formatted: `${(f.size / 1024 / 1024).toFixed(2)} MB`,
-                            mtime_formatted: 'Đã lưu trên GitHub Cloud',
-                            download_url: f.download_url
-                        });
-                    });
+                    }
                 }
             } catch (e) {}
 
-            // 2. Nếu không có file từ GitHub API, lấy từ JSON tĩnh catalog
+            // 1. Thử lấy từ GitHub API nếu chưa có file
+            if (files.length === 0) {
+                try {
+                    const [resQlda, resData] = await Promise.all([
+                        fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/03.QLDA?ref=main&t=${Date.now()}`, { headers: await getGitHubHeaders() }).catch(() => null),
+                        fetch(`https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/Data?ref=main&t=${Date.now()}`, { headers: await getGitHubHeaders() }).catch(() => null)
+                    ]);
+
+                    if (resQlda && resQlda.ok) {
+                        const qFiles = await resQlda.json();
+                        qFiles.filter(f => f.name.endsWith('.xlsx') || f.name.endsWith('.xlsm')).forEach(f => {
+                            files.push({
+                                name: f.name,
+                                folder: '03.QLDA',
+                                sha: f.sha,
+                                size_formatted: `${(f.size / 1024 / 1024).toFixed(2)} MB`,
+                                mtime_formatted: 'Đã lưu trên GitHub Cloud',
+                                download_url: f.download_url
+                            });
+                        });
+                    }
+
+                    if (resData && resData.ok) {
+                        const dFiles = await resData.json();
+                        dFiles.filter(f => f.name.endsWith('.xlsx') || f.name.endsWith('.xlsm')).forEach(f => {
+                            files.push({
+                                name: f.name,
+                                folder: 'Data',
+                                sha: f.sha,
+                                size_formatted: `${(f.size / 1024 / 1024).toFixed(2)} MB`,
+                                mtime_formatted: 'Đã lưu trên GitHub Cloud',
+                                download_url: f.download_url
+                            });
+                        });
+                    }
+                } catch (e) {}
+            }
+
+            // 2. Dự phòng: lấy từ JSON tĩnh catalog (projects.json, qlda_projects.json)
             if (files.length === 0) {
                 try {
                     const dataBase = getDataBasePath();
@@ -2182,7 +2293,7 @@
                             <button onclick="downloadFile('${f.folder}', '${f.name}', '${f.download_url || ''}')" class="p-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 transition cursor-pointer" title="Tải file về máy">
                                 <i data-lucide="download" class="w-3.5 h-3.5"></i>
                             </button>
-                            <button onclick="openDeleteModal('${f.folder}', '${f.name}')" class="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 transition cursor-pointer" title="Xóa file khỏi hệ thống">
+                            <button onclick="openDeleteModal('${f.folder}', '${f.name}', '${f.sha || ''}')" class="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 transition cursor-pointer" title="Xóa file khỏi hệ thống">
                                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                             </button>
                         </div>
@@ -2209,8 +2320,8 @@
         }
 
         // Xóa file
-        function openDeleteModal(folder, filename) {
-            state.fileToDelete = { folder, filename };
+        function openDeleteModal(folder, filename, sha = '') {
+            state.fileToDelete = { folder, filename, sha };
             document.getElementById('delete-file-name').textContent = `${folder}/${filename}`;
             document.getElementById('modal-delete').classList.remove('hidden');
             updateIcons();
@@ -2223,26 +2334,56 @@
 
         document.getElementById('btn-confirm-delete')?.addEventListener('click', async () => {
             if (!state.fileToDelete) return;
-            const { folder, filename } = state.fileToDelete;
+            const { folder, filename, sha } = state.fileToDelete;
             const btn = document.getElementById('btn-confirm-delete');
             btn.disabled = true;
             btn.textContent = 'Đang xóa...';
 
+            let localDeleted = false;
+            let gitHubDeleted = false;
+            let lastError = '';
+
+            // 1. Thử xóa trên máy chủ cục bộ (nếu backend đang chạy)
+            try {
+                const resLocal = await fetch('/api/admin/delete-file', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Password': sessionStorage.getItem('admin_pass') || DEFAULT_PASS,
+                        'X-Admin-Username': sessionStorage.getItem('admin_email') || ''
+                    },
+                    body: JSON.stringify({ name: filename, folder: folder })
+                });
+                if (resLocal.ok) {
+                    localDeleted = true;
+                }
+            } catch (e) {
+                // Backend không chạy
+            }
+
+            // 2. Thử xóa trên GitHub Cloud (tìm cả tên gốc và biến thể PL.xlsx)
             try {
                 const path = `${folder}/${filename}`;
-                await deleteGitHubFile(path, `delete: Xóa file ${filename} từ Admin Portal`, 'main');
-                logAudit('Xóa file vĩnh viễn', `${path}`);
+                await deleteGitHubFile(path, `delete: Xóa file ${filename} từ Admin Portal`, 'main', sha);
+                gitHubDeleted = true;
+            } catch (err) {
+                lastError = err.message;
+            }
+
+            // Nếu đã xóa được ở local hoặc GitHub:
+            if (localDeleted || gitHubDeleted) {
+                logAudit('Xóa file vĩnh viễn', `${folder}/${filename}`);
                 document.getElementById('modal-delete').classList.add('hidden');
                 triggerDeployWorkflow();
                 alert(`Đã xóa thành công file ${filename}! Hệ thống đang cập nhật.`);
                 loadFilesList();
-            } catch (err) {
-                alert(`Lỗi khi xóa file: ${err.message}`);
-            } finally {
-                btn.disabled = false;
-                btn.textContent = 'Xóa Vĩnh Viễn';
-                state.fileToDelete = null;
+            } else {
+                alert(`Lỗi khi xóa file: ${lastError || 'Không tìm thấy file trên hệ thống để xóa!'}`);
             }
+
+            btn.disabled = false;
+            btn.textContent = 'Xóa Vĩnh Viễn';
+            state.fileToDelete = null;
         });
 
         // =========================================================================
@@ -2386,6 +2527,45 @@
 
         document.getElementById('btn-quick-rebuild')?.addEventListener('click', function() { handleTriggerDeploy(this); });
         document.getElementById('btn-trigger-deploy-tab')?.addEventListener('click', function() { handleTriggerDeploy(this); });
+
+        // Đồng bộ trực tiếp từ máy chủ cục bộ sang online (nếu đang chạy FastAPI server)
+        const btnLocalSync = document.getElementById('btn-local-sync-online');
+        if (btnLocalSync) {
+            // Kiểm tra xem server cục bộ có khả dụng không
+            fetch('/api/server-info').then(r => {
+                if (r.ok) btnLocalSync.classList.remove('hidden');
+            }).catch(() => {});
+
+            btnLocalSync.addEventListener('click', async function() {
+                const orig = this.innerHTML;
+                this.disabled = true;
+                this.innerHTML = '<i data-lucide="loader-2" class="w-3.5 h-3.5 animate-spin"></i><span>Đang biên dịch...</span>';
+                updateIcons();
+
+                try {
+                    const res = await fetch('/api/admin/sync-online', {
+                        method: 'POST',
+                        headers: {
+                            'X-Admin-Password': sessionStorage.getItem('admin_pass') || DEFAULT_PASS,
+                            'X-Admin-Username': sessionStorage.getItem('admin_email') || ''
+                        }
+                    });
+                    const data = await res.json();
+                    if (res.ok) {
+                        alert(data.message || 'Đã biên dịch và đóng gói dữ liệu online thành công!');
+                        loadFilesList();
+                    } else {
+                        alert('Lỗi biên dịch: ' + (data.detail || data.message));
+                    }
+                } catch (e) {
+                    alert('Lỗi kết nối máy chủ cục bộ: ' + e.message);
+                } finally {
+                    this.disabled = false;
+                    this.innerHTML = orig;
+                    updateIcons();
+                }
+            });
+        }
 
         // =========================================================================
         // TAB 3: TÀI KHOẢN & ĐỔI MẬT KHẨU & GITHUB TOKEN
