@@ -475,8 +475,15 @@
             </div>
         </section>
 
-        <!-- Navigation Tabs (Tối ưu vuốt ngang mượt mà trên điện thoại, chống co cụm gãy chữ dọc) -->
-        <div class="flex items-center border-b border-slate-200 gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar max-w-full pb-1 flex-nowrap shrink-0 scroll-smooth">
+        <div class="dashboard-layout">
+        <!-- Điều hướng sidebar: giữ nguyên data-tab để tương thích với xử lý tab hiện tại -->
+        <aside class="dashboard-sidebar" aria-label="Điều hướng chức năng">
+            <div class="sidebar-heading">
+                <span class="sidebar-heading-icon"><i data-lucide="layout-dashboard" class="w-4 h-4"></i></span>
+                <div><p class="sidebar-eyebrow">AMECC2</p><h2>Không gian làm việc</h2></div>
+            </div>
+            <p class="sidebar-section-label">DANH MỤC</p>
+            <nav class="sidebar-nav" aria-label="Các chức năng chính">
             <button class="nav-tab active px-3 sm:px-4 py-2 sm:py-2.5 font-bold text-xs sm:text-sm text-blue-600 border-b-2 border-blue-600 flex items-center gap-1.5 sm:gap-2 whitespace-nowrap shrink-0 cursor-pointer transition" data-tab="tree">
                 <i data-lucide="git-merge" class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0"></i>
                 <span class="sm:inline hidden">Cây Cấu Kiện & Chi Tiết BTP</span>
@@ -497,8 +504,11 @@
                 <span class="sm:inline hidden">Tiến Độ Công Đoạn (QLDA)</span>
                 <span class="sm:hidden inline">Tiến Độ QLDA</span>
             </button>
-        </div>
+            </nav>
+            <div class="sidebar-note"><i data-lucide="info" class="w-4 h-4"></i><span>Chọn một mục để xem dữ liệu chi tiết.</span></div>
+        </aside>
 
+        <div class="dashboard-content">
         <!-- TAB 1: TREE VIEW CẤU KIỆN & BTP -->
         <section id="tab-tree-content" class="tab-pane space-y-3.5">
             <!-- Toolbar Cây Cấu Kiện & Nhóm Nút Xuất BTP -->
@@ -1825,6 +1835,8 @@
             </div>
             </div>
         </section>
+        </div>
+        </div>
     </main>
 
     <!-- MODAL CHI TIẾT CẤU KIỆN & HÀNH TRÌNH 5 CÔNG ĐOẠN QLDA -->

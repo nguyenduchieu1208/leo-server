@@ -51,7 +51,13 @@ from backend.cache import (
     warm_up_cache, 
     clear_all_cache
 )
-from backend.exporter import export_project_excel, export_project_csv, export_missing_parts_excel
+from backend.exporter import (
+    export_project_excel, 
+    export_project_csv, 
+    export_missing_parts_excel,
+    export_size_summary_excel,
+    export_daily_receipts_excel
+)
 
 app = FastAPI(title="Server Tra Cứu Vật Tư & BTP Theo Ngày - Amecc2", version="2.5.0")
 
@@ -79,6 +85,7 @@ async def add_custom_headers(request: Request, call_next):
 DATA_FOLDER = os.path.join(BASE_DIR, "Data")
 QLDA_FOLDER = os.path.join(BASE_DIR, "03.QLDA")
 FRONTEND_DIR = os.path.join(BASE_DIR, "frontend")
+DEMO_V2_DIR = os.path.join(BASE_DIR, "demo_v2")
 
 def is_safe_path(target_path: str, allowed_dirs: list) -> bool:
     """Xác thực bảo mật chống Path Traversal: Đảm bảo đường dẫn nằm trong thư mục cho phép"""
@@ -95,6 +102,25 @@ def is_safe_path(target_path: str, allowed_dirs: list) -> bool:
 if os.path.exists(FRONTEND_DIR):
     app.mount("/frontend", StaticFiles(directory=FRONTEND_DIR), name="frontend")
     app.mount("/static", StaticFiles(directory=FRONTEND_DIR), name="static")
+
+if os.path.exists(DEMO_V2_DIR):
+    app.mount("/demo_v2", StaticFiles(directory=DEMO_V2_DIR, html=True), name="demo_v2")
+    app.mount("/demo", StaticFiles(directory=DEMO_V2_DIR, html=True), name="demo")
+    css_dir = os.path.join(DEMO_V2_DIR, "css")
+    js_dir = os.path.join(DEMO_V2_DIR, "js")
+    data_dir = os.path.join(DEMO_V2_DIR, "data")
+    data_qlda_dir = os.path.join(DEMO_V2_DIR, "data_qlda")
+    assets_dir = os.path.join(DEMO_V2_DIR, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="demo_v2_assets")
+    if os.path.exists(css_dir):
+        app.mount("/css", StaticFiles(directory=css_dir), name="demo_v2_css")
+    if os.path.exists(js_dir):
+        app.mount("/js", StaticFiles(directory=js_dir), name="demo_v2_js")
+    if os.path.exists(data_dir):
+        app.mount("/data", StaticFiles(directory=data_dir), name="demo_v2_data")
+    if os.path.exists(data_qlda_dir):
+        app.mount("/data_qlda", StaticFiles(directory=data_qlda_dir), name="demo_v2_data_qlda")
 
 @app.get("/style.css")
 async def serve_style_css():
@@ -258,20 +284,17 @@ def get_current_user_from_request(request: Request) -> dict | None:
         parts = token.split(":")
         if len(parts) == 3:
             return find_user_by_username(parts[0])
-    if is_host_admin(request):
-        return find_user_by_username(ADMIN_EMAIL)
     return None
 
 def is_authenticated_admin(request: Request) -> bool:
     """
     Kiểm tra quyền Admin:
-    1. Kiểm tra cookie 'admin_session' hoặc header Bearer hợp lệ
-    2. Hoặc người dùng trực tiếp trên máy chủ localhost
+    Bắt buộc phải có phiên đăng nhập hợp lệ (cookie hoặc token Bearer)
     """
     user = get_current_user_from_request(request)
     if user and user.get("status") == "active":
         return True
-    return is_host_admin(request)
+    return False
 
 @app.on_event("startup")
 async def on_startup():
@@ -279,6 +302,9 @@ async def on_startup():
 
 @app.get("/")
 async def serve_index():
+    demo_v2_index = os.path.join(DEMO_V2_DIR, "index.html")
+    if os.path.exists(demo_v2_index):
+        return FileResponse(demo_v2_index)
     index_file = os.path.join(FRONTEND_DIR, "index.html")
     if os.path.exists(index_file):
         return FileResponse(index_file)
@@ -435,6 +461,48 @@ async def export_qlda_excel_endpoint(
     - Giữ trọn vẹn 5 công đoạn (Gá lắp, Hàn, Tổ hợp thử, Nghiệm thu, Bàn giao)
     - Định dạng tiêu đề gộp nhóm, hàng Subtotal tự động co giãn, phông chữ Times New Roman chuẩn form
     """
+    if project_id and project_id.lower() == "all":
+        projects = list_available_qlda_projects(QLDA_FOLDER)
+        all_items = []
+        for p in projects:
+            try:
+                p_data = get_cached_qlda(p["file_path"])
+                for it in p_data.get("items", []):
+                    all_items.append(it)
+            except Exception:
+                pass
+        
+        filtered_items = all_items
+        if hang_muc and hang_muc != "all":
+            filtered_items = [it for it in filtered_items if it.get("hang_muc") == hang_muc]
+        if phan_giao and phan_giao != "all":
+            filtered_items = [it for it in filtered_items if it.get("phan_giao") == phan_giao]
+        if status and status != "all":
+            filtered_items = [it for it in filtered_items if it.get("status") == status]
+        if q:
+            q_lower = q.lower().strip()
+            filtered_items = [it for it in filtered_items if (
+                q_lower in (it.get("so_chi_tiet") or "").lower() or
+                q_lower in (it.get("ten_ban_ve") or "").lower() or
+                q_lower in (it.get("hang_muc") or "").lower() or
+                q_lower in (it.get("size") or "").lower() or
+                q_lower in (it.get("profile") or "").lower() or
+                q_lower in (it.get("du_an") or "").lower()
+            )]
+
+        excel_io = generate_qlda_export_excel({"project_id": "ALL", "items": filtered_items}, filtered_items)
+        filename = "QLDA_TatCaDuAn_TienDoCongDoan.xlsx"
+        quoted_filename = urllib.parse.quote(filename)
+        headers = {
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quoted_filename}",
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+        return StreamingResponse(
+            excel_io,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers
+        )
+
     target_path = None
     if file_path:
         if not is_safe_path(file_path, [QLDA_FOLDER]):
@@ -566,6 +634,113 @@ async def export_data_endpoint(
             )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Lỗi xuất file: {str(e)}")
+
+@app.get("/api/export-size-summary")
+async def export_size_summary_endpoint(
+    project_id: Optional[str] = Query(None),
+    file_path: Optional[str] = Query(None),
+    sheet_name: Optional[str] = Query(None),
+    target_sheet: Optional[str] = Query(None),
+    format: str = Query("xlsx")
+):
+    """
+    Xuất Bảng Tổng Hợp Quy Cách (SIZE) BOM chuyên nghiệp từ Server:
+    - Tổng hợp toàn bộ các size (như PL75, PL10, H300...)
+    - Tính tổng SL thiết kế, đã nhận, còn thiếu, khối lượng thiếu, tỷ lệ %
+    """
+    eff_sheet = target_sheet or sheet_name
+    target_path = None
+    if file_path:
+        if not is_safe_path(file_path, [DATA_FOLDER]):
+            raise HTTPException(status_code=400, detail="Đường dẫn không hợp lệ")
+        if os.path.exists(file_path):
+            target_path = file_path
+    elif project_id:
+        projects = list_available_projects(DATA_FOLDER)
+        for p in projects:
+            if p["project_id"] == project_id or p["file_name"] == project_id:
+                target_path = p["file_path"]
+                break
+
+    if not target_path or not os.path.exists(target_path):
+        projects = list_available_projects(DATA_FOLDER)
+        if projects:
+            target_path = projects[0]["file_path"]
+        else:
+            raise HTTPException(status_code=404, detail="Không tìm thấy file Excel")
+
+    try:
+        data = get_cached_project(target_path)
+        proj_code = data.get("project_id", "DuAn")
+        sheet_suffix = f"_{eff_sheet}" if eff_sheet and eff_sheet.lower() != "all" else "_TatCaHangMuc"
+
+        excel_stream = export_size_summary_excel(data, target_sheet=eff_sheet)
+        filename = f"TongHop_SIZE_{proj_code}{sheet_suffix}.xlsx"
+        encoded_filename = urllib.parse.quote(filename)
+        headers = {
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
+        }
+        return StreamingResponse(
+            excel_stream,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi xuất bảng tổng hợp SIZE: {str(e)}")
+
+@app.get("/api/export-daily-receipts")
+async def export_daily_receipts_endpoint(
+    project_id: Optional[str] = Query(None),
+    file_path: Optional[str] = Query(None),
+    date: str = Query(..., description="Ngày nhận cần xuất (DD/MM/YYYY)"),
+    sheet_name: Optional[str] = Query(None),
+    target_sheet: Optional[str] = Query(None)
+):
+    """
+    Xuất Danh Sách BTP Nhận Theo Ngày từ Server:
+    - Lọc các chi tiết BTP nhận trong ngày cụ thể (vd 19/08/2026)
+    - Hiển thị đầy đủ thông tin: Hạng mục, Cấu kiện, Mã Cắt, Kích Thước, Số Lượng, Khối Lượng
+    """
+    eff_sheet = target_sheet or sheet_name
+    target_path = None
+    if file_path:
+        if not is_safe_path(file_path, [DATA_FOLDER]):
+            raise HTTPException(status_code=400, detail="Đường dẫn không hợp lệ")
+        if os.path.exists(file_path):
+            target_path = file_path
+    elif project_id:
+        projects = list_available_projects(DATA_FOLDER)
+        for p in projects:
+            if p["project_id"] == project_id or p["file_name"] == project_id:
+                target_path = p["file_path"]
+                break
+
+    if not target_path or not os.path.exists(target_path):
+        projects = list_available_projects(DATA_FOLDER)
+        if projects:
+            target_path = projects[0]["file_path"]
+        else:
+            raise HTTPException(status_code=404, detail="Không tìm thấy file Excel")
+
+    try:
+        data = get_cached_project(target_path)
+        proj_code = data.get("project_id", "DuAn")
+        clean_d = date.replace("/", "-")
+        sheet_suffix = f"_{eff_sheet}" if eff_sheet and eff_sheet.lower() != "all" else ""
+
+        excel_stream = export_daily_receipts_excel(data, date_str=date, target_sheet=eff_sheet)
+        filename = f"BTP_NhanNgay_{clean_d}_{proj_code}{sheet_suffix}.xlsx"
+        encoded_filename = urllib.parse.quote(filename)
+        headers = {
+            "Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"
+        }
+        return StreamingResponse(
+            excel_stream,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers=headers
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Lỗi xuất BTP nhận theo ngày: {str(e)}")
 
 @app.post("/api/clear-cache")
 async def api_clear_cache(request: Request):

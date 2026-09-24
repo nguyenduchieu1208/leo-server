@@ -188,6 +188,18 @@ def parse_qlda_file(file_path):
             bg_don_vi = str(row[51]).strip() if len(row) > 51 and row[51] is not None else ""
             bg_so_bb = str(row[52]).strip() if len(row) > 52 and row[52] is not None else ""
 
+            # Số lượng nhận và số lượng thiếu
+            sl_nhan = 0
+            if nhan_phoi_val is not None:
+                val_num = to_num(nhan_phoi_val, 0.0)
+                if 0 < val_num <= 1.0:
+                    sl_nhan = int(round(tqty * val_num))
+                elif val_num > 1.0:
+                    sl_nhan = min(tqty, int(val_num))
+            if sl_nhan == 0 and ga_sl > 0:
+                sl_nhan = min(tqty, int(ga_sl))
+            sl_thieu = max(0, tqty - sl_nhan)
+
             # Chuẩn hóa đối tượng cấu kiện
             item = {
                 "stt": row_idx,
@@ -202,6 +214,8 @@ def parse_qlda_file(file_path):
                 "so_chi_tiet": so_chi_tiet,
                 "size": size,
                 "tqty": tqty,
+                "sl_nhan": sl_nhan,
+                "sl_thieu": sl_thieu,
                 "uweight": uweight,
                 "tweight": tweight,
                 "profile": profile,
@@ -210,7 +224,8 @@ def parse_qlda_file(file_path):
                 "ke_hoach_thang": ke_hoach_thang,
                 "nhan_phoi": {
                     "rate": nhan_phoi_rate,
-                    "kl": round(nhan_phoi_kl, 2)
+                    "kl": round(nhan_phoi_kl, 2),
+                    "sl": sl_nhan
                 },
                 "ga_lap": {"ngay": ga_ngay, "sl": ga_sl, "kl": ga_kl},
                 "han": {"ngay": han_ngay, "sl": han_sl, "kl": han_kl},
@@ -364,7 +379,7 @@ def parse_qlda_file(file_path):
             p["han_kl"] = round(p["han_kl"], 2)
             p["th_kl"] = round(p["th_kl"], 2)
             p["nt_kl"] = round(p["nt_kl"], 2)
-        p["bg_kl"] = round(p["bg_kl"], 2)
+            p["bg_kl"] = round(p["bg_kl"], 2)
     finally:
         try:
             wb.close()
@@ -452,7 +467,7 @@ def generate_qlda_export_excel(project_data, filtered_items=None):
         bottom=Side(style='thin', color='CBD5E0')
     )
 
-    # 33 Cột chuẩn theo form mẫu Quản Lý Dự Án của người dùng (sau khi loại bỏ: A, C, D, T..AI, AS, BB..end)
+    # 35 Cột chuẩn theo form mẫu Quản Lý Dự Án của người dùng (sau khi loại bỏ: A, C, D, T..AI, AS, BB..end, thêm SL Nhận & SL Thiếu)
     columns_def = [
         {"name": "Số Dự Án", "width": 12, "align": "center"},             # 1 (B)
         {"name": "Hạng mục", "width": 24, "align": "left"},               # 2 (E)
@@ -465,33 +480,35 @@ def generate_qlda_export_excel(project_data, filtered_items=None):
         {"name": "Số chi tiết", "width": 16, "align": "left"},            # 9 (L)
         {"name": "Size", "width": 18, "align": "left"},                   # 10 (M)
         {"name": "T'Qty", "width": 10, "align": "right", "format": "#,##0"},   # 11 (N)
-        {"name": "U.Weight", "width": 12, "align": "right", "format": "#,##0.0"}, # 12 (O)
-        {"name": "T.Weight", "width": 14, "align": "right", "format": "#,##0.0"}, # 13 (P)
-        {"name": "Profile", "width": 20, "align": "left"},                # 14 (Q)
-        {"name": "ID", "width": 12, "align": "center"},                   # 15 (R)
-        {"name": "Note", "width": 16, "align": "left"},                   # 16 (S)
+        {"name": "SL Nhận", "width": 10, "align": "right", "format": "#,##0"}, # 12
+        {"name": "SL Thiếu", "width": 10, "align": "right", "format": "#,##0"},# 13
+        {"name": "U.Weight", "width": 12, "align": "right", "format": "#,##0.0"}, # 14 (O)
+        {"name": "T.Weight", "width": 14, "align": "right", "format": "#,##0.0"}, # 15 (P)
+        {"name": "Profile", "width": 20, "align": "left"},                # 16 (Q)
+        {"name": "ID", "width": 12, "align": "center"},                   # 17 (R)
+        {"name": "Note", "width": 16, "align": "left"},                   # 18 (S)
         # 1. Gá lắp (AJ..AL)
-        {"name": "Ngày Gá", "width": 13, "align": "center"},              # 17 (AJ)
-        {"name": "SL Gá", "width": 10, "align": "right", "format": "#,##0"},   # 18 (AK)
-        {"name": "KL Gá", "width": 14, "align": "right", "format": "#,##0.0"}, # 19 (AL)
+        {"name": "Ngày Gá", "width": 13, "align": "center"},              # 19 (AJ)
+        {"name": "SL Gá", "width": 10, "align": "right", "format": "#,##0"},   # 20 (AK)
+        {"name": "KL Gá", "width": 14, "align": "right", "format": "#,##0.0"}, # 21 (AL)
         # 2. Hàn (AM..AO)
-        {"name": "Ngày Hàn", "width": 13, "align": "center"},             # 20 (AM)
-        {"name": "SL Hàn", "width": 10, "align": "right", "format": "#,##0"},   # 21 (AN)
-        {"name": "KL Hàn", "width": 14, "align": "right", "format": "#,##0.0"}, # 22 (AO)
+        {"name": "Ngày Hàn", "width": 13, "align": "center"},             # 22 (AM)
+        {"name": "SL Hàn", "width": 10, "align": "right", "format": "#,##0"},   # 23 (AN)
+        {"name": "KL Hàn", "width": 14, "align": "right", "format": "#,##0.0"}, # 24 (AO)
         # 3. Tổ hợp thử (AP..AR)
-        {"name": "Ngày TH", "width": 13, "align": "center"},              # 23 (AP)
-        {"name": "SL TH", "width": 10, "align": "right", "format": "#,##0"},   # 24 (AQ)
-        {"name": "KL TH", "width": 14, "align": "right", "format": "#,##0.0"}, # 25 (AR)
+        {"name": "Ngày TH", "width": 13, "align": "center"},              # 25 (AP)
+        {"name": "SL TH", "width": 10, "align": "right", "format": "#,##0"},   # 26 (AQ)
+        {"name": "KL TH", "width": 14, "align": "right", "format": "#,##0.0"}, # 27 (AR)
         # 4. Nghiệm thu (AT..AV)
-        {"name": "Ngày NT", "width": 13, "align": "center"},              # 26 (AT)
-        {"name": "SL NT", "width": 10, "align": "right", "format": "#,##0"},   # 27 (AU)
-        {"name": "KL NT", "width": 14, "align": "right", "format": "#,##0.0"}, # 28 (AV)
+        {"name": "Ngày NT", "width": 13, "align": "center"},              # 28 (AT)
+        {"name": "SL NT", "width": 10, "align": "right", "format": "#,##0"},   # 29 (AU)
+        {"name": "KL NT", "width": 14, "align": "right", "format": "#,##0.0"}, # 30 (AV)
         # 5. Bàn giao (AW..BA)
-        {"name": "Ngày BG", "width": 13, "align": "center"},              # 29 (AW)
-        {"name": "SL BG", "width": 10, "align": "right", "format": "#,##0"},   # 30 (AX)
-        {"name": "KL BG", "width": 14, "align": "right", "format": "#,##0.0"}, # 31 (AY)
-        {"name": "Đơn vị nhận", "width": 16, "align": "left"},            # 32 (AZ)
-        {"name": "Số biên bản", "width": 16, "align": "left"}             # 33 (BA)
+        {"name": "Ngày BG", "width": 13, "align": "center"},              # 31 (AW)
+        {"name": "SL BG", "width": 10, "align": "right", "format": "#,##0"},   # 32 (AX)
+        {"name": "KL BG", "width": 14, "align": "right", "format": "#,##0.0"}, # 33 (AY)
+        {"name": "Đơn vị nhận", "width": 16, "align": "left"},            # 34 (AZ)
+        {"name": "Số biên bản", "width": 16, "align": "left"}             # 35 (BA)
     ]
 
     total_cols = len(columns_def)
@@ -511,12 +528,12 @@ def generate_qlda_export_excel(project_data, filtered_items=None):
 
     # Định nghĩa các nhóm công đoạn ở Hàng 1 (theo đúng nhóm mẫu của người dùng)
     groups = [
-        {"title": f"DỰ ÁN:{proj_id}", "start": 1, "end": 16, "fill": "2D3748", "color": "FFFFFF"},
-        {"title": "Gá lắp", "start": 17, "end": 19, "fill": "BEE3F8", "color": "2B6CB0"},
-        {"title": "Hàn", "start": 20, "end": 22, "fill": "FEEBC8", "color": "C05621"},
-        {"title": "Tổ hợp thử", "start": 23, "end": 25, "fill": "E9D8FD", "color": "6B46C1"},
-        {"title": "Nghiệm thu", "start": 26, "end": 28, "fill": "C6F6D5", "color": "22543D"},
-        {"title": "Bàn giao", "start": 29, "end": 33, "fill": "B2F5EA", "color": "234E52"}
+        {"title": f"DỰ ÁN:{proj_id}", "start": 1, "end": 18, "fill": "2D3748", "color": "FFFFFF"},
+        {"title": "Gá lắp", "start": 19, "end": 21, "fill": "BEE3F8", "color": "2B6CB0"},
+        {"title": "Hàn", "start": 22, "end": 24, "fill": "FEEBC8", "color": "C05621"},
+        {"title": "Tổ hợp thử", "start": 25, "end": 27, "fill": "E9D8FD", "color": "6B46C1"},
+        {"title": "Nghiệm thu", "start": 28, "end": 30, "fill": "C6F6D5", "color": "22543D"},
+        {"title": "Bàn giao", "start": 31, "end": 35, "fill": "B2F5EA", "color": "234E52"}
     ]
 
     for g in groups:
@@ -541,23 +558,25 @@ def generate_qlda_export_excel(project_data, filtered_items=None):
 
     ws.cell(2, 1, "Information ID").alignment = Alignment(horizontal="center", vertical="center")
     ws.cell(2, 8, "Information Item").alignment = Alignment(horizontal="center", vertical="center")
-    ws.cell(2, 16, "=IF(WEEKDAY(TODAY()-1)=1,TODAY()-2,TODAY()-1)").alignment = Alignment(horizontal="center", vertical="center")
-    ws.cell(2, 33, f'=SUBSTITUTE(A1,"DỰ ÁN:","")&"-"').alignment = Alignment(horizontal="center", vertical="center")
+    ws.cell(2, 18, "=IF(WEEKDAY(TODAY()-1)=1,TODAY()-2,TODAY()-1)").alignment = Alignment(horizontal="center", vertical="center")
+    ws.cell(2, 35, f'=SUBSTITUTE(A1,"DỰ ÁN:","")&"-"').alignment = Alignment(horizontal="center", vertical="center")
     
-    # Subtotal công thức cho các cột số lượng và khối lượng (Col 11=K, 13=M, 18=R, 19=S, 21=U, 22=V, 24=X, 25=Y, 27=AA, 28=AB, 30=AD, 31=AE)
+    # Subtotal công thức cho các cột số lượng và khối lượng
     subtotal_cols = [
         (11, "#,##0"),      # T'Qty (K)
-        (13, "#,##0.0"),    # T.Weight (M)
-        (18, "#,##0"),      # SL Gá (R)
-        (19, "#,##0.0"),    # KL Gá (S)
-        (21, "#,##0"),      # SL Hàn (U)
-        (22, "#,##0.0"),    # KL Hàn (V)
-        (24, "#,##0"),      # SL TH (X)
-        (25, "#,##0.0"),    # KL TH (Y)
-        (27, "#,##0"),      # SL NT (AA)
-        (28, "#,##0.0"),    # KL NT (AB)
-        (30, "#,##0"),      # SL BG (AD)
-        (31, "#,##0.0"),    # KL BG (AE)
+        (12, "#,##0"),      # SL Nhận
+        (13, "#,##0"),      # SL Thiếu
+        (15, "#,##0.0"),    # T.Weight (P)
+        (20, "#,##0"),      # SL Gá
+        (21, "#,##0.0"),    # KL Gá
+        (23, "#,##0"),      # SL Hàn
+        (24, "#,##0.0"),    # KL Hàn
+        (26, "#,##0"),      # SL TH
+        (27, "#,##0.0"),    # KL TH
+        (29, "#,##0"),      # SL NT
+        (30, "#,##0.0"),    # KL NT
+        (32, "#,##0"),      # SL BG
+        (33, "#,##0.0"),    # KL BG
     ]
     for c_idx, num_fmt in subtotal_cols:
         col_let = get_column_letter(c_idx)
@@ -575,7 +594,7 @@ def generate_qlda_export_excel(project_data, filtered_items=None):
         cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
         cell.border = thin_border
 
-    # Hàng 4+: Ghi dữ liệu 33 cột
+    # Hàng 4+: Ghi dữ liệu 35 cột
     for r_offset, item in enumerate(items, start=4):
         ws.row_dimensions[r_offset].height = 20
 
@@ -591,33 +610,35 @@ def generate_qlda_export_excel(project_data, filtered_items=None):
             item.get("so_chi_tiet", ""),                # 9: Số chi tiết (L)
             item.get("size", ""),                       # 10: Size (M)
             item.get("tqty", 0),                        # 11: T'Qty (N)
-            item.get("uweight", 0.0),                   # 12: U.Weight (O)
-            item.get("tweight", 0.0),                   # 13: T.Weight (P)
-            item.get("profile", ""),                    # 14: Profile (Q)
-            item.get("id", ""),                         # 15: ID (R)
-            item.get("note", ""),                       # 16: Note (S)
+            item.get("sl_nhan", 0),                     # 12: SL Nhận
+            item.get("sl_thieu", 0),                    # 13: SL Thiếu
+            item.get("uweight", 0.0),                   # 14: U.Weight (O)
+            item.get("tweight", 0.0),                   # 15: T.Weight (P)
+            item.get("profile", ""),                    # 16: Profile (Q)
+            item.get("id", ""),                         # 17: ID (R)
+            item.get("note", ""),                       # 18: Note (S)
             # 1. Gá lắp
-            item.get("ga_lap", {}).get("ngay", ""),     # 17: Ngày Gá (AJ)
-            item.get("ga_lap", {}).get("sl", 0),        # 18: SL Gá (AK)
-            item.get("ga_lap", {}).get("kl", 0.0),      # 19: KL Gá (AL)
+            item.get("ga_lap", {}).get("ngay", ""),     # 19: Ngày Gá (AJ)
+            item.get("ga_lap", {}).get("sl", 0),        # 20: SL Gá (AK)
+            item.get("ga_lap", {}).get("kl", 0.0),      # 21: KL Gá (AL)
             # 2. Hàn
-            item.get("han", {}).get("ngay", ""),        # 20: Ngày Hàn (AM)
-            item.get("han", {}).get("sl", 0),           # 21: SL Hàn (AN)
-            item.get("han", {}).get("kl", 0.0),         # 22: KL Hàn (AO)
+            item.get("han", {}).get("ngay", ""),        # 22: Ngày Hàn (AM)
+            item.get("han", {}).get("sl", 0),           # 23: SL Hàn (AN)
+            item.get("han", {}).get("kl", 0.0),         # 24: KL Hàn (AO)
             # 3. Tổ hợp thử
-            item.get("to_hop_thu", {}).get("ngay", ""), # 23: Ngày TH (AP)
-            item.get("to_hop_thu", {}).get("sl", 0),    # 24: SL TH (AQ)
-            item.get("to_hop_thu", {}).get("kl", 0.0),  # 25: KL TH (AR)
+            item.get("to_hop_thu", {}).get("ngay", ""), # 25: Ngày TH (AP)
+            item.get("to_hop_thu", {}).get("sl", 0),    # 26: SL TH (AQ)
+            item.get("to_hop_thu", {}).get("kl", 0.0),  # 27: KL TH (AR)
             # 4. Nghiệm thu
-            item.get("nghiem_thu", {}).get("ngay", ""), # 26: Ngày NT (AT)
-            item.get("nghiem_thu", {}).get("sl", 0),    # 27: SL NT (AU)
-            item.get("nghiem_thu", {}).get("kl", 0.0),  # 28: KL NT (AV)
+            item.get("nghiem_thu", {}).get("ngay", ""), # 28: Ngày NT (AT)
+            item.get("nghiem_thu", {}).get("sl", 0),    # 29: SL NT (AU)
+            item.get("nghiem_thu", {}).get("kl", 0.0),  # 30: KL NT (AV)
             # 5. Bàn giao
-            item.get("ban_giao", {}).get("ngay", ""),   # 29: Ngày BG (AW)
-            item.get("ban_giao", {}).get("sl", 0),      # 30: SL BG (AX)
-            item.get("ban_giao", {}).get("kl", 0.0),    # 31: KL BG (AY)
-            item.get("ban_giao", {}).get("don_vi_nhan", ""), # 32: Đơn vị nhận (AZ)
-            item.get("ban_giao", {}).get("so_bien_ban", "")  # 33: Số biên bản (BA)
+            item.get("ban_giao", {}).get("ngay", ""),   # 31: Ngày BG (AW)
+            item.get("ban_giao", {}).get("sl", 0),      # 32: SL BG (AX)
+            item.get("ban_giao", {}).get("kl", 0.0),    # 33: KL BG (AY)
+            item.get("ban_giao", {}).get("don_vi_nhan", ""), # 34: Đơn vị nhận (AZ)
+            item.get("ban_giao", {}).get("so_bien_ban", "")  # 35: Số biên bản (BA)
         ]
 
         for c_idx, val in enumerate(row_values, start=1):
