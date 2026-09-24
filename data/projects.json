@@ -1,16 +1,16 @@
 {
   "count": 13,
-  "updated_at": "2026-09-23 08:30:52",
+  "updated_at": "2026-09-24 16:38:06",
   "projects": [
     {
       "project_id": "A290",
       "display_name": "A290",
       "file_name": "A290PL.xlsx",
       "file_path": "data/A290.json",
-      "size_bytes": 7359736,
+      "size_bytes": 7343107,
       "total_assemblies": 1992,
-      "completed_assemblies": 1530,
-      "partial_assemblies": 320,
+      "completed_assemblies": 1531,
+      "partial_assemblies": 319,
       "not_received_assemblies": 142
     },
     {
@@ -18,18 +18,18 @@
       "display_name": "A320",
       "file_name": "A320PL.xlsx",
       "file_path": "data/A320.json",
-      "size_bytes": 895360,
+      "size_bytes": 898410,
       "total_assemblies": 170,
-      "completed_assemblies": 20,
-      "partial_assemblies": 46,
-      "not_received_assemblies": 104
+      "completed_assemblies": 27,
+      "partial_assemblies": 42,
+      "not_received_assemblies": 101
     },
     {
       "project_id": "B272",
       "display_name": "B272",
       "file_name": "B272PL.xlsx",
       "file_path": "data/B272.json",
-      "size_bytes": 6323702,
+      "size_bytes": 6332372,
       "total_assemblies": 2434,
       "completed_assemblies": 2237,
       "partial_assemblies": 15,
@@ -73,7 +73,7 @@
       "display_name": "M304",
       "file_name": "M304PL.xlsx",
       "file_path": "data/M304.json",
-      "size_bytes": 12278234,
+      "size_bytes": 12280637,
       "total_assemblies": 1493,
       "completed_assemblies": 1087,
       "partial_assemblies": 357,
@@ -95,7 +95,7 @@
       "display_name": "U285",
       "file_name": "U285PL.xlsx",
       "file_path": "data/U285.json",
-      "size_bytes": 4724564,
+      "size_bytes": 4746115,
       "total_assemblies": 271,
       "completed_assemblies": 152,
       "partial_assemblies": 114,
@@ -117,11 +117,11 @@
       "display_name": "U302",
       "file_name": "U302PL.xlsx",
       "file_path": "data/U302.json",
-      "size_bytes": 2040666,
+      "size_bytes": 2044281,
       "total_assemblies": 332,
-      "completed_assemblies": 263,
-      "partial_assemblies": 43,
-      "not_received_assemblies": 26
+      "completed_assemblies": 287,
+      "partial_assemblies": 42,
+      "not_received_assemblies": 3
     },
     {
       "project_id": "U324",
@@ -139,7 +139,7 @@
       "display_name": "V314",
       "file_name": "V314PL.xlsx",
       "file_path": "data/V314.json",
-      "size_bytes": 3418424,
+      "size_bytes": 3428960,
       "total_assemblies": 242,
       "completed_assemblies": 30,
       "partial_assemblies": 124,
