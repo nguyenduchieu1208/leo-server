@@ -1,6 +1,6 @@
 {
-  "count": 14,
-  "updated_at": "2026-09-26 07:40:20",
+  "count": 11,
+  "updated_at": "2026-09-26 00:42:40",
   "projects": [
     {
       "project_id": "A290",
@@ -58,17 +58,6 @@
       "not_received_assemblies": 4
     },
     {
-      "project_id": "M291",
-      "display_name": "M291",
-      "file_name": "M291PL.xlsx",
-      "file_path": "data/M291.json",
-      "size_bytes": 4445418,
-      "total_assemblies": 883,
-      "completed_assemblies": 832,
-      "partial_assemblies": 37,
-      "not_received_assemblies": 14
-    },
-    {
       "project_id": "M304",
       "display_name": "M304",
       "file_name": "M304PL.xlsx",
@@ -102,17 +91,6 @@
       "not_received_assemblies": 5
     },
     {
-      "project_id": "U298",
-      "display_name": "U298",
-      "file_name": "U298PL.xlsx",
-      "file_path": "data/U298.json",
-      "size_bytes": 588035,
-      "total_assemblies": 101,
-      "completed_assemblies": 4,
-      "partial_assemblies": 34,
-      "not_received_assemblies": 63
-    },
-    {
       "project_id": "U302",
       "display_name": "U302",
       "file_name": "U302PL.xlsx",
@@ -144,17 +122,6 @@
       "completed_assemblies": 30,
       "partial_assemblies": 124,
       "not_received_assemblies": 88
-    },
-    {
-      "project_id": "a320 tăng cứng kiện",
-      "display_name": "a320 tăng cứng kiện",
-      "file_name": "a320 tăng cứng kiện.xlsx",
-      "file_path": "data/a320 tăng cứng kiện.json",
-      "size_bytes": 13241,
-      "total_assemblies": 17,
-      "completed_assemblies": 0,
-      "partial_assemblies": 0,
-      "not_received_assemblies": 17
     }
   ]
 }

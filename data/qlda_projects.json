@@ -1,6 +1,6 @@
 {
-  "count": 21,
-  "updated_at": "2026-09-26 07:40:29",
+  "count": 17,
+  "updated_at": "2026-09-26 00:42:45",
   "projects": [
     {
       "project_id": "A286",
@@ -51,77 +51,7 @@
         "S4",
         "S5"
       ],
-      "updated_at": "23/09/2026 08:35"
-    },
-    {
-      "project_id": "A290",
-      "file_name": "A290.xlsx",
-      "data_path": "data_qlda/A290.json",
-      "total_items": 4125,
-      "total_qty": 4125,
-      "total_weight": 2418082.54,
-      "total_tons": 2418.08,
-      "kpis": {
-        "ga_lap": {
-          "sl": 3469.0,
-          "kl": 2182030.5,
-          "rate": 90.2
-        },
-        "han": {
-          "sl": 3237.0,
-          "kl": 2114620.1,
-          "rate": 87.5
-        },
-        "to_hop_thu": {
-          "sl": 0,
-          "kl": 0.0,
-          "rate": 0.0
-        },
-        "nghiem_thu": {
-          "sl": 2954.0,
-          "kl": 1963652.4,
-          "rate": 81.2
-        },
-        "ban_giao": {
-          "sl": 2824.0,
-          "kl": 1919761.6,
-          "rate": 79.4
-        }
-      },
-      "hang_mucs": [
-        "Elevator AA",
-        "Elevator CC",
-        "Tier 1 Phase 1 AA",
-        "Tier 1 Phase 1 CC",
-        "Tier 1 Phase 2 AA",
-        "Tier 1 Phase 3 AA",
-        "Tier 1 Phase 3 CC",
-        "Tier 2 Phase 1 AA",
-        "Tier 2 Phase 2 AA",
-        "Tier 2 Phase 2 CC",
-        "Tier 3 Phase 1 AA",
-        "Tier 3 Phase 1 CC",
-        "Tier 3 Phase 2 AA",
-        "Tier 3 Phase 3 AA",
-        "Tier 3 Phase 3 CC",
-        "Tier 4 Phase 1 AA",
-        "Tier 4 Phase 2 AA",
-        "Tier 4 Phase 2 CC",
-        "Tier 4 Phase 3 AA",
-        "Tier 5 Phase 1 AA",
-        "Tier 5 Phase 1 CC",
-        "Tier 5 Phase 2 AA",
-        "Tier 5 Phase 3 AA",
-        "Tier 5 Phase 3 CC"
-      ],
-      "phan_giaos": [
-        "S1",
-        "S2",
-        "S3",
-        "S4",
-        "S5"
-      ],
-      "updated_at": "17/09/2026 04:04"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "A320",
@@ -169,54 +99,7 @@
         "S2",
         "S4"
       ],
-      "updated_at": "23/09/2026 08:35"
-    },
-    {
-      "project_id": "B272",
-      "file_name": "B272.xlsx",
-      "data_path": "data_qlda/B272.json",
-      "total_items": 552,
-      "total_qty": 2431,
-      "total_weight": 123148.85,
-      "total_tons": 123.15,
-      "kpis": {
-        "ga_lap": {
-          "sl": 2162.0,
-          "kl": 121393.5,
-          "rate": 98.6
-        },
-        "han": {
-          "sl": 2162.0,
-          "kl": 121393.5,
-          "rate": 98.6
-        },
-        "to_hop_thu": {
-          "sl": 865.0,
-          "kl": 114478.3,
-          "rate": 93.0
-        },
-        "nghiem_thu": {
-          "sl": 2100.0,
-          "kl": 120651.5,
-          "rate": 98.0
-        },
-        "ban_giao": {
-          "sl": 2028.0,
-          "kl": 119830.2,
-          "rate": 97.3
-        }
-      },
-      "hang_mucs": [
-        "400",
-        "400 Template",
-        "CHƯA PHÂN HẠNG MỤC"
-      ],
-      "phan_giaos": [
-        "S2",
-        "S3",
-        "S4"
-      ],
-      "updated_at": "17/09/2026 01:12"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "E275",
@@ -259,50 +142,7 @@
       "phan_giaos": [
         "S5"
       ],
-      "updated_at": "23/09/2026 08:35"
-    },
-    {
-      "project_id": "E307",
-      "file_name": "E307.xlsx",
-      "data_path": "data_qlda/E307.json",
-      "total_items": 80,
-      "total_qty": 175,
-      "total_weight": 17475.9,
-      "total_tons": 17.48,
-      "kpis": {
-        "ga_lap": {
-          "sl": 107.0,
-          "kl": 15665.5,
-          "rate": 89.6
-        },
-        "han": {
-          "sl": 107.0,
-          "kl": 15665.5,
-          "rate": 89.6
-        },
-        "to_hop_thu": {
-          "sl": 79.0,
-          "kl": 14791.4,
-          "rate": 84.6
-        },
-        "nghiem_thu": {
-          "sl": 79.0,
-          "kl": 14791.4,
-          "rate": 84.6
-        },
-        "ban_giao": {
-          "sl": 6.0,
-          "kl": 1303.6,
-          "rate": 7.5
-        }
-      },
-      "hang_mucs": [
-        "Convection"
-      ],
-      "phan_giaos": [
-        "S3"
-      ],
-      "updated_at": "17/09/2026 01:23"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "M270",
@@ -346,7 +186,7 @@
       "phan_giaos": [
         "S1"
       ],
-      "updated_at": "23/09/2026 08:35"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "M291",
@@ -397,7 +237,7 @@
         "S4",
         "S5"
       ],
-      "updated_at": "23/09/2026 08:35"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "M296",
@@ -441,69 +281,7 @@
         "S2",
         "S5"
       ],
-      "updated_at": "23/09/2026 08:35"
-    },
-    {
-      "project_id": "M304",
-      "file_name": "M304.xlsx",
-      "data_path": "data_qlda/M304.json",
-      "total_items": 2327,
-      "total_qty": 2683,
-      "total_weight": 1407024.48,
-      "total_tons": 1407.02,
-      "kpis": {
-        "ga_lap": {
-          "sl": 1082.0,
-          "kl": 925177.7,
-          "rate": 65.8
-        },
-        "han": {
-          "sl": 1007.0,
-          "kl": 910096.0,
-          "rate": 64.7
-        },
-        "to_hop_thu": {
-          "sl": 0,
-          "kl": 0.0,
-          "rate": 0.0
-        },
-        "nghiem_thu": {
-          "sl": 999.0,
-          "kl": 884613.0,
-          "rate": 62.9
-        },
-        "ban_giao": {
-          "sl": 972.0,
-          "kl": 874937.7,
-          "rate": 62.2
-        }
-      },
-      "hang_mucs": [
-        "Casing U1",
-        "Casing U2",
-        "Casing U3",
-        "Casing U4",
-        "Casing U5",
-        "Casing U6",
-        "Main Stack U1",
-        "Main Stack U2",
-        "Main Stack U3",
-        "Main Stack U4",
-        "Main Stack U5",
-        "Main Stack U6",
-        "Steel Structure U1",
-        "Steel Structure U2",
-        "Steel Structure U3",
-        "Steel Structure U4",
-        "Steel Structure U5"
-      ],
-      "phan_giaos": [
-        "S1",
-        "S2",
-        "S3",
-        "S4"
-      ],
-      "updated_at": "17/09/2026 04:03"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "M313",
@@ -548,7 +326,7 @@
       "phan_giaos": [
         "S3"
       ],
-      "updated_at": "23/09/2026 08:35"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "S200",
@@ -598,7 +376,7 @@
         "S3",
         "S4"
       ],
-      "updated_at": "23/09/2026 08:35"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "U276",
@@ -642,7 +420,7 @@
         "CHƯA PHÂN GIAO",
         "S1"
       ],
-      "updated_at": "23/09/2026 08:35"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "U278",
@@ -698,7 +476,7 @@
         "S4",
         "S5"
       ],
-      "updated_at": "23/09/2026 08:35"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "U284",
@@ -745,7 +523,7 @@
         "S3",
         "S4"
       ],
-      "updated_at": "23/09/2026 08:35"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "U285",
@@ -790,7 +568,7 @@
         "S2",
         "S4"
       ],
-      "updated_at": "23/09/2026 08:35"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "U302",
@@ -839,7 +617,7 @@
         "S3",
         "S4"
       ],
-      "updated_at": "23/09/2026 08:35"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "U310",
@@ -882,7 +660,7 @@
       "phan_giaos": [
         "S3"
       ],
-      "updated_at": "23/09/2026 08:35"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "U311",
@@ -925,7 +703,7 @@
       "phan_giaos": [
         "S1"
       ],
-      "updated_at": "23/09/2026 08:35"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "V261",
@@ -977,7 +755,7 @@
         "S3",
         "S5"
       ],
-      "updated_at": "23/09/2026 08:35"
+      "updated_at": "26/09/2026 00:41"
     },
     {
       "project_id": "V314",
@@ -1023,7 +801,7 @@
         "S2",
         "S3"
       ],
-      "updated_at": "23/09/2026 08:35"
+      "updated_at": "26/09/2026 00:41"
     }
   ]
 }
