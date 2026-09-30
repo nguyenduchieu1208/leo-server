@@ -1,28 +1,28 @@
 {
   "count": 14,
-  "updated_at": "2026-09-29 13:37:47",
+  "updated_at": "2026-09-30 17:21:08",
   "projects": [
     {
       "project_id": "A290",
       "display_name": "A290",
       "file_name": "A290PL.xlsx",
       "file_path": "data/A290.json",
-      "size_bytes": 7385391,
+      "size_bytes": 7425138,
       "total_assemblies": 1992,
-      "completed_assemblies": 1544,
-      "partial_assemblies": 310,
-      "not_received_assemblies": 138
+      "completed_assemblies": 1641,
+      "partial_assemblies": 243,
+      "not_received_assemblies": 108
     },
     {
       "project_id": "A320",
       "display_name": "A320",
       "file_name": "A320PL.xlsx",
       "file_path": "data/A320.json",
-      "size_bytes": 905542,
+      "size_bytes": 913026,
       "total_assemblies": 170,
-      "completed_assemblies": 27,
-      "partial_assemblies": 45,
-      "not_received_assemblies": 98
+      "completed_assemblies": 31,
+      "partial_assemblies": 44,
+      "not_received_assemblies": 95
     },
     {
       "project_id": "B272",
@@ -73,7 +73,7 @@
       "display_name": "M304",
       "file_name": "M304PL.xlsx",
       "file_path": "data/M304.json",
-      "size_bytes": 12312374,
+      "size_bytes": 12341782,
       "total_assemblies": 1493,
       "completed_assemblies": 1087,
       "partial_assemblies": 357,
@@ -95,7 +95,7 @@
       "display_name": "U285",
       "file_name": "U285PL.xlsx",
       "file_path": "data/U285.json",
-      "size_bytes": 4774239,
+      "size_bytes": 4788593,
       "total_assemblies": 271,
       "completed_assemblies": 156,
       "partial_assemblies": 110,
@@ -117,11 +117,11 @@
       "display_name": "U302",
       "file_name": "U302PL.xlsx",
       "file_path": "data/U302.json",
-      "size_bytes": 2047675,
+      "size_bytes": 2048901,
       "total_assemblies": 332,
-      "completed_assemblies": 293,
-      "partial_assemblies": 36,
-      "not_received_assemblies": 3
+      "completed_assemblies": 298,
+      "partial_assemblies": 32,
+      "not_received_assemblies": 2
     },
     {
       "project_id": "U324",
@@ -150,11 +150,11 @@
       "display_name": "a320 tăng cứng kiện",
       "file_name": "a320 tăng cứng kiện.xlsx",
       "file_path": "data/a320 tăng cứng kiện.json",
-      "size_bytes": 13241,
-      "total_assemblies": 17,
+      "size_bytes": 13656,
+      "total_assemblies": 26,
       "completed_assemblies": 0,
       "partial_assemblies": 0,
-      "not_received_assemblies": 17
+      "not_received_assemblies": 26
     }
   ]
 }
