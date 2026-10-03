@@ -1,24 +1,24 @@
 {
   "count": 14,
-  "updated_at": "2026-10-02 16:12:29",
+  "updated_at": "2026-10-03 14:32:49",
   "projects": [
     {
       "project_id": "A290",
       "display_name": "A290",
       "file_name": "A290PL.xlsx",
       "file_path": "data/A290.json",
-      "size_bytes": 7429157,
+      "size_bytes": 7473947,
       "total_assemblies": 1992,
       "completed_assemblies": 1645,
-      "partial_assemblies": 282,
-      "not_received_assemblies": 65
+      "partial_assemblies": 290,
+      "not_received_assemblies": 57
     },
     {
       "project_id": "A320",
       "display_name": "A320",
       "file_name": "A320PL.xlsx",
       "file_path": "data/A320.json",
-      "size_bytes": 931537,
+      "size_bytes": 933501,
       "total_assemblies": 188,
       "completed_assemblies": 34,
       "partial_assemblies": 44,
@@ -84,7 +84,7 @@
       "display_name": "U284",
       "file_name": "U284PL.xlsx",
       "file_path": "data/U284.json",
-      "size_bytes": 1087079,
+      "size_bytes": 1085652,
       "total_assemblies": 308,
       "completed_assemblies": 236,
       "partial_assemblies": 54,
@@ -117,10 +117,10 @@
       "display_name": "U302",
       "file_name": "U302PL.xlsx",
       "file_path": "data/U302.json",
-      "size_bytes": 2049423,
+      "size_bytes": 2052086,
       "total_assemblies": 332,
-      "completed_assemblies": 298,
-      "partial_assemblies": 32,
+      "completed_assemblies": 300,
+      "partial_assemblies": 30,
       "not_received_assemblies": 2
     },
     {
