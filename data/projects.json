@@ -1,6 +1,6 @@
 {
   "count": 14,
-  "updated_at": "2026-10-03 14:32:49",
+  "updated_at": "2026-10-03 14:38:11",
   "projects": [
     {
       "project_id": "A290",
@@ -18,7 +18,7 @@
       "display_name": "A320",
       "file_name": "A320PL.xlsx",
       "file_path": "data/A320.json",
-      "size_bytes": 933501,
+      "size_bytes": 933560,
       "total_assemblies": 188,
       "completed_assemblies": 34,
       "partial_assemblies": 44,
