@@ -864,7 +864,8 @@ function applyFiltersAndRender(resetPagination = true) {
         assemblies = assemblies.filter(a => {
             const matchAssy = a.assembly_no.toLowerCase().includes(q) || 
                               a.dwg.toLowerCase().includes(q) || 
-                              a.size.toLowerCase().includes(q);
+                              a.size.toLowerCase().includes(q) ||
+                              (a.ghi_chu && a.ghi_chu.toLowerCase().includes(q));
             const matchParts = a.parts && a.parts.some(p => 
                 (p.part_no && p.part_no.toLowerCase().includes(q)) || 
                 (p.part_cut && p.part_cut.toLowerCase().includes(q)) || 
@@ -1184,6 +1185,7 @@ function renderAssemblies() {
 
         const chevron = isExpanded ? SVG_ICONS.chevronDown : SVG_ICONS.chevronRight;
         const detailsContent = isExpanded ? buildPartsTableHtml(assy) : '';
+        const assemblyRemark = assy.ghi_chu || assy.remark || '';
 
         return `
             <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs hover:border-slate-300 transition w-full max-w-full" id="card-${assy.id}">
@@ -1200,6 +1202,7 @@ function renderAssemblies() {
                                 <span class="text-[11px] sm:text-xs text-slate-500 font-mono break-all">${highlightText(assy.size, state.searchQuery)}</span>
                             </div>
                             <p class="text-xs text-slate-500 mt-0.5 font-medium truncate">Sheet: <span class="text-blue-700 font-mono font-semibold">${assy.sheet}</span> • Gồm <strong class="text-slate-900">${assy.total_parts_count}</strong> BTP con</p>
+                            ${assemblyRemark ? `<p class="text-xs text-amber-800 mt-1 break-words"><span class="font-bold">Remark:</span> ${escapeHtml(assemblyRemark)}</p>` : ''}
                         </div>
                     </div>
 
@@ -3459,11 +3462,13 @@ function setupEventListeners() {
             // Luôn đồng bộ dữ liệu QLDA sang dashboardState
             dashboardState.currentProjectId = qldaState.currentProjectId;
             dashboardState.currentProjectData = qldaState.currentProjectData;
-
-            const dashBadge = document.getElementById('dash-project-badge');
-            if (dashBadge && qldaState.currentProjectId) {
-                dashBadge.textContent = `Dự Án: ${qldaState.currentProjectId}`;
+            if (dashboardState.selectedProjectIds.length === 0 && qldaState.currentProjectId) {
+                dashboardState.selectedProjectIds = [qldaState.currentProjectId];
             }
+            if (dashboardState.projects.length === 0 && qldaState.projectsList) {
+                dashboardState.projects = qldaState.projectsList;
+            }
+            renderDashboardProjectPicker();
 
             if (!dashboardState.isInitialized) {
                 setupDashboardEventListeners();
@@ -3472,8 +3477,18 @@ function setupEventListeners() {
 
             // Chờ DOM unhide hoàn tất để canvas có kích thước thực tế trước khi Chart.js tính toán và vẽ
             requestAnimationFrame(() => {
-                const items = qldaState.filteredItems || (qldaState.currentProjectData ? qldaState.currentProjectData.items : []);
-                renderDashboardAll(items);
+                if (dashboardState.projects.length === 0) {
+                    initOrRenderDashboard();
+                    return;
+                }
+                const selectedKey = dashboardState.selectedProjectIds.join('|');
+                const loadedKey = dashboardState.chartProjectData?.project_ids?.join('|');
+                if (selectedKey !== loadedKey) {
+                    loadDashboardProjects(dashboardState.selectedProjectIds);
+                } else {
+                    const items = qldaState.filteredItems || (qldaState.currentProjectData ? qldaState.currentProjectData.items : []);
+                    renderDashboardAll(items);
+                }
             });
         } else {
             qldaState.activeSubtab = 'matrix';
@@ -3985,6 +4000,13 @@ async function loadQldaProject(projectId) {
         // Đồng bộ với Dashboard Tiến Độ Công Đoạn
         dashboardState.currentProjectId = projectId;
         dashboardState.currentProjectData = data;
+        if (dashboardState.selectedProjectIds.length === 0) {
+            dashboardState.selectedProjectIds = [projectId];
+        }
+        if (dashboardState.projects.length === 0 && qldaState.projectsList) {
+            dashboardState.projects = qldaState.projectsList;
+        }
+        renderDashboardProjectPicker();
 
         // Cập nhật ngay huy hiệu dự án trên thanh Dashboard Biểu Đồ
         const dashBadge = document.getElementById('dash-project-badge');
@@ -3997,7 +4019,7 @@ async function loadQldaProject(projectId) {
             setupDashboardEventListeners();
             dashboardState.isInitialized = true;
         }
-        populateDashboardMonths(data.items || []);
+        populateDashboardMonths(getDashboardChartItems(data.items || []));
 
         // Tải thêm dữ liệu BOM tương ứng bất đồng bộ cho bảng BTP nếu có
         (async () => {
@@ -5413,6 +5435,8 @@ const dashboardState = {
     isInitialized: false,
     isLoading: false,
     projects: [],
+    selectedProjectIds: [],
+    chartProjectData: null,
     currentProjectId: null,
     currentProjectData: null,
     bomData: null,
@@ -5437,45 +5461,33 @@ async function initOrRenderDashboard() {
         dashboardState.isInitialized = true;
     }
 
-    const projSelect = document.getElementById('dash-select-project');
-    if (projSelect && projSelect.options.length === 0) {
+    if (dashboardState.projects.length === 0) {
         await populateDashboardProjectCatalog();
     }
 
-    let targetProj = dashboardState.currentProjectId || qldaState.currentProjectId || state.currentProject || 'A320';
-    if (projSelect && projSelect.options.length > 0) {
-        let found = false;
-        for (let opt of projSelect.options) {
-            if (opt.value === targetProj) {
-                found = true;
-                break;
-            }
-        }
-        if (!found) targetProj = projSelect.options[0].value;
-        projSelect.value = targetProj;
+    if (dashboardState.selectedProjectIds.length === 0) {
+        const defaultProjectId = qldaState.currentProjectId || dashboardState.currentProjectId || dashboardState.projects[0]?.project_id;
+        if (defaultProjectId) dashboardState.selectedProjectIds = [defaultProjectId];
     }
+    renderDashboardProjectPicker();
 
-    if (targetProj && targetProj !== dashboardState.currentProjectId) {
-        await loadDashboardProject(targetProj);
-    } else if (dashboardState.currentProjectData) {
-        renderDashboardAll();
-    }
+    const selectedKey = dashboardState.selectedProjectIds.join('|');
+    const loadedKey = dashboardState.chartProjectData?.project_ids?.join('|');
+    if (selectedKey !== loadedKey) await loadDashboardProjects(dashboardState.selectedProjectIds);
+    else renderDashboardAll();
 }
 
 // Nạp danh mục dự án QLDA cho Dashboard
 async function populateDashboardProjectCatalog() {
-    const projSelect = document.getElementById('dash-select-project');
-    if (!projSelect) return;
-
     try {
-        let list = [];
-        if (state.isStaticMode) {
+        let list = qldaState.projectsList || [];
+        if (list.length === 0 && state.isStaticMode) {
             const resp = await fetch('data/qlda_projects.json');
             if (resp.ok) {
                 const catalog = await resp.json();
                 list = catalog.projects || [];
             }
-        } else {
+        } else if (list.length === 0) {
             try {
                 const resp = await fetch('/api/qlda/projects');
                 if (resp.ok) {
@@ -5493,29 +5505,72 @@ async function populateDashboardProjectCatalog() {
         }
 
         dashboardState.projects = list;
-        projSelect.innerHTML = '';
-        list.forEach(p => {
-            const opt = document.createElement('option');
-            opt.value = p.project_id;
-            opt.textContent = `${p.project_id} (${p.total_tons || 0} tấn - ${p.total_items || 0} CK)`;
-            projSelect.appendChild(opt);
-        });
+        if (dashboardState.selectedProjectIds.length === 0 && list.length > 0) {
+            const currentId = qldaState.currentProjectId || dashboardState.currentProjectId;
+            const defaultProject = list.find(p => p.project_id === currentId) || list[0];
+            dashboardState.selectedProjectIds = defaultProject ? [defaultProject.project_id] : [];
+        }
+        renderDashboardProjectPicker();
     } catch (err) {
         console.error("Lỗi nạp danh mục dự án cho Dashboard:", err);
     }
 }
 
-// Tải dữ liệu dự án cho Dashboard
-async function loadDashboardProject(projectId) {
-    if (!projectId) return;
-    dashboardState.isLoading = true;
-    dashboardState.currentProjectId = projectId;
+function renderDashboardProjectPicker() {
+    const options = document.getElementById('dash-project-options');
+    const label = document.getElementById('dash-project-picker-label');
+    const selectAll = document.getElementById('dash-project-select-all');
+    const count = document.getElementById('dash-project-count');
+    const projects = dashboardState.projects || [];
+    const selected = new Set(dashboardState.selectedProjectIds || []);
 
+    if (options) {
+        options.innerHTML = '';
+        projects.forEach(project => {
+            const row = document.createElement('label');
+            row.className = 'flex items-center gap-2 rounded-lg px-2 py-2 text-xs hover:bg-slate-50 cursor-pointer';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'accent-purple-600 w-4 h-4';
+            checkbox.dataset.dashboardProject = project.project_id;
+            checkbox.checked = selected.has(project.project_id);
+            const title = document.createElement('span');
+            title.className = 'font-semibold';
+            title.textContent = `${project.project_id} (${project.total_tons || 0} tấn - ${project.total_items || 0} CK)`;
+            row.append(checkbox, title);
+            options.appendChild(row);
+        });
+    }
+
+    if (selectAll) {
+        selectAll.checked = projects.length > 0 && selected.size === projects.length;
+        selectAll.indeterminate = selected.size > 0 && selected.size < projects.length;
+        selectAll.disabled = projects.length === 0;
+    }
+    if (count) count.textContent = `${selected.size}/${projects.length}`;
+    if (label) {
+        if (selected.size === 0) label.textContent = 'Chưa chọn dự án';
+        else if (selected.size === projects.length && projects.length > 0) label.textContent = `Tất cả dự án (${projects.length})`;
+        else if (selected.size === 1) label.textContent = `Dự án ${dashboardState.selectedProjectIds[0]}`;
+        else label.textContent = `${selected.size} dự án được chọn`;
+    }
+    updateDashboardProjectBadge();
+}
+
+function updateDashboardProjectBadge() {
     const badge = document.getElementById('dash-project-badge');
-    if (badge) badge.textContent = `Dự Án: ${projectId}`;
+    if (!badge) return;
+    const selected = dashboardState.selectedProjectIds || [];
+    const total = (dashboardState.projects || []).length;
+    if (selected.length === 0) badge.textContent = 'Chưa chọn dự án';
+    else if (total > 0 && selected.length === total) badge.textContent = `Tất cả dự án (${total})`;
+    else if (selected.length <= 2) badge.textContent = `Dự án: ${selected.join(', ')}`;
+    else badge.textContent = `${selected.length} dự án được chọn`;
+    if (dashboardState.lastLoadErrorCount > 0) badge.textContent += ` • ${dashboardState.lastLoadErrorCount} lỗi tải`;
+}
 
-    try {
-        // 1. Nạp dữ liệu QLDA (ưu tiên từ bộ nhớ cache)
+function getDashboardProjectData(projectId) {
+    return (async () => {
         let data = _qldaDataCache[projectId];
         if (!data) {
             if (state.isStaticMode) {
@@ -5534,30 +5589,71 @@ async function loadDashboardProject(projectId) {
             }
             if (data) _qldaDataCache[projectId] = data;
         }
+        if (!data) throw new Error(`Không tải được dữ liệu dự án ${projectId}`);
+        return data;
+    })();
+}
 
-        dashboardState.currentProjectData = data;
+// Nạp và gộp dữ liệu của một hoặc nhiều dự án cho các biểu đồ.
+async function loadDashboardProjects(projectIds) {
+    const requested = Array.from(new Set((projectIds || []).filter(Boolean)));
+    dashboardState.selectedProjectIds = requested;
+    renderDashboardProjectPicker();
+    dashboardState.isLoading = true;
+    const pickerLabel = document.getElementById('dash-project-picker-label');
+    if (pickerLabel && requested.length > 1) pickerLabel.textContent = `Đang tải ${requested.length} dự án...`;
 
-        // 2. Nạp thêm dữ liệu BOM tương ứng nếu có để đối chiếu BTP
-        let bom = null;
-        try {
-            const bomNames = [`${projectId}PL.json`, `${projectId}.json`];
-            for (let bName of bomNames) {
-                const resp = await fetch(`data/${bName}`);
-                if (resp.ok) {
-                    bom = await resp.json();
-                    break;
-                }
-            }
-        } catch (e) {}
-        dashboardState.bomData = bom;
-
-        populateDashboardDropdowns();
+    try {
+        const results = await Promise.allSettled(requested.map(async projectId => ({
+            projectId,
+            data: await getDashboardProjectData(projectId)
+        })));
+        const loaded = results.filter(result => result.status === 'fulfilled').map(result => result.value);
+        dashboardState.lastLoadErrorCount = results.length - loaded.length;
+        results.filter(result => result.status === 'rejected').forEach(result => console.error('Không tải được dự án trong biểu đồ:', result.reason));
+        const items = loaded.flatMap(({ projectId, data }) => (data.items || []).map(item => ({
+            ...item,
+            _dashboard_project_id: projectId
+        })));
+        dashboardState.chartProjectData = {
+            project_ids: loaded.map(entry => entry.projectId),
+            items
+        };
+        dashboardState.lastLoadError = dashboardState.lastLoadErrorCount ? new Error(`${dashboardState.lastLoadErrorCount} dự án không tải được`) : null;
+        populateDashboardMonths(items);
         renderDashboardAll();
     } catch (err) {
-        console.error(`Lỗi tải dữ liệu Dashboard cho dự án ${projectId}:`, err);
+        dashboardState.lastLoadError = err;
+        dashboardState.lastLoadErrorCount = requested.length;
+        dashboardState.chartProjectData = { project_ids: [], items: [] };
+        populateDashboardMonths([]);
+        renderDashboardAll();
+        console.error('Lỗi tải dữ liệu Dashboard:', err);
     } finally {
         dashboardState.isLoading = false;
+        renderDashboardProjectPicker();
     }
+}
+
+async function loadDashboardProject(projectId) {
+    return loadDashboardProjects(projectId ? [projectId] : []);
+}
+
+function getDashboardChartData() {
+    return dashboardState.chartProjectData || qldaState.currentProjectData || dashboardState.currentProjectData;
+}
+
+function getDashboardChartItems(customItems = null) {
+    const selected = dashboardState.selectedProjectIds || [];
+    const isCurrentProjectOnly = selected.length === 1 && selected[0] === qldaState.currentProjectId;
+    const hasExplicitEmptySelection = dashboardState.chartProjectData && selected.length === 0;
+    if (isCurrentProjectOnly) {
+        if (customItems !== null) return customItems;
+        return qldaState.filteredItems || qldaState.currentProjectData?.items || [];
+    }
+    if (hasExplicitEmptySelection) return [];
+    const data = getDashboardChartData();
+    return data?.items || [];
 }
 
 // Nạp danh sách các Tháng có sản lượng vào bộ lọc biểu đồ Line
@@ -5611,15 +5707,15 @@ function populateDashboardMonths(items) {
     }
 }
 function populateDashboardDropdowns() {
-    populateDashboardMonths(dashboardState.currentProjectData?.items || []);
+    populateDashboardMonths(getDashboardChartItems());
 }
 
 // Vẽ toàn bộ các thành phần của Dashboard (Nhảy tự động theo hạng mục & danh sách cấu kiện đã lọc)
 function renderDashboardAll(customItems = null) {
-    const data = qldaState.currentProjectData || dashboardState.currentProjectData;
+    const data = getDashboardChartData();
     if (!data) return;
 
-    const items = customItems !== null ? customItems : (qldaState.filteredItems || data.items || []);
+    const items = getDashboardChartItems(customItems);
     renderDashboardKPIsAndLineChart(items);
     renderDashboardBtpSection(items);
     renderDashboardGantt(items);
@@ -5627,18 +5723,14 @@ function renderDashboardAll(customItems = null) {
 
 // PHẦN 1: TÍNH TOÁN KPI & VẼ BIỂU ĐỒ LINE SO SÁNH THỰC TẾ / KẾ HOẠCH GÁ & HÀN THEO NGÀY
 function renderDashboardKPIsAndLineChart(customItems = null) {
-    const data = qldaState.currentProjectData || dashboardState.currentProjectData;
+    const data = getDashboardChartData();
     if (!data) return;
 
-    let items = customItems !== null ? customItems : (qldaState.filteredItems || data.items || []);
+    let items = getDashboardChartItems(customItems);
     const selMonth = dashboardState.selectedMonth || 'all';
 
     // Cập nhật nhãn dự án trên khung Biểu Đồ
-    const curPid = qldaState.currentProjectId || dashboardState.currentProjectId;
-    if (curPid) {
-        const dashBadge = document.getElementById('dash-project-badge');
-        if (dashBadge) dashBadge.textContent = `Dự Án: ${curPid}`;
-    }
+    updateDashboardProjectBadge();
 
     // Cập nhật tiêu đề tháng trên biểu đồ
     const monthTitleEl = document.getElementById('dash-chart-month-title');
@@ -6047,10 +6139,10 @@ function renderDashboardDayTable(labels, gaActual, cumGa, hanActual, cumHan, pla
 
 // PHẦN 2: TÌNH TRẠNG NHẬN BÁN THÀNH PHẨM (BTP)
 function renderDashboardBtpSection(customItems = null) {
-    const data = qldaState.currentProjectData || dashboardState.currentProjectData;
+    const data = getDashboardChartData();
     if (!data) return;
 
-    const items = customItems !== null ? customItems : (qldaState.filteredItems || data.items || []);
+    const items = getDashboardChartItems(customItems);
     let countReady = 0;
     let countMissing = 0;
     let countZero = 0;
@@ -6067,7 +6159,10 @@ function renderDashboardBtpSection(customItems = null) {
         const wTons = wKg / 1000;
         totalWeightTons += wTons;
 
-        const hm = it.hang_muc || 'Khác';
+        const hmLabel = it.hang_muc || 'Khác';
+        const hm = dashboardState.selectedProjectIds.length > 1 && it._dashboard_project_id
+            ? `${it._dashboard_project_id} • ${hmLabel}`
+            : hmLabel;
         if (!hmMap[hm]) {
             hmMap[hm] = { total: 0, received: 0, missing: 0 };
         }
@@ -6238,13 +6333,13 @@ function renderDashboardBtpSection(customItems = null) {
 
 // Bảng chi tiết tình trạng nhận BTP của cấu kiện
 function renderDashboardBtpTable(customItems = null) {
-    const data = qldaState.currentProjectData || dashboardState.currentProjectData;
+    const data = getDashboardChartData();
     if (!data) return;
 
     const tbody = document.getElementById('dash-btp-table-tbody');
     if (!tbody) return;
 
-    const raw = customItems !== null ? customItems : (qldaState.filteredItems || data.items || []);
+    const raw = getDashboardChartItems(customItems);
     const q = (dashboardState.btpSearchQuery || '').toLowerCase().trim();
 
     let items = raw;
@@ -6281,6 +6376,7 @@ function renderDashboardBtpTable(customItems = null) {
         html += `
             <tr class="hover:bg-slate-50 transition">
                 <td class="py-2 px-3 text-slate-400 font-mono text-[11px]">${idx + 1}</td>
+                <td class="py-2 px-3 text-slate-600 font-mono text-[11px]">${it._dashboard_project_id || qldaState.currentProjectId || '-'}</td>
                 <td class="py-2 px-3 font-bold text-slate-900 font-mono">${it.so_chi_tiet || '-'}</td>
                 <td class="py-2 px-3 text-slate-700 font-mono">${it.ten_ban_ve || '-'}</td>
                 <td class="py-2 px-3 text-slate-600 text-xs">${it.hang_muc || '-'}</td>
@@ -6302,7 +6398,7 @@ function renderDashboardBtpTable(customItems = null) {
     });
 
     if (html === '') {
-        html = `<tr><td colspan="10" class="text-center py-6 text-slate-400">Không tìm thấy cấu kiện phù hợp</td></tr>`;
+        html = `<tr><td colspan="11" class="text-center py-6 text-slate-400">Không tìm thấy cấu kiện phù hợp</td></tr>`;
     }
 
     tbody.innerHTML = html;
@@ -6310,11 +6406,11 @@ function renderDashboardBtpTable(customItems = null) {
 
 // PHẦN 3: BIỂU ĐỒ GRANT TIẾN ĐỘ (GANTT TIMELINE CHART)
 function renderDashboardGantt(customItems = null) {
-    const data = qldaState.currentProjectData || dashboardState.currentProjectData;
+    const data = getDashboardChartData();
     const container = document.getElementById('dash-gantt-container');
     if (!data || !container) return;
 
-    const raw = customItems !== null ? customItems : (qldaState.filteredItems || data.items || []);
+    const raw = getDashboardChartItems(customItems);
     const q = (dashboardState.ganttSearchQuery || '').toLowerCase().trim();
     const stageFilter = dashboardState.ganttFilterStage;
 
@@ -6453,7 +6549,7 @@ function renderDashboardGantt(customItems = null) {
                             <span class="font-bold font-mono text-blue-700 text-[11px]">${wTons} T</span>
                         </div>
                         <div class="flex items-center justify-between text-[11px] text-slate-500 mt-0.5 truncate">
-                            <span class="truncate">${it.ten_ban_ve || it.hang_muc}</span>
+                            <span class="truncate">${dashboardState.selectedProjectIds.length > 1 ? `<span class="text-purple-700 font-bold">${it._dashboard_project_id || ''}</span> · ` : ''}${it.ten_ban_ve || it.hang_muc}</span>
                             <span class="text-slate-400 shrink-0 ml-1">Tổ ${it.phan_giao}</span>
                         </div>
                     </div>
@@ -6539,11 +6635,46 @@ function renderDashboardGantt(customItems = null) {
 
 // Thiết lập các sự kiện lắng nghe cho Dashboard
 function setupDashboardEventListeners() {
-    // 1. Thay đổi dự án
-    const projSelect = document.getElementById('dash-select-project');
-    if (projSelect) {
-        projSelect.addEventListener('change', (e) => {
-            loadDashboardProject(e.target.value);
+    // 1. Chọn một, nhiều hoặc tất cả dự án
+    const projectPickerButton = document.getElementById('dash-project-picker-button');
+    const projectPickerMenu = document.getElementById('dash-project-picker-menu');
+    const projectPickerRoot = projectPickerButton?.parentElement;
+    const projectOptions = document.getElementById('dash-project-options');
+    const selectAllProjects = document.getElementById('dash-project-select-all');
+    if (projectPickerButton && projectPickerMenu) {
+        projectPickerButton.addEventListener('click', () => {
+            const isOpen = !projectPickerMenu.classList.contains('hidden');
+            projectPickerMenu.classList.toggle('hidden', isOpen);
+            projectPickerButton.setAttribute('aria-expanded', String(!isOpen));
+        });
+        document.addEventListener('pointerdown', (e) => {
+            if (projectPickerRoot && !projectPickerRoot.contains(e.target)) {
+                projectPickerMenu.classList.add('hidden');
+                projectPickerButton.setAttribute('aria-expanded', 'false');
+            }
+        }, true);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !projectPickerMenu.classList.contains('hidden')) {
+                projectPickerMenu.classList.add('hidden');
+                projectPickerButton.setAttribute('aria-expanded', 'false');
+                projectPickerButton.focus();
+            }
+        });
+    }
+    if (selectAllProjects) {
+        selectAllProjects.addEventListener('change', () => {
+            const ids = selectAllProjects.checked ? dashboardState.projects.map(project => project.project_id) : [];
+            loadDashboardProjects(ids);
+        });
+    }
+    if (projectOptions) {
+        projectOptions.addEventListener('change', (e) => {
+            const checkbox = e.target.closest('input[data-dashboard-project]');
+            if (!checkbox) return;
+            const selected = new Set(dashboardState.selectedProjectIds);
+            if (checkbox.checked) selected.add(checkbox.dataset.dashboardProject);
+            else selected.delete(checkbox.dataset.dashboardProject);
+            loadDashboardProjects(Array.from(selected));
         });
     }
 
@@ -6649,12 +6780,15 @@ function setupDashboardEventListeners() {
     // 10. Nút Làm Mới Dashboard
     const btnRefresh = document.getElementById('btn-dash-refresh');
     if (btnRefresh) {
-        btnRefresh.addEventListener('click', () => {
-            const targetPid = dashboardState.currentProjectId || qldaState.currentProjectId;
-            if (targetPid) {
-                delete _qldaDataCache[targetPid];
-                loadQldaProject(targetPid);
+        btnRefresh.addEventListener('click', async () => {
+            const projectIds = dashboardState.selectedProjectIds.length
+                ? dashboardState.selectedProjectIds
+                : [qldaState.currentProjectId || dashboardState.currentProjectId].filter(Boolean);
+            projectIds.forEach(projectId => { delete _qldaDataCache[projectId]; });
+            if (projectIds.length === 1 && projectIds[0] === qldaState.currentProjectId) {
+                await loadQldaProject(projectIds[0]);
             }
+            await loadDashboardProjects(projectIds);
         });
     }
 }

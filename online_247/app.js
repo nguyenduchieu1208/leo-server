@@ -27,6 +27,7 @@ let state = {
     isAdmin: false,
     isStaticMode: window.location.protocol === 'file:' || window.location.hostname.endsWith('github.io') || window.location.hostname.endsWith('pages.dev'),
     expandedAssemblies: new Set(),
+    partsExpandedAll: new Set(),
     filterCollapsed: false,
     // Performance pagination
     visibleCount: 35,
@@ -49,6 +50,8 @@ function updateCompactFilterBadges() {
     const mainPSelect = document.getElementById('select-project');
     const sSelect = document.getElementById('compact-select-sheet');
     const mainSSelect = document.getElementById('select-sheet');
+    const stSelect = document.getElementById('compact-select-status');
+    const mainStSelect = document.getElementById('select-status');
     const dLabel = document.getElementById('compact-date-label');
     const cSearch = document.getElementById('compact-input-search');
     const mainSearch = document.getElementById('input-search');
@@ -74,6 +77,12 @@ function updateCompactFilterBadges() {
     }
     if (mainSSelect && mainSSelect.value !== state.selectedSheet) {
         mainSSelect.value = state.selectedSheet || 'all';
+    }
+    if (stSelect && stSelect.value !== state.selectedStatus) {
+        stSelect.value = state.selectedStatus || 'all';
+    }
+    if (mainStSelect && mainStSelect.value !== state.selectedStatus) {
+        mainStSelect.value = state.selectedStatus || 'all';
     }
     if (dLabel) {
         dLabel.textContent = state.selectedDate === 'all' ? 'Tất cả ngày' : `📅 Ngày ${formatDateDisplay(state.selectedDate)}`;
@@ -848,8 +857,10 @@ function applyFiltersAndRender(resetPagination = true) {
     }
 
     // Lọc theo Tìm kiếm & Tự động mở rộng cấu kiện khớp BTP con
+    let matchingAssyIds = null;
     if (state.searchQuery) {
         const q = state.searchQuery.toLowerCase();
+        matchingAssyIds = new Set();
         assemblies = assemblies.filter(a => {
             const matchAssy = a.assembly_no.toLowerCase().includes(q) || 
                               a.dwg.toLowerCase().includes(q) || 
@@ -863,15 +874,27 @@ function applyFiltersAndRender(resetPagination = true) {
             );
             if (matchParts) {
                 state.expandedAssemblies.add(a.id);
+            }
+            if (matchAssy || matchParts) {
+                matchingAssyIds.add(a.id);
                 return true;
             }
-            return matchAssy;
+            return false;
         });
     }
 
-    // Lọc theo trạng thái
+    // Lọc theo trạng thái đồng bộ
     if (state.selectedStatus !== 'all') {
-        if (state.selectedStatus === 'shape_issue') {
+        if (state.selectedStatus === 'missing') {
+            // "chỉ hiện ra những cấu kiện thiếu đã đủ sẽ ẩn đi, khi tìm thì hiện ra cái cần tìm và mở rộng ra mới hiện tất cả"
+            if (state.searchQuery && matchingAssyIds) {
+                // Khi tìm kiếm: ưu tiên hiện ra cái cần tìm (kể cả đã đủ 100% nếu khớp từ khóa tìm kiếm)
+                // Các cấu kiện đã khớp với từ khóa tìm kiếm được giữ lại đầy đủ
+            } else {
+                // Mặc định lọc thiếu: chỉ hiện cấu kiện thiếu, cấu kiện đã đủ 100% sẽ bị ẩn đi
+                assemblies = assemblies.filter(a => a.status !== 'completed');
+            }
+        } else if (state.selectedStatus === 'shape_issue') {
             assemblies = assemblies.filter(a => a.has_shape_issue);
         } else {
             assemblies = assemblies.filter(a => a.status === state.selectedStatus);
@@ -904,13 +927,64 @@ function buildPartsTableHtml(assy) {
         return `<p class="p-4 text-xs text-slate-400 italic">Không có chi tiết BTP con nào.</p>`;
     }
 
+    const totalPartsCount = assy.parts.length;
+    const completedPartsCount = assy.parts.filter(p => p.is_fully_received).length;
+    const missingPartsCount = totalPartsCount - completedPartsCount;
+
+    // Kiểm tra xem cấu kiện này có đang được mở rộng xem tất cả BTP hay không
+    const isShowingAllParts = (state.partsExpandedAll && state.partsExpandedAll.has(assy.id)) || (state.selectedStatus !== 'missing');
+
+    let displayParts = assy.parts;
+    let partsFilterNotice = '';
+
+    if (state.selectedStatus === 'missing' && completedPartsCount > 0) {
+        if (!isShowingAllParts) {
+            // Khi chưa bấm mở rộng: chỉ hiện BTP còn thiếu, hoặc BTP khớp từ khóa tìm kiếm
+            displayParts = assy.parts.filter(p => {
+                if (!p.is_fully_received) return true;
+                if (state.searchQuery) {
+                    const q = state.searchQuery.toLowerCase();
+                    return (p.part_no && p.part_no.toLowerCase().includes(q)) || 
+                           (p.part_cut && p.part_cut.toLowerCase().includes(q)) || 
+                           (p.size && p.size.toLowerCase().includes(q)) ||
+                           (p.material && p.material.toLowerCase().includes(q)) ||
+                           (p.ghi_chu && p.ghi_chu.toLowerCase().includes(q));
+                }
+                return false;
+            });
+
+            partsFilterNotice = `
+                <div class="flex flex-wrap items-center justify-between gap-2 p-2 sm:px-3 mb-2 bg-amber-50/90 border border-amber-200/90 rounded-xl text-[11px] text-amber-950">
+                    <div class="flex items-center gap-1.5 font-medium">
+                        <span class="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+                        <span>Đang ẩn <strong>${completedPartsCount}</strong> BTP đã đủ 100% (Chỉ hiện <strong>${displayParts.length}</strong> BTP thiếu/khớp tìm kiếm)</span>
+                    </div>
+                    <button type="button" class="btn-toggle-part-details px-2.5 py-1 bg-white hover:bg-amber-100 border border-amber-300 text-amber-900 rounded-lg font-bold text-xs shadow-2xs transition cursor-pointer active:scale-95" data-assy-id="${assy.id}">
+                        📂 Mở rộng xem tất cả (${totalPartsCount} BTP)
+                    </button>
+                </div>
+            `;
+        } else {
+            // Đã mở rộng xem tất cả: hiện đầy đủ và có nút thu gọn lại
+            partsFilterNotice = `
+                <div class="flex flex-wrap items-center justify-between gap-2 p-2 sm:px-3 mb-2 bg-slate-100 border border-slate-200 rounded-xl text-[11px] text-slate-700">
+                    <span>Đang hiển thị toàn bộ <strong>${totalPartsCount}</strong> BTP (gồm <strong>${completedPartsCount}</strong> đã đủ và <strong>${missingPartsCount}</strong> còn thiếu).</span>
+                    <button type="button" class="btn-toggle-part-details px-2.5 py-1 bg-white hover:bg-slate-200 border border-slate-300 text-slate-800 rounded-lg font-bold text-xs shadow-2xs transition cursor-pointer active:scale-95" data-assy-id="${assy.id}">
+                        [-] Thu gọn (Chỉ hiện BTP thiếu)
+                    </button>
+                </div>
+            `;
+        }
+    }
+
     return `
+        ${partsFilterNotice}
         <!-- Chỉ báo vuốt ngang trên màn hình điện thoại -->
         <div class="sm:hidden flex items-center justify-between text-[11px] text-slate-500 font-medium px-1 mb-1.5">
             <span class="flex items-center gap-1 text-blue-600 font-bold">
                 <span>👈</span> Vuốt ngang xem đủ 12 cột BTP <span>👉</span>
             </span>
-            <span class="font-mono font-semibold text-slate-700">${assy.parts.length} BTP</span>
+            <span class="font-mono font-semibold text-slate-700">${displayParts.length}/${totalPartsCount} BTP</span>
         </div>
         <div class="overflow-x-auto bg-white rounded-xl border border-slate-200 shadow-2xs">
             <table class="w-full text-left text-xs border-collapse">
@@ -931,7 +1005,7 @@ function buildPartsTableHtml(assy) {
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-200">
-                    ${assy.parts.map(p => {
+                    ${displayParts.map(p => {
                         const sa = p.shape_analysis || {};
                         let chungLoaiBadge = '<span class="px-2 py-0.5 rounded text-[10px] bg-slate-100 text-slate-600 font-bold">Khác</span>';
                         if (p.chung_loai.toUpperCase() === 'PLATE') {
@@ -1012,6 +1086,32 @@ function buildPartsTableHtml(assy) {
     `;
 }
 
+// Hàm gắn sự kiện Mở rộng / Thu gọn chi tiết BTP của cấu kiện
+function attachPartDetailsToggleEvents(scopeEl) {
+    const root = scopeEl || document;
+    root.querySelectorAll('.btn-toggle-part-details').forEach(btn => {
+        btn.onclick = function(e) {
+            e.stopPropagation();
+            const assyId = this.dataset.assyId;
+            if (!assyId) return;
+            if (!state.partsExpandedAll) state.partsExpandedAll = new Set();
+            if (state.partsExpandedAll.has(assyId)) {
+                state.partsExpandedAll.delete(assyId);
+            } else {
+                state.partsExpandedAll.add(assyId);
+            }
+            const details = document.getElementById(`details-${assyId}`);
+            const targetAssy = (state.filteredAssemblies || []).find(a => a.id === assyId) || 
+                               (state.projectData?.assemblies || []).find(a => a.id === assyId);
+            if (details && targetAssy) {
+                details.innerHTML = buildPartsTableHtml(targetAssy);
+                details.dataset.rendered = "true";
+                attachPartDetailsToggleEvents(details);
+            }
+        };
+    });
+}
+
 // 8. Hiển thị Cây Cấu kiện & BTP con (Tab 1 - Phân trang Batch Rendering siêu nhanh)
 function renderAssemblies() {
     const container = document.getElementById('assemblies-container');
@@ -1033,6 +1133,30 @@ function renderAssemblies() {
         `;
         lucide.createIcons();
         return;
+    }
+
+    // Banner thông báo nếu đang áp dụng bộ lọc chỉ hiện cấu kiện thiếu
+    let hiddenBannerHtml = '';
+    if (state.selectedStatus === 'missing' && !state.searchQuery && state.projectData) {
+        const totalInSheet = (state.projectData.assemblies || []).filter(a => state.selectedSheet === 'all' || a.sheet === state.selectedSheet);
+        const hiddenCompletedCount = totalInSheet.filter(a => a.status === 'completed').length;
+        if (hiddenCompletedCount > 0) {
+            hiddenBannerHtml = `
+                <div class="mb-3 p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl flex flex-wrap items-center justify-between gap-2.5 text-xs text-amber-950 shadow-2xs">
+                    <div class="flex items-center gap-2 font-medium">
+                        <span class="flex h-2.5 w-2.5 relative shrink-0">
+                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                            <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                        </span>
+                        <span>Đang áp dụng bộ lọc: <strong class="text-amber-800">Chỉ hiện cấu kiện thiếu</strong> (Đã ẩn <strong>${hiddenCompletedCount}</strong> cấu kiện đã đủ 100%).</span>
+                    </div>
+                    <button id="btn-banner-expand-all" type="button" class="px-3 py-1.5 bg-white hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold rounded-xl transition shadow-2xs cursor-pointer active:scale-95 flex items-center gap-1.5 whitespace-nowrap">
+                        <i data-lucide="layers" class="w-3.5 h-3.5 text-amber-700"></i>
+                        <span>📂 Mở rộng xem tất cả (${totalInSheet.length} CK)</span>
+                    </button>
+                </div>
+            `;
+        }
     }
 
     // Chỉ render danh sách visibleCount đầu tiên
@@ -1117,7 +1241,22 @@ function renderAssemblies() {
         `;
     }
 
-    container.innerHTML = htmlBuffer;
+    container.innerHTML = hiddenBannerHtml + htmlBuffer;
+
+    const btnBannerExpand = container.querySelector('#btn-banner-expand-all');
+    if (btnBannerExpand) {
+        btnBannerExpand.onclick = function() {
+            state.selectedStatus = 'all';
+            const sel = document.getElementById('select-status');
+            if (sel) sel.value = 'all';
+            const compactSel = document.getElementById('compact-select-status');
+            if (compactSel) compactSel.value = 'all';
+            updateCompactFilterBadges();
+            applyFiltersAndRender(true);
+        };
+    }
+
+    attachPartDetailsToggleEvents(container);
 
     // Gắn sự kiện Click mở/đóng từng cấu kiện
     container.querySelectorAll('.assy-header').forEach(header => {
@@ -1136,6 +1275,7 @@ function renderAssemblies() {
                     if (targetAssy) {
                         details.innerHTML = buildPartsTableHtml(targetAssy);
                         details.dataset.rendered = "true";
+                        attachPartDetailsToggleEvents(details);
                     }
                 }
                 details.classList.remove('hidden');
@@ -2722,11 +2862,24 @@ function setupEventListeners() {
         });
     }
 
-    // Đổi Trạng Thái
+    // Đổi Trạng Thái (Thanh Đầy Đủ)
     const selectStatus = document.getElementById('select-status');
     if (selectStatus) {
         selectStatus.addEventListener('change', (e) => {
             state.selectedStatus = e.target.value;
+            const compactSelect = document.getElementById('compact-select-status');
+            if (compactSelect) compactSelect.value = e.target.value;
+            applyFiltersAndRender(true);
+        });
+    }
+
+    // Đổi Trạng Thái (Thanh Thu Gọn)
+    const compactSelectStatus = document.getElementById('compact-select-status');
+    if (compactSelectStatus) {
+        compactSelectStatus.addEventListener('change', (e) => {
+            state.selectedStatus = e.target.value;
+            const mainSelect = document.getElementById('select-status');
+            if (mainSelect) mainSelect.value = e.target.value;
             applyFiltersAndRender(true);
         });
     }
@@ -2751,6 +2904,7 @@ function setupEventListeners() {
         state.selectedStatus = 'all';
         state.selectedDate = 'all';
         state.searchQuery = '';
+        if (state.partsExpandedAll) state.partsExpandedAll.clear();
 
         const selectSheet = document.getElementById('select-sheet');
         if (selectSheet) selectSheet.value = 'all';
@@ -2760,6 +2914,9 @@ function setupEventListeners() {
 
         const selectStatus = document.getElementById('select-status');
         if (selectStatus) selectStatus.value = 'all';
+
+        const compactSelectStatus = document.getElementById('compact-select-status');
+        if (compactSelectStatus) compactSelectStatus.value = 'all';
 
         const selectDate = document.getElementById('select-date');
         if (selectDate) selectDate.value = 'all';
@@ -3519,14 +3676,15 @@ function setupEventListeners() {
             const visibleAssemblies = state.filteredAssemblies.slice(0, state.visibleCount);
             visibleAssemblies.forEach(a => {
                 state.expandedAssemblies.add(a.id);
+                if (!state.partsExpandedAll) state.partsExpandedAll = new Set();
+                state.partsExpandedAll.add(a.id);
                 const details = document.getElementById(`details-${a.id}`);
                 const card = document.getElementById(`card-${a.id}`);
                 if (details) {
-                    if (!details.dataset.rendered) {
-                        details.innerHTML = buildPartsTableHtml(a);
-                        details.dataset.rendered = "true";
-                    }
+                    details.innerHTML = buildPartsTableHtml(a);
+                    details.dataset.rendered = "true";
                     details.classList.remove('hidden');
+                    attachPartDetailsToggleEvents(details);
                 }
                 if (card) {
                     const icon = card.querySelector('.chevron-icon');
@@ -3541,6 +3699,7 @@ function setupEventListeners() {
     if (btnCollapseAll) {
         btnCollapseAll.addEventListener('click', () => {
             state.expandedAssemblies.clear();
+            if (state.partsExpandedAll) state.partsExpandedAll.clear();
             document.querySelectorAll('.assy-details').forEach(d => d.classList.add('hidden'));
             document.querySelectorAll('.chevron-icon').forEach(icon => icon.innerHTML = SVG_ICONS.chevronRight);
         });
@@ -4030,7 +4189,17 @@ function filterQldaItems() {
     let filtered = raw.filter(item => {
         if (hm !== 'all' && item.hang_muc !== hm) return false;
         if (pg !== 'all' && item.phan_giao !== pg) return false;
-        if (st !== 'all' && item.status !== st) return false;
+        if (st !== 'all') {
+            if (st === 'incomplete') {
+                if (q) {
+                    // Khi tìm kiếm: ưu tiên hiện ra cái cần tìm (kể cả đã bàn giao)
+                } else if (item.status === 'BAN_GIAO') {
+                    return false;
+                }
+            } else if (item.status !== st) {
+                return false;
+            }
+        }
 
         if (q) {
             const matchSoChiTiet = item.so_chi_tiet && item.so_chi_tiet.toLowerCase().includes(q);
