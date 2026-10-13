@@ -1,6 +1,6 @@
 {
-  "count": 14,
-  "updated_at": "2026-10-12 16:34:05",
+  "count": 13,
+  "updated_at": "2026-10-13 07:58:57",
   "projects": [
     {
       "project_id": "A290",
@@ -144,17 +144,6 @@
       "completed_assemblies": 45,
       "partial_assemblies": 120,
       "not_received_assemblies": 77
-    },
-    {
-      "project_id": "a320 tăng cứng kiện",
-      "display_name": "a320 tăng cứng kiện",
-      "file_name": "a320 tăng cứng kiện.xlsx",
-      "file_path": "data/a320 tăng cứng kiện.json",
-      "size_bytes": 18202,
-      "total_assemblies": 54,
-      "completed_assemblies": 0,
-      "partial_assemblies": 0,
-      "not_received_assemblies": 54
     }
   ]
 }
