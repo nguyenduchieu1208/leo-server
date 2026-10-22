@@ -1,17 +1,17 @@
 {
   "count": 14,
-  "updated_at": "2026-10-21 14:23:57",
+  "updated_at": "2026-10-22 15:08:24",
   "projects": [
     {
       "project_id": "A290",
       "display_name": "A290",
       "file_name": "A290PL.xlsx",
       "file_path": "data/A290.json",
-      "size_bytes": 7560198,
-      "total_assemblies": 1992,
+      "size_bytes": 7568027,
+      "total_assemblies": 2021,
       "completed_assemblies": 1881,
       "partial_assemblies": 102,
-      "not_received_assemblies": 9
+      "not_received_assemblies": 38
     },
     {
       "project_id": "A320",
