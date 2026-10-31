@@ -119,7 +119,7 @@ code, .font-mono {
 
 /* Tối ưu hóa hiển thị và vùng chạm trên điện thoại di động (Mobile Optimization) */
 /* Safari trên iPhone tự phóng trang khi ô nhập có chữ nhỏ hơn 16px. */
-@media (pointer: coarse) {
+@media (pointer: coarse), (max-width: 640px) {
     #input-search,
     #compact-input-search,
     #dvg-missing-search,
