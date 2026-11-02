@@ -1,6 +1,6 @@
 {
-  "count": 21,
-  "updated_at": "2026-10-31 14:33:49",
+  "count": 22,
+  "updated_at": "2026-11-02 17:25:55",
   "projects": [
     {
       "project_id": "A286",
@@ -51,26 +51,26 @@
         "S4",
         "S5"
       ],
-      "updated_at": "16/07/2026 01:46"
+      "updated_at": "16/07/2026 08:46"
     },
     {
       "project_id": "A290",
       "file_name": "A290.xlsx",
       "data_path": "data_qlda/A290.json",
-      "total_items": 4597,
-      "total_qty": 5017,
-      "total_weight": 2977434.14,
-      "total_tons": 2977.43,
+      "total_items": 4604,
+      "total_qty": 5050,
+      "total_weight": 2977464.74,
+      "total_tons": 2977.46,
       "kpis": {
         "ga_lap": {
-          "sl": 3957.0,
-          "kl": 2594226.5,
-          "rate": 87.1
+          "sl": 4108.0,
+          "kl": 2726207.0,
+          "rate": 91.6
         },
         "han": {
-          "sl": 3906.0,
-          "kl": 2536261.0,
-          "rate": 85.2
+          "sl": 4067.0,
+          "kl": 2671498.6,
+          "rate": 89.7
         },
         "to_hop_thu": {
           "sl": 0,
@@ -78,14 +78,14 @@
           "rate": 0.0
         },
         "nghiem_thu": {
-          "sl": 3572.0,
-          "kl": 2282281.5,
-          "rate": 76.7
+          "sl": 3702.0,
+          "kl": 2308925.9,
+          "rate": 77.5
         },
         "ban_giao": {
-          "sl": 3539.0,
-          "kl": 2233040.8,
-          "rate": 75.0
+          "sl": 3633.0,
+          "kl": 2291395.1,
+          "rate": 77.0
         }
       },
       "hang_mucs": [
@@ -121,26 +121,26 @@
         "S4",
         "S5"
       ],
-      "updated_at": "19/10/2026 01:48"
+      "updated_at": "31/10/2026 20:50"
     },
     {
       "project_id": "A320",
       "file_name": "A320.xlsx",
       "data_path": "data_qlda/A320.json",
       "total_items": 186,
-      "total_qty": 1340,
-      "total_weight": 201783.31,
-      "total_tons": 201.78,
+      "total_qty": 1376,
+      "total_weight": 201794.11,
+      "total_tons": 201.79,
       "kpis": {
         "ga_lap": {
-          "sl": 18.0,
-          "kl": 51008.6,
-          "rate": 25.3
+          "sl": 85.0,
+          "kl": 51691.8,
+          "rate": 25.6
         },
         "han": {
-          "sl": 18.0,
-          "kl": 51008.6,
-          "rate": 25.3
+          "sl": 85.0,
+          "kl": 51691.8,
+          "rate": 25.6
         },
         "to_hop_thu": {
           "sl": 3.0,
@@ -148,14 +148,14 @@
           "rate": 7.8
         },
         "nghiem_thu": {
-          "sl": 14.0,
-          "kl": 41463.8,
-          "rate": 20.5
+          "sl": 83.0,
+          "kl": 46852.0,
+          "rate": 23.2
         },
         "ban_giao": {
-          "sl": 11.0,
-          "kl": 33388.6,
-          "rate": 16.5
+          "sl": 83.0,
+          "kl": 46852.0,
+          "rate": 23.2
         }
       },
       "hang_mucs": [
@@ -169,7 +169,7 @@
         "S2",
         "S4"
       ],
-      "updated_at": "19/10/2026 00:58"
+      "updated_at": "29/10/2026 08:00"
     },
     {
       "project_id": "B272",
@@ -216,7 +216,7 @@
         "S3",
         "S4"
       ],
-      "updated_at": "12/10/2026 06:54"
+      "updated_at": "26/10/2026 07:57"
     },
     {
       "project_id": "E275",
@@ -259,7 +259,7 @@
       "phan_giaos": [
         "S5"
       ],
-      "updated_at": "16/07/2026 01:48"
+      "updated_at": "16/07/2026 08:48"
     },
     {
       "project_id": "E307",
@@ -302,7 +302,7 @@
       "phan_giaos": [
         "S3"
       ],
-      "updated_at": "03/10/2026 01:19"
+      "updated_at": "03/10/2026 08:19"
     },
     {
       "project_id": "M270",
@@ -346,7 +346,7 @@
       "phan_giaos": [
         "S1"
       ],
-      "updated_at": "10/08/2026 02:07"
+      "updated_at": "10/08/2026 09:07"
     },
     {
       "project_id": "M291",
@@ -397,7 +397,7 @@
         "S4",
         "S5"
       ],
-      "updated_at": "20/08/2026 10:08"
+      "updated_at": "20/08/2026 17:08"
     },
     {
       "project_id": "M296",
@@ -441,7 +441,7 @@
         "S2",
         "S5"
       ],
-      "updated_at": "31/07/2026 01:52"
+      "updated_at": "31/07/2026 08:52"
     },
     {
       "project_id": "M304",
@@ -453,14 +453,14 @@
       "total_tons": 1407.02,
       "kpis": {
         "ga_lap": {
+          "sl": 1133.0,
+          "kl": 994239.6,
+          "rate": 70.7
+        },
+        "han": {
           "sl": 1132.0,
           "kl": 987403.8,
           "rate": 70.2
-        },
-        "han": {
-          "sl": 1129.0,
-          "kl": 975375.7,
-          "rate": 69.3
         },
         "to_hop_thu": {
           "sl": 0,
@@ -468,14 +468,14 @@
           "rate": 0.0
         },
         "nghiem_thu": {
-          "sl": 1046.0,
-          "kl": 925016.2,
-          "rate": 65.7
+          "sl": 1122.0,
+          "kl": 946271.4,
+          "rate": 67.3
         },
         "ban_giao": {
-          "sl": 1009.0,
-          "kl": 917415.4,
-          "rate": 65.2
+          "sl": 1048.0,
+          "kl": 928143.9,
+          "rate": 66.0
         }
       },
       "hang_mucs": [
@@ -503,7 +503,7 @@
         "S3",
         "S4"
       ],
-      "updated_at": "19/10/2026 01:35"
+      "updated_at": "31/10/2026 20:46"
     },
     {
       "project_id": "M313",
@@ -548,7 +548,51 @@
       "phan_giaos": [
         "S3"
       ],
-      "updated_at": "10/08/2026 03:39"
+      "updated_at": "10/08/2026 10:39"
+    },
+    {
+      "project_id": "M337",
+      "file_name": "M337.xlsx",
+      "data_path": "data_qlda/M337.json",
+      "total_items": 23,
+      "total_qty": 23,
+      "total_weight": 105481.48,
+      "total_tons": 105.48,
+      "kpis": {
+        "ga_lap": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        },
+        "han": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        },
+        "to_hop_thu": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        },
+        "nghiem_thu": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        },
+        "ban_giao": {
+          "sl": 0,
+          "kl": 0.0,
+          "rate": 0.0
+        }
+      },
+      "hang_mucs": [
+        "Inlet Duct"
+      ],
+      "phan_giaos": [
+        "S2",
+        "S4"
+      ],
+      "updated_at": "31/10/2026 15:27"
     },
     {
       "project_id": "S200",
@@ -598,7 +642,7 @@
         "S3",
         "S4"
       ],
-      "updated_at": "16/07/2026 01:52"
+      "updated_at": "16/07/2026 08:52"
     },
     {
       "project_id": "U276",
@@ -642,7 +686,7 @@
         "CHƯA PHÂN GIAO",
         "S1"
       ],
-      "updated_at": "16/07/2026 01:53"
+      "updated_at": "16/07/2026 08:53"
     },
     {
       "project_id": "U278",
@@ -698,41 +742,41 @@
         "S4",
         "S5"
       ],
-      "updated_at": "16/07/2026 01:54"
+      "updated_at": "16/07/2026 08:54"
     },
     {
       "project_id": "U284",
       "file_name": "U284.xlsx",
       "data_path": "data_qlda/U284.json",
-      "total_items": 375,
-      "total_qty": 1051,
-      "total_weight": 270909.7,
-      "total_tons": 270.91,
+      "total_items": 398,
+      "total_qty": 1054,
+      "total_weight": 272842.44,
+      "total_tons": 272.84,
       "kpis": {
         "ga_lap": {
-          "sl": 517.0,
-          "kl": 261627.9,
-          "rate": 96.6
+          "sl": 1053.0,
+          "kl": 271054.4,
+          "rate": 99.3
         },
         "han": {
-          "sl": 496.0,
-          "kl": 246981.9,
-          "rate": 91.2
+          "sl": 1053.0,
+          "kl": 271054.4,
+          "rate": 99.3
         },
         "to_hop_thu": {
-          "sl": 3.0,
-          "kl": 16491.6,
-          "rate": 6.1
+          "sl": 25.0,
+          "kl": 126331.0,
+          "rate": 46.3
         },
         "nghiem_thu": {
-          "sl": 256.0,
-          "kl": 27673.7,
-          "rate": 10.2
+          "sl": 1053.0,
+          "kl": 271054.4,
+          "rate": 99.3
         },
         "ban_giao": {
-          "sl": 9.0,
-          "kl": 14333.9,
-          "rate": 5.3
+          "sl": 1043.0,
+          "kl": 269274.8,
+          "rate": 98.7
         }
       },
       "hang_mucs": [
@@ -745,7 +789,7 @@
         "S3",
         "S4"
       ],
-      "updated_at": "19/10/2026 01:36"
+      "updated_at": "02/11/2026 17:22"
     },
     {
       "project_id": "U285",
@@ -757,29 +801,29 @@
       "total_tons": 292.41,
       "kpis": {
         "ga_lap": {
-          "sl": 152.0,
-          "kl": 156041.0,
-          "rate": 53.4
+          "sl": 527.0,
+          "kl": 183980.1,
+          "rate": 62.9
         },
         "han": {
-          "sl": 131.0,
-          "kl": 142921.5,
-          "rate": 48.9
+          "sl": 505.0,
+          "kl": 177730.9,
+          "rate": 60.8
         },
         "to_hop_thu": {
-          "sl": 12.0,
-          "kl": 48023.4,
-          "rate": 16.4
+          "sl": 14.0,
+          "kl": 62067.2,
+          "rate": 21.2
         },
         "nghiem_thu": {
-          "sl": 46.0,
-          "kl": 48922.1,
-          "rate": 16.7
+          "sl": 411.0,
+          "kl": 81317.5,
+          "rate": 27.8
         },
         "ban_giao": {
-          "sl": 46.0,
-          "kl": 48922.1,
-          "rate": 16.7
+          "sl": 411.0,
+          "kl": 81317.5,
+          "rate": 27.8
         }
       },
       "hang_mucs": [
@@ -790,7 +834,7 @@
         "S2",
         "S4"
       ],
-      "updated_at": "19/10/2026 01:46"
+      "updated_at": "02/11/2026 17:09"
     },
     {
       "project_id": "U302",
@@ -839,7 +883,7 @@
         "S3",
         "S4"
       ],
-      "updated_at": "14/10/2026 00:58"
+      "updated_at": "14/10/2026 07:58"
     },
     {
       "project_id": "U310",
@@ -882,7 +926,7 @@
       "phan_giaos": [
         "S3"
       ],
-      "updated_at": "12/08/2026 01:22"
+      "updated_at": "12/08/2026 08:22"
     },
     {
       "project_id": "U311",
@@ -925,7 +969,7 @@
       "phan_giaos": [
         "S1"
       ],
-      "updated_at": "12/08/2026 01:21"
+      "updated_at": "12/08/2026 08:21"
     },
     {
       "project_id": "V261",
@@ -977,7 +1021,7 @@
         "S3",
         "S5"
       ],
-      "updated_at": "16/07/2026 01:57"
+      "updated_at": "16/07/2026 08:57"
     },
     {
       "project_id": "V314",
@@ -989,14 +1033,14 @@
       "total_tons": 489.67,
       "kpis": {
         "ga_lap": {
-          "sl": 29.0,
-          "kl": 217209.1,
-          "rate": 44.4
+          "sl": 38.0,
+          "kl": 266190.1,
+          "rate": 54.4
         },
         "han": {
-          "sl": 24.0,
-          "kl": 197392.4,
-          "rate": 40.3
+          "sl": 34.0,
+          "kl": 255624.7,
+          "rate": 52.2
         },
         "to_hop_thu": {
           "sl": 0,
@@ -1004,14 +1048,14 @@
           "rate": 0.0
         },
         "nghiem_thu": {
-          "sl": 8.0,
-          "kl": 111318.8,
-          "rate": 22.7
+          "sl": 11.0,
+          "kl": 122917.6,
+          "rate": 25.1
         },
         "ban_giao": {
-          "sl": 8.0,
-          "kl": 111318.8,
-          "rate": 22.7
+          "sl": 10.0,
+          "kl": 118946.9,
+          "rate": 24.3
         }
       },
       "hang_mucs": [
@@ -1024,7 +1068,7 @@
         "S3",
         "S4"
       ],
-      "updated_at": "19/10/2026 01:47"
+      "updated_at": "02/11/2026 10:01"
     }
   ]
 }
