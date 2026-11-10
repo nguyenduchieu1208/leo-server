@@ -1,16 +1,16 @@
 {
-  "count": 15,
-  "updated_at": "2026-11-09 17:18:14",
+  "count": 21,
+  "updated_at": "2026-11-10 08:53:32",
   "projects": [
     {
       "project_id": "A290",
       "display_name": "A290",
       "file_name": "A290PL.xlsx",
       "file_path": "data/A290.json",
-      "size_bytes": 6091775,
+      "size_bytes": 6094884,
       "total_assemblies": 1639,
-      "completed_assemblies": 1217,
-      "partial_assemblies": 356,
+      "completed_assemblies": 1219,
+      "partial_assemblies": 354,
       "not_received_assemblies": 66
     },
     {
@@ -18,11 +18,11 @@
       "display_name": "A320",
       "file_name": "A320PL.xlsx",
       "file_path": "data/A320.json",
-      "size_bytes": 977167,
+      "size_bytes": 974670,
       "total_assemblies": 195,
       "completed_assemblies": 49,
-      "partial_assemblies": 52,
-      "not_received_assemblies": 94
+      "partial_assemblies": 53,
+      "not_received_assemblies": 93
     },
     {
       "project_id": "B272",
@@ -45,6 +45,17 @@
       "completed_assemblies": 76,
       "partial_assemblies": 4,
       "not_received_assemblies": 0
+    },
+    {
+      "project_id": "KẾ HOẠCH SẢN XUẤT-AMC2-T11 (version 1)",
+      "display_name": "KẾ HOẠCH SẢN XUẤT-AMC2-T11 (version 1)",
+      "file_name": "KẾ HOẠCH SẢN XUẤT-AMC2-T11 (version 1).xlsx",
+      "file_path": "data/KẾ HOẠCH SẢN XUẤT-AMC2-T11 (version 1).json",
+      "size_bytes": 3192940,
+      "total_assemblies": 479,
+      "completed_assemblies": 0,
+      "partial_assemblies": 0,
+      "not_received_assemblies": 479
     },
     {
       "project_id": "M270",
@@ -84,11 +95,11 @@
       "display_name": "M337",
       "file_name": "M337PL.xlsx",
       "file_path": "data/M337.json",
-      "size_bytes": 607273,
+      "size_bytes": 577249,
       "total_assemblies": 23,
       "completed_assemblies": 0,
-      "partial_assemblies": 21,
-      "not_received_assemblies": 2
+      "partial_assemblies": 23,
+      "not_received_assemblies": 0
     },
     {
       "project_id": "U284",
@@ -117,10 +128,10 @@
       "display_name": "U298",
       "file_name": "U298PL.xlsx",
       "file_path": "data/U298.json",
-      "size_bytes": 1695526,
+      "size_bytes": 1718970,
       "total_assemblies": 578,
-      "completed_assemblies": 119,
-      "partial_assemblies": 125,
+      "completed_assemblies": 123,
+      "partial_assemblies": 121,
       "not_received_assemblies": 334
     },
     {
@@ -150,7 +161,7 @@
       "display_name": "V314",
       "file_name": "V314PL.xlsx",
       "file_path": "data/V314.json",
-      "size_bytes": 3636836,
+      "size_bytes": 3638692,
       "total_assemblies": 242,
       "completed_assemblies": 64,
       "partial_assemblies": 116,
@@ -161,11 +172,66 @@
       "display_name": "a320 tăng cứng kiện",
       "file_name": "a320 tăng cứng kiện.xlsx",
       "file_path": "data/a320 tăng cứng kiện.json",
-      "size_bytes": 22207,
-      "total_assemblies": 71,
+      "size_bytes": 25737,
+      "total_assemblies": 80,
       "completed_assemblies": 0,
       "partial_assemblies": 0,
-      "not_received_assemblies": 71
+      "not_received_assemblies": 80
+    },
+    {
+      "project_id": "Ke_hoach_san_xuat_8_nguoi",
+      "display_name": "[outputs\\01a1c0c1-0f11-75a1-968a-6810cefc2897] Ke_hoach_san_xuat_8_nguoi",
+      "file_name": "Ke_hoach_san_xuat_8_nguoi.xlsx",
+      "file_path": "data/Ke_hoach_san_xuat_8_nguoi.json",
+      "size_bytes": 2166252,
+      "total_assemblies": 7490,
+      "completed_assemblies": 0,
+      "partial_assemblies": 0,
+      "not_received_assemblies": 7490
+    },
+    {
+      "project_id": "Ke_hoach_san_xuat_8_nguoi_nhap_Assembly_No",
+      "display_name": "[outputs\\01a1c0c1-0f11-75a1-968a-6810cefc2897] Ke_hoach_san_xuat_8_nguoi_nhap_Assembly_No",
+      "file_name": "Ke_hoach_san_xuat_8_nguoi_nhap_Assembly_No.xlsx",
+      "file_path": "data/Ke_hoach_san_xuat_8_nguoi_nhap_Assembly_No.json",
+      "size_bytes": 2376583,
+      "total_assemblies": 40,
+      "completed_assemblies": 0,
+      "partial_assemblies": 0,
+      "not_received_assemblies": 40
+    },
+    {
+      "project_id": "Ke_hoach_san_xuat_8_nguoi_todo",
+      "display_name": "[outputs\\01a1c0c1-0f11-75a1-968a-6810cefc2897] Ke_hoach_san_xuat_8_nguoi_todo",
+      "file_name": "Ke_hoach_san_xuat_8_nguoi_todo.xlsx",
+      "file_path": "data/Ke_hoach_san_xuat_8_nguoi_todo.json",
+      "size_bytes": 1638128,
+      "total_assemblies": 40,
+      "completed_assemblies": 0,
+      "partial_assemblies": 0,
+      "not_received_assemblies": 40
+    },
+    {
+      "project_id": "Ke_hoach_san_xuat_8_nguoi_todo_v2",
+      "display_name": "[outputs\\01a1c0c1-0f11-75a1-968a-6810cefc2897] Ke_hoach_san_xuat_8_nguoi_todo_v2",
+      "file_name": "Ke_hoach_san_xuat_8_nguoi_todo_v2.xlsx",
+      "file_path": "data/Ke_hoach_san_xuat_8_nguoi_todo_v2.json",
+      "size_bytes": 1634398,
+      "total_assemblies": 38,
+      "completed_assemblies": 0,
+      "partial_assemblies": 0,
+      "not_received_assemblies": 38
+    },
+    {
+      "project_id": "Ke_hoach_san_xuat_Daily_Task",
+      "display_name": "[outputs\\01a1c0c1-0f11-75a1-968a-6810cefc2897] Ke_hoach_san_xuat_Daily_Task",
+      "file_name": "Ke_hoach_san_xuat_Daily_Task.xlsx",
+      "file_path": "data/Ke_hoach_san_xuat_Daily_Task.json",
+      "size_bytes": 962384,
+      "total_assemblies": 9073,
+      "completed_assemblies": 0,
+      "partial_assemblies": 0,
+      "not_received_assemblies": 9073
     }
   ]
 }
