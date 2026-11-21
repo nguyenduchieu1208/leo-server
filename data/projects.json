@@ -1,27 +1,27 @@
 {
   "count": 17,
-  "updated_at": "2026-11-19 16:56:48",
+  "updated_at": "2026-11-21 08:16:25",
   "projects": [
     {
       "project_id": "A290",
       "display_name": "A290",
       "file_name": "A290PL.xlsx",
       "file_path": "data/A290.json",
-      "size_bytes": 6143953,
+      "size_bytes": 6157596,
       "total_assemblies": 1639,
-      "completed_assemblies": 1302,
-      "partial_assemblies": 280,
-      "not_received_assemblies": 57
+      "completed_assemblies": 1306,
+      "partial_assemblies": 278,
+      "not_received_assemblies": 55
     },
     {
       "project_id": "A320",
       "display_name": "A320",
       "file_name": "A320PL.xlsx",
       "file_path": "data/A320.json",
-      "size_bytes": 981993,
+      "size_bytes": 984013,
       "total_assemblies": 195,
-      "completed_assemblies": 59,
-      "partial_assemblies": 50,
+      "completed_assemblies": 61,
+      "partial_assemblies": 48,
       "not_received_assemblies": 86
     },
     {
@@ -73,7 +73,7 @@
       "display_name": "M304",
       "file_name": "M304PL.xlsx",
       "file_path": "data/M304.json",
-      "size_bytes": 12461505,
+      "size_bytes": 12466970,
       "total_assemblies": 1493,
       "completed_assemblies": 1091,
       "partial_assemblies": 353,
@@ -84,7 +84,7 @@
       "display_name": "M337",
       "file_name": "M337PL.xlsx",
       "file_path": "data/M337.json",
-      "size_bytes": 577035,
+      "size_bytes": 580229,
       "total_assemblies": 23,
       "completed_assemblies": 0,
       "partial_assemblies": 23,
@@ -128,10 +128,10 @@
       "display_name": "U298",
       "file_name": "U298PL.xlsx",
       "file_path": "data/U298.json",
-      "size_bytes": 2049688,
+      "size_bytes": 2058574,
       "total_assemblies": 664,
-      "completed_assemblies": 214,
-      "partial_assemblies": 125,
+      "completed_assemblies": 216,
+      "partial_assemblies": 123,
       "not_received_assemblies": 325
     },
     {
@@ -139,10 +139,10 @@
       "display_name": "U300",
       "file_name": "U300PL.xlsx",
       "file_path": "data/U300.json",
-      "size_bytes": 1054844,
+      "size_bytes": 1058102,
       "total_assemblies": 172,
-      "completed_assemblies": 4,
-      "partial_assemblies": 27,
+      "completed_assemblies": 7,
+      "partial_assemblies": 24,
       "not_received_assemblies": 141
     },
     {
